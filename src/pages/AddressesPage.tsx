@@ -223,7 +223,7 @@ export default function AddressesPage() {
               dataIndex: 'address',
               width: 210,
               render: (value: string, row) => (
-                <Space direction="vertical" size={0}>
+                <Space orientation="vertical" size={0}>
                   <CopyText value={value} />
                   {row.memo ? <small>Memo: {row.memo}</small> : null}
                 </Space>

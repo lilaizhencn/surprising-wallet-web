@@ -178,7 +178,7 @@ export default function WebhooksPage() {
             {
               title: 'Endpoint',
               render: (_, row) => (
-                <Space direction="vertical" size={0}>
+                <Space orientation="vertical" size={0}>
                   <Typography.Text strong>{row.name}</Typography.Text>
                   <Typography.Text type="secondary">{row.url}</Typography.Text>
                 </Space>
@@ -266,7 +266,7 @@ export default function WebhooksPage() {
           </Button>
         }
         closable={false}
-        maskClosable={false}
+        mask={{ closable: false }}
       >
         <p className="one-time-note">
           Copy this secret now. It will not be shown again.

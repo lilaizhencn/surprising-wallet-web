@@ -123,7 +123,7 @@ export default function TenantsPage() {
             {
               title: 'Tenant',
               render: (_, row) => (
-                <Space direction="vertical" size={0}>
+                <Space orientation="vertical" size={0}>
                   <Typography.Text strong>{row.name}</Typography.Text>
                   <Typography.Text type="secondary">{row.slug}</Typography.Text>
                 </Space>

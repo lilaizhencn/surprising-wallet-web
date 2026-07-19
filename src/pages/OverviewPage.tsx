@@ -182,7 +182,7 @@ export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: bool
               <Alert
                 showIcon
                 type="warning"
-                message={`${degradedWebhooks.length} endpoint${degradedWebhooks.length > 1 ? 's need' : ' needs'} attention`}
+                title={`${degradedWebhooks.length} endpoint${degradedWebhooks.length > 1 ? 's need' : ' needs'} attention`}
               />
             ) : null}
             <Table<WebhookRow>

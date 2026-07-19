@@ -177,7 +177,7 @@ export default function ApiAccessPage() {
                 title: 'Name',
                 dataIndex: 'name',
                 render: (value, row) => (
-                  <Space direction="vertical" size={0}>
+                  <Space orientation="vertical" size={0}>
                     <Typography.Text strong>{value}</Typography.Text>
                     <Typography.Text copyable type="secondary">{row.keyId}</Typography.Text>
                   </Space>
@@ -221,7 +221,7 @@ export default function ApiAccessPage() {
             <Alert
               showIcon
               type="warning"
-              message="Add at least one rule before enabling enforcement."
+              title="Add at least one rule before enabling enforcement."
             />
           ) : null}
           <div className="panel-subaction">
@@ -280,7 +280,7 @@ export default function ApiAccessPage() {
         title="API key created"
         open={Boolean(createdKey)}
         closable={false}
-        maskClosable={false}
+        mask={{ closable: false }}
         footer={
           <Button type="primary" onClick={() => setCreatedKey(undefined)}>
             I saved the secret
@@ -290,7 +290,7 @@ export default function ApiAccessPage() {
         <Alert
           showIcon
           type="success"
-          message="Copy the key ID and secret now. The secret will not be shown again."
+          title="Copy the key ID and secret now. The secret will not be shown again."
         />
         <div className="secret-fields">
           <label>Key ID</label>

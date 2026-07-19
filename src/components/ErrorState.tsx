@@ -12,7 +12,7 @@ export function ErrorState({
     <Alert
       showIcon
       type="error"
-      message="Unable to load this view"
+      title="Unable to load this view"
       description={message}
       action={onRetry ? <Button onClick={onRetry}>Retry</Button> : undefined}
     />
