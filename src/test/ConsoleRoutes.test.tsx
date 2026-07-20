@@ -229,7 +229,7 @@ describe('platform Console route', () => {
       if (!path.startsWith('/custody/platform/v1/tenants')) {
         throw new Error(`Unhandled Platform request: ${path}`);
       }
-      return jsonResponse([{
+      const tenant = {
         id: '22222222-2222-2222-2222-222222222222',
         slug: 'acme-pay',
         name: 'Acme Pay',
@@ -246,7 +246,69 @@ describe('platform Console route', () => {
         failedWebhookDeliveryCount: 0,
         createdAt: timestamp,
         updatedAt: timestamp,
-      }]);
+      };
+      if (path === `/custody/platform/v1/tenants/${tenant.id}`) {
+        return jsonResponse({
+          tenant,
+          statistics: {
+            addressCount: 2,
+            depositCount: 1,
+            withdrawalCount: 1,
+            activeWebhookCount: 1,
+            activeApiKeyCount: 1,
+            gasAccountCount: 1,
+            failedWebhookDeliveryCount: 0,
+            userCount: 1,
+            activeSessionCount: 1,
+          },
+          onboarding: {
+            apiKeyConfigured: true,
+            webhookConfigured: true,
+            ipAllowlistConfigured: true,
+            addressCreated: true,
+            gasAccountConfigured: true,
+            gasAccountFunded: true,
+            completedSteps: 6,
+            totalSteps: 6,
+            ready: true,
+          },
+          administrators: [{
+            id: '33333333-3333-3333-3333-333333333333',
+            email: 'admin@acme.test',
+            displayName: 'Acme Admin',
+            role: 'TENANT_ADMIN',
+            status: 'ACTIVE',
+            failedLoginCount: 0,
+            lockedUntil: null,
+            lastLoginAt: timestamp,
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          }],
+          assets: [{
+            chain: 'ETH',
+            assetSymbol: 'USDT',
+            availableBalance: '1250',
+            lockedBalance: '25',
+            totalBalance: '1275',
+            addressCount: 2,
+          }],
+          recentAddresses: [],
+          gasAccounts: [],
+          apiKeys: [],
+          ipRules: [],
+          webhooks: [],
+          webhookDeliveries: [],
+          recentDeposits: [],
+          recentWithdrawals: [],
+          recentAudit: [],
+        });
+      }
+      return jsonResponse({
+        items: [tenant],
+        total: 1,
+        limit: 20,
+        offset: 0,
+      });
     }));
   });
   afterEach(() => clearSession());
@@ -261,5 +323,25 @@ describe('platform Console route', () => {
     expect(await screen.findByRole('heading', { name: 'Tenants', level: 1 }))
       .toBeInTheDocument();
     expect(await screen.findByText('Acme Pay')).toBeInTheDocument();
+  }, 15_000);
+
+  it('renders the complete platform tenant detail route', async () => {
+    render(
+      <MemoryRouter initialEntries={[
+        '/platform/tenants/22222222-2222-2222-2222-222222222222',
+      ]}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole(
+      'heading',
+      { name: 'Acme Pay', level: 1 },
+      { timeout: 15_000 },
+    ))
+      .toBeInTheDocument();
+    expect(await screen.findByText('Acme Admin')).toBeInTheDocument();
+    expect(await screen.findByText('1,250')).toBeInTheDocument();
+    expect(await screen.findByText('Integration readiness')).toBeInTheDocument();
   }, 15_000);
 });

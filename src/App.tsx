@@ -14,6 +14,7 @@ const WebhooksPage = lazy(() => import('./pages/WebhooksPage'));
 const ApiAccessPage = lazy(() => import('./pages/ApiAccessPage'));
 const AuditPage = lazy(() => import('./pages/AuditPage'));
 const TenantsPage = lazy(() => import('./pages/TenantsPage'));
+const TenantDetailPage = lazy(() => import('./pages/TenantDetailPage'));
 
 function RouteFallback() {
   return (
@@ -48,6 +49,7 @@ export default function App() {
             <Route path="/platform" element={<ConsoleShell accountType="platform" />}>
               <Route index element={<Navigate to="tenants" replace />} />
               <Route path="tenants" element={<TenantsPage />} />
+              <Route path="tenants/:tenantId" element={<TenantDetailPage />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

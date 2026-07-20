@@ -48,6 +48,10 @@ export function ConsoleShell({ accountType }: { accountType: AccountType }) {
   const navigate = useNavigate();
   const { message } = App.useApp();
   const items = accountType === 'platform' ? platformItems : tenantItems;
+  const selectedMenuKey = accountType === 'platform'
+    && location.pathname.startsWith('/platform/tenants')
+    ? '/platform/tenants'
+    : location.pathname;
   const initials = (session?.displayName || session?.email || 'A')
     .split(/\s+/)
     .map((part) => part[0])
@@ -97,7 +101,7 @@ export function ConsoleShell({ accountType }: { accountType: AccountType }) {
         </div>
         <Menu
           mode="inline"
-          selectedKeys={[location.pathname]}
+          selectedKeys={[selectedMenuKey]}
           items={items}
           onClick={({ key }) => navigate(key)}
         />

@@ -2,44 +2,34 @@ import { useState } from 'react';
 import {
   App,
   Button,
-  Descriptions,
-  Drawer,
   Empty,
   Form,
   Input,
   Modal,
-  Popconfirm,
+  Select,
   Space,
   Table,
   Typography,
 } from 'antd';
-import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
+import {
+  EyeOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+  SearchOutlined,
+} from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useSession } from '../auth/session';
 import { ErrorState } from '../components/ErrorState';
 import { PageHeader } from '../components/PageHeader';
 import { StatusText } from '../components/StatusText';
 import { useApiQuery } from '../hooks/useApiQuery';
-import { formatDate } from '../utils/format';
-
-type Tenant = {
-  id: string;
-  slug: string;
-  name: string;
-  status: 'ACTIVE' | 'SUSPENDED';
-  derivationNamespace: number;
-  ipAllowlistEnabled: boolean;
-  displayCurrency: string;
-  addressCount: number;
-  depositCount: number;
-  withdrawalCount: number;
-  activeWebhookCount: number;
-  activeApiKeyCount: number;
-  gasAccountCount: number;
-  failedWebhookDeliveryCount: number;
-  createdAt: string;
-  updatedAt: string;
-};
+import type {
+  TenantPageResponse,
+  TenantStatus,
+  TenantSummary,
+} from '../types/platform';
+import { formatDate, queryString } from '../utils/format';
 
 type TenantForm = {
   slug: string;
@@ -49,30 +39,49 @@ type TenantForm = {
   adminPassword: string;
 };
 
+const PAGE_SIZE = 20;
+
 export default function TenantsPage() {
   const session = useSession();
+  const navigate = useNavigate();
   const { message } = App.useApp();
   const [form] = Form.useForm<TenantForm>();
   const [createOpen, setCreateOpen] = useState(false);
-  const [selected, setSelected] = useState<Tenant>();
   const [saving, setSaving] = useState(false);
+  const [searchDraft, setSearchDraft] = useState('');
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState<TenantStatus | ''>('');
+  const [page, setPage] = useState(1);
 
-  const query = useApiQuery<Tenant[]>(
+  const query = useApiQuery<TenantPageResponse>(
     (signal) => session
-      ? api.get('/custody/platform/v1/tenants?limit=200', session.token, signal)
-      : Promise.resolve([]),
-    [session?.token],
+      ? api.get(
+        `/custody/platform/v1/tenants${queryString({
+          search,
+          status,
+          limit: PAGE_SIZE,
+          offset: (page - 1) * PAGE_SIZE,
+        })}`,
+        session.token,
+        signal,
+      )
+      : Promise.resolve({ items: [], total: 0, limit: PAGE_SIZE, offset: 0 }),
+    [session?.token, search, status, page],
   );
 
   const create = async (values: TenantForm) => {
     if (!session) return;
     setSaving(true);
     try {
-      await api.post('/custody/platform/v1/tenants', session.token, values);
+      const tenant = await api.post<TenantSummary>(
+        '/custody/platform/v1/tenants',
+        session.token,
+        values,
+      );
       await message.success('Tenant created');
       setCreateOpen(false);
       form.resetFields();
-      query.refetch();
+      navigate(`/platform/tenants/${tenant.id}`);
     } catch (error) {
       void message.error(error instanceof Error ? error.message : 'Unable to create tenant');
     } finally {
@@ -80,28 +89,20 @@ export default function TenantsPage() {
     }
   };
 
-  const changeStatus = async (tenant: Tenant) => {
-    if (!session) return;
-    const status = tenant.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
-    try {
-      const updated = await api.patch<Tenant>(
-        `/custody/platform/v1/tenants/${tenant.id}/status`,
-        session.token,
-        { status },
-      );
-      await message.success(`Tenant ${status === 'ACTIVE' ? 'activated' : 'suspended'}`);
-      setSelected({ ...tenant, ...updated });
-      query.refetch();
-    } catch (error) {
-      void message.error(error instanceof Error ? error.message : 'Unable to change tenant status');
-    }
+  const openTenant = (tenantId: string) => {
+    navigate(`/platform/tenants/${tenantId}`);
+  };
+
+  const applySearch = (value: string) => {
+    setPage(1);
+    setSearch(value.trim());
   };
 
   return (
     <div className="page-stack">
       <PageHeader
         title="Tenants"
-        description="Create and control isolated custody customers without exposing seed material."
+        description="Create, find, inspect, and control every isolated custody customer."
         actions={
           <Space>
             <Button icon={<ReloadOutlined />} onClick={query.refetch}>Reload</Button>
@@ -111,17 +112,51 @@ export default function TenantsPage() {
           </Space>
         }
       />
+
+      <section className="data-panel tenant-filter-panel">
+        <Input.Search
+          aria-label="Search tenants"
+          allowClear
+          value={searchDraft}
+          prefix={<SearchOutlined />}
+          placeholder="Search by tenant name or slug"
+          enterButton="Search"
+          onChange={(event) => setSearchDraft(event.target.value)}
+          onSearch={applySearch}
+        />
+        <Select<TenantStatus | ''>
+          aria-label="Filter tenant status"
+          value={status}
+          options={[
+            { value: '', label: 'All statuses' },
+            { value: 'ACTIVE', label: 'Active' },
+            { value: 'SUSPENDED', label: 'Suspended' },
+          ]}
+          onChange={(value) => {
+            setPage(1);
+            setStatus(value);
+          }}
+        />
+      </section>
+
       <ErrorState message={query.error} onRetry={query.refetch} />
       <section className="data-panel">
-        <Table<Tenant>
+        <Table<TenantSummary>
           rowKey="id"
           loading={query.loading}
-          dataSource={query.data ?? []}
-          locale={{ emptyText: <Empty description="No tenants created" /> }}
-          pagination={{ pageSize: 20 }}
-          onRow={(row) => ({ onClick: () => setSelected(row) })}
+          dataSource={query.data?.items ?? []}
+          locale={{ emptyText: <Empty description="No tenants match these filters" /> }}
+          pagination={{
+            current: page,
+            pageSize: PAGE_SIZE,
+            total: query.data?.total ?? 0,
+            showSizeChanger: false,
+            showTotal: (total) => `${total} tenants`,
+          }}
+          onChange={(pagination) => setPage(pagination.current ?? 1)}
+          onRow={(row) => ({ onClick: () => openTenant(row.id) })}
           rowClassName="clickable-row"
-          scroll={{ x: 1080 }}
+          scroll={{ x: 1120 }}
           columns={[
             {
               title: 'Tenant',
@@ -133,7 +168,6 @@ export default function TenantsPage() {
               ),
             },
             { title: 'Status', dataIndex: 'status', render: (value) => <StatusText value={value} /> },
-            { title: 'Namespace', dataIndex: 'derivationNamespace' },
             { title: 'Addresses', dataIndex: 'addressCount', align: 'right' },
             { title: 'Deposits', dataIndex: 'depositCount', align: 'right' },
             { title: 'Withdrawals', dataIndex: 'withdrawalCount', align: 'right' },
@@ -159,6 +193,22 @@ export default function TenantsPage() {
               render: (value: number) => value || '—',
             },
             { title: 'Created', dataIndex: 'createdAt', render: formatDate },
+            {
+              title: '',
+              fixed: 'right',
+              width: 70,
+              render: (_, row) => (
+                <Button
+                  type="text"
+                  aria-label={`View ${row.name}`}
+                  icon={<EyeOutlined />}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    openTenant(row.id);
+                  }}
+                />
+              ),
+            },
           ]}
         />
       </section>
@@ -178,6 +228,7 @@ export default function TenantsPage() {
           <Form.Item
             name="slug"
             label="Tenant slug"
+            extra="This stable integration identifier cannot be changed later."
             rules={[
               { required: true },
               {
@@ -193,7 +244,7 @@ export default function TenantsPage() {
             label="Tenant admin email"
             rules={[{ required: true }, { type: 'email' }]}
           >
-            <Input />
+            <Input autoComplete="email" />
           </Form.Item>
           <Form.Item name="adminDisplayName" label="Admin display name" rules={[{ required: true }]}>
             <Input />
@@ -207,61 +258,6 @@ export default function TenantsPage() {
           </Form.Item>
         </Form>
       </Modal>
-
-      <Drawer
-        title={selected?.name}
-        size={420}
-        open={Boolean(selected)}
-        onClose={() => setSelected(undefined)}
-      >
-        {selected ? (
-          <>
-            <Descriptions column={1} bordered size="small">
-              <Descriptions.Item label="Slug">{selected.slug}</Descriptions.Item>
-              <Descriptions.Item label="Status"><StatusText value={selected.status} /></Descriptions.Item>
-              <Descriptions.Item label="Derivation namespace">
-                {selected.derivationNamespace}
-              </Descriptions.Item>
-              <Descriptions.Item label="IP allowlist">
-                {selected.ipAllowlistEnabled ? 'Enforced' : 'Off'}
-              </Descriptions.Item>
-              <Descriptions.Item label="Addresses">{selected.addressCount}</Descriptions.Item>
-              <Descriptions.Item label="Deposits">{selected.depositCount}</Descriptions.Item>
-              <Descriptions.Item label="Withdrawals">{selected.withdrawalCount}</Descriptions.Item>
-              <Descriptions.Item label="Active API keys">
-                {selected.activeApiKeyCount}
-              </Descriptions.Item>
-              <Descriptions.Item label="Active webhooks">
-                {selected.activeWebhookCount}
-              </Descriptions.Item>
-              <Descriptions.Item label="Gas reserves">
-                {selected.gasAccountCount}
-              </Descriptions.Item>
-              <Descriptions.Item label="Failed Webhook deliveries">
-                {selected.failedWebhookDeliveryCount}
-              </Descriptions.Item>
-              <Descriptions.Item label="Created">{formatDate(selected.createdAt)}</Descriptions.Item>
-              <Descriptions.Item label="Updated">{formatDate(selected.updatedAt)}</Descriptions.Item>
-            </Descriptions>
-            <div className="drawer-danger-zone">
-              <h3>Tenant controls</h3>
-              <Popconfirm
-                title={selected.status === 'ACTIVE' ? 'Suspend this tenant?' : 'Activate this tenant?'}
-                description={
-                  selected.status === 'ACTIVE'
-                    ? 'All API requests and tenant Console sessions will be rejected.'
-                    : 'Tenant credentials and Console access will become active again.'
-                }
-                onConfirm={() => void changeStatus(selected)}
-              >
-                <Button danger={selected.status === 'ACTIVE'}>
-                  {selected.status === 'ACTIVE' ? 'Suspend tenant' : 'Activate tenant'}
-                </Button>
-              </Popconfirm>
-            </div>
-          </>
-        ) : null}
-      </Drawer>
     </div>
   );
 }
