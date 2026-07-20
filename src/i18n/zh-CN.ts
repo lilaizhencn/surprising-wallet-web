@@ -240,6 +240,8 @@ const messages: Record<string, string> = {
   'Runtime currency ID': '运行时币种 ID',
   'BIP44 coin type': 'BIP44 币种类型',
   'Chain ID': 'Chain ID',
+  'EVM Chain ID': 'EVM Chain ID',
+  'Not applicable for this chain family': '不适用于该链类型',
   'Deposit confirmations': '充值确认数',
   'Withdraw confirmations': '提现确认数',
   'Default fee rate': '默认手续费率',

@@ -564,6 +564,14 @@ describe('platform Console route', () => {
     expect(screen.queryByRole('menuitem', { name: /^Tokens$/ })).not.toBeInTheDocument();
   }, 15_000);
 
+  it('loads the selected network chain ID into the edit form', async () => {
+    const user = userEvent.setup();
+    render(<MemoryRouter initialEntries={['/platform/wallet-config/chains/1']}><App /></MemoryRouter>);
+
+    await user.click(await screen.findByRole('button', { name: /Edit network profile/ }));
+    expect(await screen.findByRole('spinbutton', { name: 'EVM Chain ID' })).toHaveDisplayValue('31337');
+  }, 15_000);
+
   it.each([
     ['/platform/wallet-config/chains', 'Chains & Tokens', 'devnet'],
     ['/platform/wallet-config/chains/1', 'ETH', 'Local Hardhat'],

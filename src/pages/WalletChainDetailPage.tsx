@@ -112,6 +112,11 @@ export default function WalletChainDetailPage() {
 
   useEffect(() => {
     if (!query.data?.chain) return;
+    switchForm.setFieldsValue(query.data.chain);
+  }, [switchForm, query.data?.chain]);
+
+  useEffect(() => {
+    if (!editChain || !query.data?.chain) return;
     const chain = query.data.chain;
     chainForm.setFieldsValue({
       ...chain,
@@ -121,8 +126,7 @@ export default function WalletChainDetailPage() {
       defaultFeeRate: chain.defaultFeeRate ?? undefined,
       dustThreshold: chain.dustThreshold ?? undefined,
     });
-    switchForm.setFieldsValue(chain);
-  }, [chainForm, switchForm, query.data?.chain]);
+  }, [chainForm, editChain, query.data?.chain]);
 
   const refetchAll = () => {
     query.refetch();
@@ -391,7 +395,9 @@ export default function WalletChainDetailPage() {
               <Descriptions.Item label={t('Native asset')}>
                 <span className="inline-asset"><AssetLogo symbol={data.chain.nativeSymbol} size={20} />{data.chain.nativeSymbol}</span>
               </Descriptions.Item>
-              <Descriptions.Item label={t('Chain ID')}>{emptyValue(data.chain.chainId)}</Descriptions.Item>
+              <Descriptions.Item label={t('EVM Chain ID')}>
+                {data.chain.chainId ?? t('Not applicable for this chain family')}
+              </Descriptions.Item>
               <Descriptions.Item label={t('Runtime currency ID')}>{data.chain.runtimeCurrencyId}</Descriptions.Item>
               <Descriptions.Item label={t('BIP44 coin type')}>{data.chain.bip44CoinType}</Descriptions.Item>
               <Descriptions.Item label={t('Deposit confirmations')}>{data.chain.depositConfirmations}</Descriptions.Item>

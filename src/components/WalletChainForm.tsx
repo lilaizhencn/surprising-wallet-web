@@ -27,6 +27,8 @@ export type WalletChainFormValues = {
 
 export function WalletChainForm({ switches = true }: { switches?: boolean }) {
   const { t } = useI18n();
+  const family = Form.useWatch<string>('family');
+  const supportsEvmChainId = family?.toLowerCase() === 'evm';
   const required = [{ required: true, message: t('Required') }];
   const switchLabels: Record<string, string> = {
     enabled: t('Enabled'), scanEnabled: t('Scanning'), withdrawEnabled: t('Withdrawals'),
@@ -45,7 +47,16 @@ export function WalletChainForm({ switches = true }: { switches?: boolean }) {
         <Col span={8}><Form.Item name="bip44CoinType" label={t('BIP44 coin type')} rules={required}><InputNumber min={0} className="full-width" /></Form.Item></Col>
       </Row>
       <Row gutter={16}>
-        <Col span={8}><Form.Item name="chainId" label={t('Chain ID')}><InputNumber min={0} className="full-width" /></Form.Item></Col>
+        <Col span={8}>
+          <Form.Item name="chainId" label={t('EVM Chain ID')}>
+            <InputNumber
+              min={0}
+              disabled={!supportsEvmChainId}
+              placeholder={supportsEvmChainId ? undefined : t('Not applicable for this chain family')}
+              className="full-width"
+            />
+          </Form.Item>
+        </Col>
         <Col span={8}><Form.Item name="depositConfirmations" label={t('Deposit confirmations')} rules={required}><InputNumber min={0} className="full-width" /></Form.Item></Col>
         <Col span={8}><Form.Item name="withdrawConfirmations" label={t('Withdraw confirmations')} rules={required}><InputNumber min={0} className="full-width" /></Form.Item></Col>
       </Row>
