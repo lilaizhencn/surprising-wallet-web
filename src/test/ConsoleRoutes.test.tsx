@@ -290,6 +290,99 @@ describe('platform Console route', () => {
           generatedAt: timestamp,
         });
       }
+      const chain = {
+        id: 1,
+        chain: 'ETH',
+        network: 'devnet',
+        family: 'EVM',
+        runtimeCurrencyId: 60,
+        bip44CoinType: 60,
+        nativeSymbol: 'ETH',
+        explorerUrl: null,
+        depositConfirmations: 2,
+        withdrawConfirmations: 2,
+        defaultFeeRate: null,
+        dustThreshold: null,
+        enabled: true,
+        chainId: 31337,
+        gasPolicy: null,
+        scanBatchSize: 100,
+        scanEnabled: true,
+        withdrawEnabled: true,
+        collectionEnabled: false,
+        transferEnabled: true,
+        scanStartHeight: 0,
+        scanMaxBlocksPerRun: 100,
+        tokenSymbols: ['USDT'],
+        tokenCount: 1,
+        rpcCount: 1,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      };
+      const token = {
+        id: 4,
+        chain: 'ETH',
+        network: 'devnet',
+        symbol: 'USDT',
+        standard: 'ERC20',
+        contractAddress: '0x1111111111111111111111111111111111111111',
+        decimals: 6,
+        enabled: true,
+        collectEnabled: true,
+        assetActive: true,
+        chainEnabled: true,
+        effectiveEnabled: true,
+        blockers: [],
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      };
+      if (path === '/custody/platform/v1/wallet-config/chains') {
+        return jsonResponse([chain]);
+      }
+      if (path === '/custody/platform/v1/wallet-config/chains/1') {
+        return jsonResponse({
+          chain,
+          rpcNodes: [{
+            id: 3,
+            environment: 'test2',
+            nodeLabel: 'Local Hardhat',
+            purpose: 'rpc',
+            connectionType: 'HTTP_JSON_RPC',
+            rpcUrl: 'http://127.0.0.1:8545',
+            authType: 'NONE',
+            apiKeyConfigured: false,
+            usernameConfigured: false,
+            passwordConfigured: false,
+            priority: 10,
+            minRequestIntervalMs: 0,
+            enabled: true,
+            lastCheckedAt: timestamp,
+            lastLatencyMs: 15,
+            lastHttpStatus: 200,
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          }],
+          tokens: [token],
+          checks: [],
+          production: false,
+          environment: 'test2',
+        });
+      }
+      if (path === '/custody/platform/v1/wallet-config/tokens/matrix') {
+        return jsonResponse([token]);
+      }
+      if (path.startsWith('/custody/platform/v1/wallet-config/audit-log')) {
+        return jsonResponse([{
+          id: '99999999-9999-9999-9999-999999999999',
+          actorType: 'PLATFORM_USER',
+          actorId: '33333333-3333-3333-3333-333333333333',
+          action: 'WALLET_RPC.UPDATE',
+          resourceType: 'CHAIN_RPC_NODE',
+          resourceId: '3',
+          details: '{}',
+          createdAt: timestamp,
+        }]);
+      }
       if (!path.startsWith('/custody/platform/v1/tenants')) {
         throw new Error(`Unhandled Platform request: ${path}`);
       }
@@ -436,5 +529,16 @@ describe('platform Console route', () => {
     expect((await screen.findAllByText('ETH')).length).toBeGreaterThan(0);
     expect(await screen.findByText('USDC does not declare its network.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Save switches/ })).toBeDisabled();
+  }, 15_000);
+
+  it.each([
+    ['/platform/wallet-config/chains', 'Chains & RPC', 'devnet'],
+    ['/platform/wallet-config/chains/1', 'ETH · devnet', 'Local Hardhat'],
+    ['/platform/wallet-config/tokens', 'Token management', 'USDT'],
+    ['/platform/wallet-config/audit-log', 'Wallet configuration audit', 'WALLET_RPC.UPDATE'],
+  ])('renders %s from platform wallet APIs', async (route, heading, record) => {
+    render(<MemoryRouter initialEntries={[route]}><App /></MemoryRouter>);
+    expect(await screen.findByRole('heading', { name: heading, level: 1 })).toBeInTheDocument();
+    expect((await screen.findAllByText(record)).length).toBeGreaterThan(0);
   }, 15_000);
 });

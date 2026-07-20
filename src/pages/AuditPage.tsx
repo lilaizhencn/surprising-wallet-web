@@ -20,11 +20,13 @@ type AuditRow = {
   createdAt: string;
 };
 
-export default function AuditPage() {
+export default function AuditPage({ platform = false }: { platform?: boolean }) {
   const session = useSession();
   const query = useApiQuery<AuditRow[]>(
     (signal) => session
-      ? api.get('/custody/console/v1/audit-log?limit=200', session.token, signal)
+      ? api.get(platform
+        ? '/custody/platform/v1/wallet-config/audit-log?limit=200'
+        : '/custody/console/v1/audit-log?limit=200', session.token, signal)
       : Promise.resolve([]),
     [session?.token],
   );
@@ -32,8 +34,10 @@ export default function AuditPage() {
   return (
     <div className="page-stack">
       <PageHeader
-        title="Audit log"
-        description="Tenant security and operational changes recorded with actor and source context."
+        title={platform ? 'Wallet configuration audit' : 'Audit log'}
+        description={platform
+          ? 'Platform wallet configuration changes recorded with actor and source context.'
+          : 'Tenant security and operational changes recorded with actor and source context.'}
         actions={<Button icon={<ReloadOutlined />} onClick={query.refetch}>Reload</Button>}
       />
       <ErrorState message={query.error} onRetry={query.refetch} />

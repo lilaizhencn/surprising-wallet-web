@@ -74,6 +74,95 @@ export type WalletConfigSummary = {
   generatedAt: string;
 };
 
+export type WalletChain = {
+  id: number;
+  chain: string;
+  network: string;
+  family: string;
+  runtimeCurrencyId: number;
+  bip44CoinType: number;
+  nativeSymbol: string;
+  explorerUrl?: string | null;
+  depositConfirmations: number;
+  withdrawConfirmations: number;
+  defaultFeeRate?: number | null;
+  dustThreshold?: number | null;
+  enabled: boolean;
+  chainId?: number | null;
+  gasPolicy?: string | null;
+  scanBatchSize: number;
+  scanEnabled: boolean;
+  withdrawEnabled: boolean;
+  collectionEnabled: boolean;
+  transferEnabled: boolean;
+  scanStartHeight: number;
+  scanMaxBlocksPerRun: number;
+  tokenSymbols: string[];
+  tokenCount: number;
+  rpcCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type WalletRpcNode = {
+  id: number;
+  environment: string;
+  nodeLabel: string;
+  purpose: string;
+  connectionType: string;
+  rpcUrl: string;
+  authType: string;
+  authHeaderName?: string | null;
+  apiKeyConfigured: boolean;
+  usernameConfigured: boolean;
+  passwordConfigured: boolean;
+  priority: number;
+  minRequestIntervalMs: number;
+  enabled: boolean;
+  renewalDueAt?: string | null;
+  remark?: string | null;
+  lastCheckedAt?: string | null;
+  lastLatencyMs?: number | null;
+  lastHttpStatus?: number | null;
+  lastError?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type WalletToken = {
+  id: number;
+  chain: string;
+  network: string;
+  symbol: string;
+  standard: string;
+  contractAddress: string;
+  contractAddressBase58?: string | null;
+  contractAddressHex?: string | null;
+  decimals: number;
+  enabled: boolean;
+  collectEnabled: boolean;
+  minDeposit?: string | null;
+  minWithdraw?: string | null;
+  collectThreshold?: string | null;
+  gasStrategy?: string | null;
+  confirmationRequired?: number | null;
+  assetActive: boolean;
+  chainEnabled: boolean;
+  effectiveEnabled: boolean;
+  blockers: string[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type WalletChainDetail = {
+  chain: WalletChain;
+  rpcNodes: WalletRpcNode[];
+  tokens: WalletToken[];
+  checks: string[];
+  production: boolean;
+  environment: string;
+};
+
 export type TenantSummary = {
   id: string;
   slug: string;

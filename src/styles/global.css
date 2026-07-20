@@ -734,6 +734,10 @@ a {
   margin: 0 auto;
 }
 
+.full-width {
+  width: 100%;
+}
+
 .page-header {
   display: flex;
   min-height: 62px;

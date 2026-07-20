@@ -39,6 +39,9 @@ const tenantItems = [
 
 const platformItems = [
   { key: '/platform/wallet-config', icon: <DashboardOutlined />, label: 'Wallet config' },
+  { key: '/platform/wallet-config/chains', icon: <GlobalOutlined />, label: 'Chains & RPC' },
+  { key: '/platform/wallet-config/tokens', icon: <BankOutlined />, label: 'Tokens' },
+  { key: '/platform/wallet-config/audit-log', icon: <AuditOutlined />, label: 'Config audit' },
   { key: '/platform/tenants', icon: <TeamOutlined />, label: 'Tenants' },
   { key: '/platform/wallet-keys', icon: <KeyOutlined />, label: 'Wallet keys' },
 ];
@@ -52,7 +55,9 @@ export function ConsoleShell({ accountType }: { accountType: AccountType }) {
   const { message } = App.useApp();
   const items = accountType === 'platform' ? platformItems : tenantItems;
   const selectedMenuKey = accountType === 'platform'
-    ? platformItems.find((item) => location.pathname.startsWith(item.key))?.key ?? location.pathname
+    ? [...platformItems]
+      .sort((left, right) => right.key.length - left.key.length)
+      .find((item) => location.pathname.startsWith(item.key))?.key ?? location.pathname
     : location.pathname;
   const initials = (session?.displayName || session?.email || 'A')
     .split(/\s+/)

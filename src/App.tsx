@@ -17,6 +17,9 @@ const TenantsPage = lazy(() => import('./pages/TenantsPage'));
 const TenantDetailPage = lazy(() => import('./pages/TenantDetailPage'));
 const WalletKeysPage = lazy(() => import('./pages/WalletKeysPage'));
 const WalletConfigOverviewPage = lazy(() => import('./pages/WalletConfigOverviewPage'));
+const WalletChainsPage = lazy(() => import('./pages/WalletChainsPage'));
+const WalletChainDetailPage = lazy(() => import('./pages/WalletChainDetailPage'));
+const WalletTokensPage = lazy(() => import('./pages/WalletTokensPage'));
 
 function RouteFallback() {
   return (
@@ -51,6 +54,10 @@ export default function App() {
             <Route path="/platform" element={<ConsoleShell accountType="platform" />}>
               <Route index element={<Navigate to="wallet-config" replace />} />
               <Route path="wallet-config" element={<WalletConfigOverviewPage />} />
+              <Route path="wallet-config/chains" element={<WalletChainsPage />} />
+              <Route path="wallet-config/chains/:chainId" element={<WalletChainDetailPage />} />
+              <Route path="wallet-config/tokens" element={<WalletTokensPage />} />
+              <Route path="wallet-config/audit-log" element={<AuditPage platform />} />
               <Route path="tenants" element={<TenantsPage />} />
               <Route path="tenants/:tenantId" element={<TenantDetailPage />} />
               <Route path="wallet-keys" element={<WalletKeysPage />} />
