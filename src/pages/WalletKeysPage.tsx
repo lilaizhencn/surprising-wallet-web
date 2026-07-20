@@ -102,7 +102,6 @@ export default function WalletKeysPage() {
               layout="vertical"
               requiredMark={false}
               onFinish={save}
-              disabled={query.data?.locked}
             >
               {fields.map((field) => (
                 <Form.Item
@@ -126,7 +125,12 @@ export default function WalletKeysPage() {
                     },
                   ]}
                 >
-                  <Input.Password visibilityToggle autoComplete="off" placeholder={t('Base64-encoded 32-byte seed')} />
+                  <Input.Password
+                    visibilityToggle
+                    readOnly={query.data?.locked}
+                    autoComplete="off"
+                    placeholder={t('Base64-encoded 32-byte seed')}
+                  />
                 </Form.Item>
               ))}
               <Button

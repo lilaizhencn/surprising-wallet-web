@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../App';
@@ -229,7 +230,7 @@ describe('platform Console route', () => {
       if (path === '/custody/platform/v1/wallet-config/keyset') {
         return jsonResponse({
           configured: true,
-          locked: false,
+          locked: true,
           sig1Seed: 'AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
           sig2Seed: 'AgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
           recoverySeed: 'AwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
@@ -502,7 +503,8 @@ describe('platform Console route', () => {
     expect(await screen.findByText('Integration readiness')).toBeInTheDocument();
   }, 15_000);
 
-  it('renders the atomic wallet keyset page', async () => {
+  it('keeps a locked wallet keyset viewable but not editable', async () => {
+    const user = userEvent.setup();
     render(
       <MemoryRouter initialEntries={['/platform/wallet-keys']}>
         <App />
@@ -512,8 +514,12 @@ describe('platform Console route', () => {
     expect(await screen.findByRole('heading', { name: 'Wallet keys', level: 1 }))
       .toBeInTheDocument();
     expect(await screen.findByText('Configured')).toBeInTheDocument();
-    expect(screen.getByLabelText('Sig1 BIP32 Seed')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Save all four seeds/ })).toBeEnabled();
+    const sig1Seed = screen.getByLabelText('Sig1 BIP32 Seed');
+    expect(sig1Seed).toHaveAttribute('readonly');
+    expect(sig1Seed).toHaveAttribute('type', 'password');
+    await user.click(screen.getAllByRole('img', { name: 'eye-invisible' })[0]);
+    expect(sig1Seed).toHaveAttribute('type', 'text');
+    expect(screen.getByRole('button', { name: /Save all four seeds/ })).toBeDisabled();
   }, 15_000);
 
   it('renders wallet configuration health and effective runtime state', async () => {
