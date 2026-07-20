@@ -30,6 +30,7 @@ import { ErrorState } from '../components/ErrorState';
 import { PageHeader } from '../components/PageHeader';
 import { StatusText } from '../components/StatusText';
 import { useApiQuery } from '../hooks/useApiQuery';
+import { useI18n } from '../i18n';
 import { formatDate, queryString } from '../utils/format';
 
 type Endpoint = {
@@ -89,6 +90,7 @@ const eventOptions = [
 export default function WebhooksPage() {
   const session = useSession();
   const { message } = App.useApp();
+  const { t } = useI18n();
   const [form] = Form.useForm<EndpointForm>();
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -141,7 +143,7 @@ export default function WebhooksPage() {
       form.resetFields();
       endpoints.refetch();
     } catch (error) {
-      void message.error(error instanceof Error ? error.message : 'Unable to create endpoint');
+      void message.error(error instanceof Error ? error.message : t('Unable to create endpoint'));
     } finally {
       setCreating(false);
     }
@@ -151,10 +153,10 @@ export default function WebhooksPage() {
     if (!session) return;
     try {
       await api.post(`/custody/console/v1/webhooks/${endpoint.id}/verify`, session.token);
-      await message.success('Endpoint verified and activated');
+      await message.success(t('Endpoint verified and activated'));
       endpoints.refetch();
     } catch (error) {
-      void message.error(error instanceof Error ? error.message : 'Verification failed');
+      void message.error(error instanceof Error ? error.message : t('Verification failed'));
     }
   };
 
@@ -166,7 +168,7 @@ export default function WebhooksPage() {
       });
       endpoints.refetch();
     } catch (error) {
-      void message.error(error instanceof Error ? error.message : 'Unable to change endpoint');
+      void message.error(error instanceof Error ? error.message : t('Unable to change endpoint'));
     }
   };
 
@@ -178,11 +180,11 @@ export default function WebhooksPage() {
         `/custody/console/v1/webhook-deliveries/${delivery.id}/retry`,
         session.token,
       );
-      await message.success('Delivery queued for retry');
+      await message.success(t('Delivery queued for retry'));
       deliveries.refetch();
       attempts.refetch();
     } catch (error) {
-      void message.error(error instanceof Error ? error.message : 'Unable to retry delivery');
+      void message.error(error instanceof Error ? error.message : t('Unable to retry delivery'));
     } finally {
       setRetryingId(undefined);
     }
@@ -191,29 +193,29 @@ export default function WebhooksPage() {
   return (
     <div className="page-stack">
       <PageHeader
-        title="Webhooks"
-        description="Verify endpoints, subscribe to custody events, and inspect every delivery attempt."
+        title={t('Webhooks')}
+        description={t('Verify endpoints, subscribe to custody events, and inspect every delivery attempt.')}
         actions={
           <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
-            Add endpoint
+            {t('Add endpoint')}
           </Button>
         }
       />
       <ErrorState message={endpoints.error} onRetry={endpoints.refetch} />
       <section className="data-panel">
         <div className="panel-heading">
-          <h2>Endpoints</h2>
-          <Button icon={<ReloadOutlined />} onClick={endpoints.refetch}>Reload</Button>
+          <h2>{t('Endpoints')}</h2>
+          <Button icon={<ReloadOutlined />} onClick={endpoints.refetch}>{t('Reload')}</Button>
         </div>
         <Table<Endpoint>
           rowKey="id"
           loading={endpoints.loading}
           dataSource={endpoints.data ?? []}
-          locale={{ emptyText: <Empty description="No webhook endpoint configured" /> }}
+          locale={{ emptyText: <Empty description={t('No webhook endpoint configured')} /> }}
           scroll={{ x: 1080 }}
           columns={[
             {
-              title: 'Endpoint',
+              title: t('Endpoint'),
               render: (_, row) => (
                 <Space orientation="vertical" size={0}>
                   <Typography.Text strong>{row.name}</Typography.Text>
@@ -222,19 +224,19 @@ export default function WebhooksPage() {
               ),
             },
             {
-              title: 'Events',
+              title: t('Events'),
               dataIndex: 'events',
-              render: (values: string[]) => `${values.length} subscribed`,
+              render: (values: string[]) => t('{count} subscribed', { count: values.length }),
             },
-            { title: 'Status', dataIndex: 'status', render: (value) => <StatusText value={value} /> },
+            { title: t('Status'), dataIndex: 'status', render: (value) => <StatusText value={value} /> },
             {
-              title: 'Success (24h)',
+              title: t('Success (24h)'),
               dataIndex: 'successRate24h',
               render: (value?: number) => value === null || value === undefined ? '—' : `${value.toFixed(1)}%`,
             },
-            { title: 'Last delivery', dataIndex: 'lastDeliveryAt', render: formatDate },
+            { title: t('Last delivery'), dataIndex: 'lastDeliveryAt', render: formatDate },
             {
-              title: 'Enabled',
+              title: t('Enabled'),
               render: (_, row) => (
                 <Switch
                   checked={row.status === 'ACTIVE'}
@@ -244,16 +246,16 @@ export default function WebhooksPage() {
               ),
             },
             {
-              title: 'Actions',
+              title: t('Actions'),
               fixed: 'right',
               render: (_, row) => (
                 <Space>
                   {row.status === 'PENDING_VERIFICATION' ? (
                     <Button icon={<CheckCircleOutlined />} onClick={() => void verify(row)}>
-                      Verify
+                      {t('Verify')}
                     </Button>
                   ) : null}
-                  <Button onClick={() => setDeliveryEndpoint(row)}>Deliveries</Button>
+                  <Button onClick={() => setDeliveryEndpoint(row)}>{t('Deliveries')}</Button>
                 </Space>
               ),
             },
@@ -262,35 +264,35 @@ export default function WebhooksPage() {
       </section>
 
       <Modal
-        title="Add webhook endpoint"
+        title={t('Add webhook endpoint')}
         open={createOpen}
         confirmLoading={creating}
-        okText="Create endpoint"
+        okText={t('Create endpoint')}
         onOk={() => form.submit()}
         onCancel={() => setCreateOpen(false)}
       >
         <Form<EndpointForm> form={form} layout="vertical" requiredMark={false} onFinish={create}>
-          <Form.Item name="name" label="Name" rules={[{ required: true }]}>
-            <Input placeholder="Production custody events" />
+          <Form.Item name="name" label={t('Name')} rules={[{ required: true }]}>
+            <Input placeholder={t('Production custody events')} />
           </Form.Item>
           <Form.Item
             name="url"
-            label="Endpoint URL"
+            label={t('Endpoint URL')}
             rules={[
               { required: true },
-              { type: 'url', message: 'Enter a valid HTTPS URL' },
+              { type: 'url', message: t('Enter a valid HTTPS URL') },
             ]}
           >
             <Input placeholder="https://api.example.com/webhooks/custody" />
           </Form.Item>
-          <Form.Item name="events" label="Subscribed events" rules={[{ required: true }]}>
+          <Form.Item name="events" label={t('Subscribed events')} rules={[{ required: true }]}>
             <Select mode="multiple" options={eventOptions} />
           </Form.Item>
         </Form>
       </Modal>
 
       <Modal
-        title="Webhook signing secret"
+        title={t('Webhook signing secret')}
         open={Boolean(created)}
         footer={
           <Button
@@ -299,14 +301,14 @@ export default function WebhooksPage() {
               setCreated(undefined);
             }}
           >
-            I saved the secret
+            {t('I saved the secret')}
           </Button>
         }
         closable={false}
         mask={{ closable: false }}
       >
         <p className="one-time-note">
-          Copy this secret now. It will not be shown again.
+          {t('Copy this secret now. It will not be shown again.')}
         </p>
         <Input
           readOnly
@@ -324,7 +326,7 @@ export default function WebhooksPage() {
       </Modal>
 
       <Drawer
-        title={deliveryEndpoint ? `${deliveryEndpoint.name} deliveries` : 'Deliveries'}
+        title={deliveryEndpoint ? t('{name} deliveries', { name: deliveryEndpoint.name }) : t('Deliveries')}
         size={760}
         open={Boolean(deliveryEndpoint)}
         onClose={() => setDeliveryEndpoint(undefined)}
@@ -332,12 +334,12 @@ export default function WebhooksPage() {
         <Alert
           showIcon
           type="info"
-          title="Automatic retry policy"
-          description="Failed deliveries retry up to 10 times with exponential backoff, deterministic jitter, and Retry-After support. Every attempt is retained; a manual retry starts a new cycle without erasing history."
+          title={t('Automatic retry policy')}
+          description={t('Failed deliveries retry up to 10 times with exponential backoff, deterministic jitter, and Retry-After support. Every attempt is retained; a manual retry starts a new cycle without erasing history.')}
         />
         <ErrorState message={deliveries.error} onRetry={deliveries.refetch} />
         <div className="drawer-toolbar">
-          <Button icon={<ReloadOutlined />} onClick={deliveries.refetch}>Reload deliveries</Button>
+          <Button icon={<ReloadOutlined />} onClick={deliveries.refetch}>{t('Reload deliveries')}</Button>
         </div>
         <Table<Delivery>
           rowKey="id"
@@ -345,37 +347,37 @@ export default function WebhooksPage() {
           loading={deliveries.loading}
           dataSource={deliveries.data ?? []}
           pagination={{ pageSize: 20 }}
-          locale={{ emptyText: <Empty description="No delivery attempts yet" /> }}
+          locale={{ emptyText: <Empty description={t('No delivery attempts yet')} /> }}
           columns={[
-            { title: 'Event', dataIndex: 'eventType' },
-            { title: 'Event ID', dataIndex: 'eventId', render: (value) => <CopyText value={value} /> },
+            { title: t('Event'), dataIndex: 'eventType' },
+            { title: t('Event ID'), dataIndex: 'eventId', render: (value) => <CopyText value={value} /> },
             { title: 'HTTP', dataIndex: 'lastHttpStatus', render: (value) => value ?? '—' },
-            { title: 'Attempts', dataIndex: 'totalAttemptCount' },
-            { title: 'Status', dataIndex: 'status', render: (value) => <StatusText value={value} /> },
+            { title: t('Attempts'), dataIndex: 'totalAttemptCount' },
+            { title: t('Status'), dataIndex: 'status', render: (value) => <StatusText value={value} /> },
             {
-              title: 'Next attempt',
+              title: t('Next attempt'),
               dataIndex: 'nextAttemptAt',
               render: (value: string | undefined, row) =>
                 row.status === 'RETRY' ? formatDate(value) : '—',
             },
             {
-              title: 'Last error',
+              title: t('Last error'),
               dataIndex: 'lastError',
               ellipsis: true,
               render: (value?: string) => value || '—',
             },
-            { title: 'Created', dataIndex: 'createdAt', render: formatDate },
+            { title: t('Created'), dataIndex: 'createdAt', render: formatDate },
             {
-              title: 'Actions',
+              title: t('Actions'),
               render: (_, row) => (
                 <Space>
                   <Button type="link" onClick={() => setSelectedDelivery(row)}>
-                    Details
+                    {t('Details')}
                   </Button>
                   {row.status === 'FAILED' || row.status === 'RETRY' ? (
                     <Popconfirm
-                      title="Queue this delivery now?"
-                      description="This starts a new manual retry cycle and keeps all previous attempts."
+                      title={t('Queue this delivery now?')}
+                      description={t('This starts a new manual retry cycle and keeps all previous attempts.')}
                       onConfirm={() => void retry(row)}
                     >
                       <Button
@@ -383,7 +385,7 @@ export default function WebhooksPage() {
                         icon={<RetweetOutlined />}
                         loading={retryingId === row.id}
                       >
-                        Retry now
+                        {t('Retry now')}
                       </Button>
                     </Popconfirm>
                   ) : null}
@@ -395,38 +397,38 @@ export default function WebhooksPage() {
       </Drawer>
 
       <Modal
-        title="Webhook delivery details"
+        title={t('Webhook delivery details')}
         width={900}
         open={Boolean(selectedDelivery)}
-        footer={<Button onClick={() => setSelectedDelivery(undefined)}>Close</Button>}
+        footer={<Button onClick={() => setSelectedDelivery(undefined)}>{t('Close')}</Button>}
         onCancel={() => setSelectedDelivery(undefined)}
       >
         {selectedDelivery ? (
           <div className="delivery-details">
             <Descriptions column={2} bordered size="small">
-              <Descriptions.Item label="Event">{selectedDelivery.eventType}</Descriptions.Item>
-              <Descriptions.Item label="Status">
+              <Descriptions.Item label={t('Event')}>{selectedDelivery.eventType}</Descriptions.Item>
+              <Descriptions.Item label={t('Status')}>
                 <StatusText value={selectedDelivery.status} />
               </Descriptions.Item>
-              <Descriptions.Item label="Event ID" span={2}>
+              <Descriptions.Item label={t('Event ID')} span={2}>
                 <CopyText value={selectedDelivery.eventId} />
               </Descriptions.Item>
-              <Descriptions.Item label="Total attempts">
+              <Descriptions.Item label={t('Total attempts')}>
                 {selectedDelivery.totalAttemptCount}
               </Descriptions.Item>
-              <Descriptions.Item label="Manual retry cycles">
+              <Descriptions.Item label={t('Manual retry cycles')}>
                 {selectedDelivery.manualRetryCount}
               </Descriptions.Item>
-              <Descriptions.Item label="Next automatic attempt">
+              <Descriptions.Item label={t('Next automatic attempt')}>
                 {selectedDelivery.status === 'RETRY'
                   ? formatDate(selectedDelivery.nextAttemptAt)
                   : '—'}
               </Descriptions.Item>
-              <Descriptions.Item label="Last HTTP status">
+              <Descriptions.Item label={t('Last HTTP status')}>
                 {selectedDelivery.lastHttpStatus ?? '—'}
               </Descriptions.Item>
               {selectedDelivery.lastError ? (
-                <Descriptions.Item label="Last error" span={2}>
+                <Descriptions.Item label={t('Last error')} span={2}>
                   <Typography.Text type="danger">
                     {selectedDelivery.lastError}
                   </Typography.Text>
@@ -435,10 +437,10 @@ export default function WebhooksPage() {
             </Descriptions>
             <div className="panel-heading delivery-attempt-heading">
               <div>
-                <h3>Attempt history</h3>
-                <p>Newest attempt first. Recovery means a worker lease expired and was safely reclaimed.</p>
+                <h3>{t('Attempt history')}</h3>
+                <p>{t('Newest attempt first. Recovery means a worker lease expired and was safely reclaimed.')}</p>
               </div>
-              <Button icon={<ReloadOutlined />} onClick={attempts.refetch}>Reload</Button>
+              <Button icon={<ReloadOutlined />} onClick={attempts.refetch}>{t('Reload')}</Button>
             </div>
             <ErrorState message={attempts.error} onRetry={attempts.refetch} />
             <Table<DeliveryAttempt>
@@ -447,21 +449,21 @@ export default function WebhooksPage() {
               loading={attempts.loading}
               dataSource={attempts.data ?? []}
               pagination={{ pageSize: 10 }}
-              locale={{ emptyText: <Empty description="No dispatch attempt has started yet" /> }}
+              locale={{ emptyText: <Empty description={t('No dispatch attempt has started yet')} /> }}
               scroll={{ x: 820 }}
               columns={[
                 { title: '#', dataIndex: 'attemptNumber', width: 54 },
-                { title: 'Trigger', dataIndex: 'trigger' },
-                { title: 'Status', dataIndex: 'status', render: (value) => <StatusText value={value} /> },
+                { title: t('Trigger'), dataIndex: 'trigger' },
+                { title: t('Status'), dataIndex: 'status', render: (value) => <StatusText value={value} /> },
                 { title: 'HTTP', dataIndex: 'httpStatus', render: (value) => value ?? '—' },
                 {
-                  title: 'Duration',
+                  title: t('Duration'),
                   dataIndex: 'durationMs',
                   render: (value?: number) => value === undefined || value === null ? '—' : `${value} ms`,
                 },
-                { title: 'Started', dataIndex: 'startedAt', render: formatDate },
+                { title: t('Started'), dataIndex: 'startedAt', render: formatDate },
                 {
-                  title: 'Result',
+                  title: t('Result'),
                   render: (_, row) => row.errorMessage || row.responseBody || '—',
                   ellipsis: true,
                 },

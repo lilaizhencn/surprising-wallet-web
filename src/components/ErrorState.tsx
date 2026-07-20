@@ -1,4 +1,5 @@
 import { Alert, Button } from 'antd';
+import { useI18n } from '../i18n';
 
 export function ErrorState({
   message,
@@ -7,14 +8,15 @@ export function ErrorState({
   message?: string;
   onRetry?: () => void;
 }) {
+  const { t } = useI18n();
   if (!message) return null;
   return (
     <Alert
       showIcon
       type="error"
-      title="Unable to load this view"
+      title={t('Unable to load this view')}
       description={message}
-      action={onRetry ? <Button onClick={onRetry}>Retry</Button> : undefined}
+      action={onRetry ? <Button onClick={onRetry}>{t('Retry')}</Button> : undefined}
     />
   );
 }

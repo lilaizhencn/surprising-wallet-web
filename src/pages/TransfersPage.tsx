@@ -22,6 +22,7 @@ import { ErrorState } from '../components/ErrorState';
 import { PageHeader } from '../components/PageHeader';
 import { StatusText } from '../components/StatusText';
 import { useApiQuery } from '../hooks/useApiQuery';
+import { useI18n } from '../i18n';
 import { formatAmount, formatDate, queryString } from '../utils/format';
 
 type TransferType = 'deposits' | 'withdrawals';
@@ -85,6 +86,7 @@ type WithdrawalValues = {
 export default function TransfersPage({ type }: { type: TransferType }) {
   const session = useSession();
   const { message } = App.useApp();
+  const { t } = useI18n();
   const [status, setStatus] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -142,13 +144,13 @@ export default function TransfersPage({ type }: { type: TransferType }) {
         amount: String(values.amount),
         confirmed: true,
       });
-      await message.success('Withdrawal created; asset and network-fee reserves are frozen');
+      await message.success(t('Withdrawal created; asset and network-fee reserves are frozen'));
       form.resetFields();
       setPendingWithdrawal(undefined);
       setDrawerOpen(false);
       query.refetch();
     } catch (error) {
-      void message.error(error instanceof Error ? error.message : 'Unable to create withdrawal');
+      void message.error(error instanceof Error ? error.message : t('Unable to create withdrawal'));
     } finally {
       setCreating(false);
     }
@@ -156,68 +158,68 @@ export default function TransfersPage({ type }: { type: TransferType }) {
 
   const depositColumns = [
     {
-      title: 'Transaction',
+      title: t('Transaction'),
       dataIndex: 'txHash',
       render: (value: string) => <CopyText value={value} />,
     },
-    { title: 'Network', dataIndex: 'chain' },
-    { title: 'Asset', dataIndex: 'assetSymbol' },
+    { title: t('Network'), dataIndex: 'chain' },
+    { title: t('Asset'), dataIndex: 'assetSymbol' },
     {
-      title: 'Amount',
+      title: t('Amount'),
       render: (_: unknown, row: DepositRow) =>
         `${formatAmount(row.amount)} ${row.assetSymbol}`,
     },
     {
-      title: 'External reference',
+      title: t('External reference'),
       dataIndex: 'externalReference',
       render: (value?: string) => value || '—',
     },
-    { title: 'Status', dataIndex: 'status', render: (value: string) => <StatusText value={value} /> },
-    { title: 'Credited', dataIndex: 'creditedAt', render: formatDate },
+    { title: t('Status'), dataIndex: 'status', render: (value: string) => <StatusText value={value} /> },
+    { title: t('Credited'), dataIndex: 'creditedAt', render: formatDate },
   ];
 
   const withdrawalColumns = [
     {
-      title: 'Order',
+      title: t('Order'),
       dataIndex: 'orderNo',
       render: (value: string) => <CopyText value={value} />,
     },
-    { title: 'Network', dataIndex: 'chain' },
-    { title: 'Asset', dataIndex: 'assetSymbol' },
+    { title: t('Network'), dataIndex: 'chain' },
+    { title: t('Asset'), dataIndex: 'assetSymbol' },
     {
-      title: 'Amount',
+      title: t('Amount'),
       render: (_: unknown, row: WithdrawalRow) =>
         `${formatAmount(row.amount)} ${row.assetSymbol}`,
     },
     {
-      title: 'Fee reserve',
+      title: t('Fee reserve'),
       render: (_: unknown, row: WithdrawalRow) =>
         `${formatAmount(row.fee)} ${row.assetSymbol}`,
     },
     {
-      title: 'External reference',
+      title: t('External reference'),
       dataIndex: 'externalReference',
       render: (value?: string) => value || '—',
     },
-    { title: 'Destination', dataIndex: 'toAddress', render: (value: string) => <CopyText value={value} /> },
-    { title: 'Transaction', dataIndex: 'txHash', render: (value?: string) => <CopyText value={value} /> },
-    { title: 'Status', dataIndex: 'status', render: (value: string) => <StatusText value={value} /> },
-    { title: 'Created', dataIndex: 'createdAt', render: formatDate },
+    { title: t('Destination'), dataIndex: 'toAddress', render: (value: string) => <CopyText value={value} /> },
+    { title: t('Transaction'), dataIndex: 'txHash', render: (value?: string) => <CopyText value={value} /> },
+    { title: t('Status'), dataIndex: 'status', render: (value: string) => <StatusText value={value} /> },
+    { title: t('Created'), dataIndex: 'createdAt', render: formatDate },
   ];
 
-  const title = type === 'deposits' ? 'Deposits' : 'Withdrawals';
+  const title = type === 'deposits' ? t('Deposits') : t('Withdrawals');
   return (
     <div className="page-stack">
       <PageHeader
         title={title}
         description={
           type === 'deposits'
-            ? 'Confirmed on-chain deposits attributed to this tenant.'
-            : 'Tenant withdrawals and their signing, broadcast, and confirmation state.'
+            ? t('Confirmed on-chain deposits attributed to this tenant.')
+            : t('Tenant withdrawals and their signing, broadcast, and confirmation state.')
         }
         actions={type === 'withdrawals' ? (
           <Button type="primary" icon={<PlusOutlined />} onClick={() => setDrawerOpen(true)}>
-            Create withdrawal
+            {t('Create withdrawal')}
           </Button>
         ) : undefined}
       />
@@ -226,15 +228,15 @@ export default function TransfersPage({ type }: { type: TransferType }) {
         <div className="table-toolbar">
           <Select
             allowClear
-            placeholder="Status"
+            placeholder={t('Status')}
             style={{ minWidth: 190 }}
             options={[
               'CONFIRMED', 'CREATED', 'PENDING_REVIEW', 'FROZEN', 'SIGNING',
               'SENT', 'BROADCAST_UNKNOWN', 'FAILED', 'REJECTED',
-            ].map((value) => ({ value, label: value.replaceAll('_', ' ') }))}
+            ].map((value) => ({ value, label: t(value.replaceAll('_', ' ')) }))}
             onChange={(value = '') => setStatus(value)}
           />
-          <Button icon={<ReloadOutlined />} onClick={query.refetch}>Reload</Button>
+          <Button icon={<ReloadOutlined />} onClick={query.refetch}>{t('Reload')}</Button>
         </div>
         {type === 'deposits' ? (
           <Table<DepositRow>
@@ -243,7 +245,7 @@ export default function TransfersPage({ type }: { type: TransferType }) {
             dataSource={(query.data ?? []) as DepositRow[]}
             columns={depositColumns}
             pagination={{ pageSize: 20, showSizeChanger: true }}
-            locale={{ emptyText: <Empty description="No deposits yet" /> }}
+            locale={{ emptyText: <Empty description={t('No deposits yet')} /> }}
             scroll={{ x: 900 }}
           />
         ) : (
@@ -253,14 +255,14 @@ export default function TransfersPage({ type }: { type: TransferType }) {
             dataSource={(query.data ?? []) as WithdrawalRow[]}
             columns={withdrawalColumns}
             pagination={{ pageSize: 20, showSizeChanger: true }}
-            locale={{ emptyText: <Empty description="No withdrawals yet" /> }}
+            locale={{ emptyText: <Empty description={t('No withdrawals yet')} /> }}
             scroll={{ x: 1300 }}
           />
         )}
       </section>
 
       <Drawer
-        title="Create withdrawal"
+        title={t('Create withdrawal')}
         size={460}
         open={drawerOpen}
         destroyOnHidden
@@ -274,8 +276,8 @@ export default function TransfersPage({ type }: { type: TransferType }) {
         >
           <Form.Item
             name="custodyAddressId"
-            label="Source custody address"
-            rules={[{ required: true, message: 'Select the tenant address account to debit' }]}
+            label={t('Source custody address')}
+            rules={[{ required: true, message: t('Select the tenant address account to debit') }]}
           >
             <Select
               showSearch
@@ -288,27 +290,27 @@ export default function TransfersPage({ type }: { type: TransferType }) {
               }}
             />
           </Form.Item>
-          <Form.Item name="chain" label="Network" rules={[{ required: true }]}>
+          <Form.Item name="chain" label={t('Network')} rules={[{ required: true }]}>
             <Input readOnly />
           </Form.Item>
           <Form.Item
             name="assetSymbol"
-            label="Asset"
-            rules={[{ required: true, message: 'Enter the enabled asset symbol' }]}
+            label={t('Asset')}
+            rules={[{ required: true, message: t('Enter the enabled asset symbol') }]}
           >
             <Input placeholder="USDT" />
           </Form.Item>
           <Form.Item
             name="toAddress"
-            label="Destination address"
-            rules={[{ required: true, message: 'Enter a destination address' }]}
+            label={t('Destination address')}
+            rules={[{ required: true, message: t('Enter a destination address') }]}
           >
             <Input />
           </Form.Item>
           <Form.Item
             name="amount"
-            label="Amount"
-            rules={[{ required: true, message: 'Enter a positive amount' }]}
+            label={t('Amount')}
+            rules={[{ required: true, message: t('Enter a positive amount') }]}
           >
             <InputNumber<string>
               stringMode
@@ -317,45 +319,44 @@ export default function TransfersPage({ type }: { type: TransferType }) {
               style={{ width: '100%' }}
             />
           </Form.Item>
-          <Form.Item name="externalReference" label="External reference (optional)">
+          <Form.Item name="externalReference" label={t('External reference (optional)')}>
             <Input maxLength={160} placeholder="payout-2026-00421" />
           </Form.Item>
           <div className="form-warning">
-            The selected address account is the funding boundary. Available balance is
-            checked and frozen atomically with the tenant network-fee reserve.
+            {t('The selected address account is the funding boundary. Available balance is checked and frozen atomically with the tenant network-fee reserve.')}
           </div>
           {selectedChain ? (
             selectedGas ? (
               <Alert
                 showIcon
                 type={selectedGas.lowBalance ? 'warning' : 'success'}
-                title={`${selectedGas.chain} gas balance: ${formatAmount(selectedGas.availableBalance)} ${selectedGas.nativeSymbol}`}
+                title={t('{chain} gas balance: {balance} {symbol}', { chain: selectedGas.chain, balance: formatAmount(selectedGas.availableBalance), symbol: selectedGas.nativeSymbol })}
                 description={selectedGas.lowBalance
-                  ? 'The reserve is below its warning threshold. Funding it before a busy payout window is recommended.'
-                  : 'A conservative network-fee amount will be locked when you confirm.'}
+                  ? t('The reserve is below its warning threshold. Funding it before a busy payout window is recommended.')
+                  : t('A conservative network-fee amount will be locked when you confirm.')}
               />
             ) : (
               <Alert
                 showIcon
                 type="error"
-                title={`No funded ${selectedChain} gas reserve`}
-                description="Create and fund this network in Gas station before requesting a withdrawal."
+                title={t('No funded {chain} gas reserve', { chain: selectedChain })}
+                description={t('Create and fund this network in Gas station before requesting a withdrawal.')}
               />
             )
           ) : null}
           <Button type="primary" htmlType="submit" block disabled={Boolean(selectedChain) && !gasReady}>
-            Review withdrawal
+            {t('Review withdrawal')}
           </Button>
         </Form>
       </Drawer>
 
       <Modal
-        title="Confirm withdrawal"
+        title={t('Confirm withdrawal')}
         open={Boolean(pendingWithdrawal)}
         zIndex={1300}
         confirmLoading={creating}
-        okText="Confirm and freeze funds"
-        cancelText="Go back"
+        okText={t('Confirm and freeze funds')}
+        cancelText={t('Go back')}
         onOk={() => pendingWithdrawal && void createWithdrawal(pendingWithdrawal)}
         onCancel={() => setPendingWithdrawal(undefined)}
       >
@@ -364,23 +365,23 @@ export default function TransfersPage({ type }: { type: TransferType }) {
             <Alert
               showIcon
               type="warning"
-              title="Check every value carefully"
-              description="After broadcast, a blockchain withdrawal cannot be reversed. The source asset and a conservative tenant gas reserve are frozen atomically when you confirm."
+              title={t('Check every value carefully')}
+              description={t('After broadcast, a blockchain withdrawal cannot be reversed. The source asset and a conservative tenant gas reserve are frozen atomically when you confirm.')}
             />
             <Descriptions column={1} bordered size="small">
-              <Descriptions.Item label="Network">
+              <Descriptions.Item label={t('Network')}>
                 {pendingWithdrawal.chain}
               </Descriptions.Item>
-              <Descriptions.Item label="Asset">
+              <Descriptions.Item label={t('Asset')}>
                 {pendingWithdrawal.assetSymbol}
               </Descriptions.Item>
-              <Descriptions.Item label="Amount">
+              <Descriptions.Item label={t('Amount')}>
                 {pendingWithdrawal.amount} {pendingWithdrawal.assetSymbol}
               </Descriptions.Item>
-              <Descriptions.Item label="Destination">
+              <Descriptions.Item label={t('Destination')}>
                 <CopyText value={pendingWithdrawal.toAddress} />
               </Descriptions.Item>
-              <Descriptions.Item label="External reference">
+              <Descriptions.Item label={t('External reference')}>
                 {pendingWithdrawal.externalReference || '—'}
               </Descriptions.Item>
             </Descriptions>

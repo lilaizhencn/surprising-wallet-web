@@ -14,6 +14,8 @@ import {
 } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import { Brand } from '../components/Brand';
+import { LanguageSwitch } from '../components/LanguageSwitch';
+import { useI18n } from '../i18n';
 
 const chains = [
   'Ethereum',
@@ -57,65 +59,68 @@ const apiDocsUrl =
   'https://github.com/lilaizhencn/surprising-wallet/blob/master/docs/openapi/custody-v1.yaml';
 
 export default function LandingPage() {
+  const { t } = useI18n();
   return (
     <div className="landing-page">
       <header className="marketing-header">
         <Brand />
-        <nav aria-label="Main navigation">
-          <a href="#product">Product</a>
-          <a href="#chains">Chains</a>
-          <a href="#security">Security</a>
-          <a href="#developers">Developers</a>
+        <nav aria-label={t('Main navigation')}>
+          <a href="#product">{t('Product')}</a>
+          <a href="#chains">{t('Chains')}</a>
+          <a href="#security">{t('Security')}</a>
+          <a href="#developers">{t('Developers')}</a>
         </nav>
-        <Link to="/console/login">
-          <Button>Sign in</Button>
-        </Link>
+        <div className="marketing-header-actions">
+          <LanguageSwitch compact />
+          <Link to="/console/login">
+            <Button>{t('Sign in')}</Button>
+          </Link>
+        </div>
       </header>
 
       <main>
         <section className="hero-section" id="product">
           <div className="hero-copy">
-            <h1>Blockchain infrastructure for every product you build</h1>
+            <h1>{t('Blockchain infrastructure for every product you build')}</h1>
             <p>
-              Create deposit addresses, orchestrate secure withdrawals, and operate
-              tenant assets from one custody platform.
+              {t('Create deposit addresses, orchestrate secure withdrawals, and operate tenant assets from one custody platform.')}
             </p>
             <div className="hero-actions">
               <Link to="/console/login">
                 <Button type="primary" size="large">
-                  Open Console <ArrowRightOutlined />
+                  {t('Open Console')} <ArrowRightOutlined />
                 </Button>
               </Link>
               <a href={apiDocsUrl} target="_blank" rel="noreferrer">
-                <Button size="large">Read API docs <CodeOutlined /></Button>
+                <Button size="large">{t('Read API docs')} <CodeOutlined /></Button>
               </a>
             </div>
           </div>
-          <div className="hero-console" aria-label="Custody address workflow preview">
+          <div className="hero-console" aria-label={t('Custody address workflow preview')}>
             <div className="preview-topbar">
               <Brand compact />
               <span>Acme Pay</span>
-              <span className="preview-environment">Production</span>
+              <span className="preview-environment">{t('Production')}</span>
             </div>
             <div className="preview-body">
               <aside>
-                <strong>Overview</strong>
-                <span className="active">Addresses</span>
-                <span>Deposits</span>
-                <span>Withdrawals</span>
-                <span>Webhooks</span>
+                <strong>{t('Overview')}</strong>
+                <span className="active">{t('Addresses')}</span>
+                <span>{t('Deposits')}</span>
+                <span>{t('Withdrawals')}</span>
+                <span>{t('Webhooks')}</span>
               </aside>
               <div className="preview-main">
                 <div className="preview-title">
                   <div>
-                    <strong>Addresses</strong>
-                    <small>Tenant-isolated deposit addresses</small>
+                    <strong>{t('Addresses')}</strong>
+                    <small>{t('Tenant-isolated deposit addresses')}</small>
                   </div>
-                  <span className="preview-create">Create address</span>
+                  <span className="preview-create">{t('Create address')}</span>
                 </div>
                 <div className="preview-table">
                   <div className="preview-row preview-head">
-                    <span>Address</span><span>Network</span><span>Source</span><span>Status</span>
+                    <span>{t('Address')}</span><span>{t('Network')}</span><span>{t('Source')}</span><span>{t('Status')}</span>
                   </div>
                   {[
                     ['0x8a7f…c9e2', 'Ethereum', 'API'],
@@ -124,16 +129,16 @@ export default function LandingPage() {
                   ].map((row) => (
                     <div className="preview-row" key={row[0]}>
                       <span>{row[0]}</span><span>{row[1]}</span><span>{row[2]}</span>
-                      <span className="preview-status"><i /> Active</span>
+                      <span className="preview-status"><i /> {t('Active')}</span>
                     </div>
                   ))}
                 </div>
                 <div className="preview-route">
-                  <span><CheckCircleFilled /> Deposit received</span>
+                  <span><CheckCircleFilled /> {t('Deposit received')}</span>
                   <i />
-                  <span><CheckCircleFilled /> Confirmed</span>
+                  <span><CheckCircleFilled /> {t('Confirmed')}</span>
                   <i />
-                  <span><CheckCircleFilled /> Tenant credited</span>
+                  <span><CheckCircleFilled /> {t('Tenant credited')}</span>
                   <i className="pending" />
                   <span>Webhook</span>
                 </div>
@@ -144,10 +149,9 @@ export default function LandingPage() {
 
         <section className="workflow-section">
           <div className="section-heading">
-            <h2>One custody layer, many businesses</h2>
+            <h2>{t('One custody layer, many businesses')}</h2>
             <p>
-              Isolate tenants, streamline operations, and trace addresses, deposits,
-              withdrawals, and signed webhooks end to end.
+              {t('Isolate tenants, streamline operations, and trace addresses, deposits, withdrawals, and signed webhooks end to end.')}
             </p>
           </div>
           <div className="workflow-line">
@@ -155,15 +159,15 @@ export default function LandingPage() {
               <article key={item.title}>
                 <div className="workflow-icon">{item.icon}</div>
                 <span className="workflow-number">{index + 1}</span>
-                <h3>{item.title}</h3>
-                <p>{item.body}</p>
+                <h3>{t(item.title)}</h3>
+                <p>{t(item.body)}</p>
               </article>
             ))}
           </div>
         </section>
 
         <section className="chains-section" id="chains">
-          <h2>Built for multi-chain operations</h2>
+          <h2>{t('Built for multi-chain operations')}</h2>
           <div className="chain-rail">
             {chains.map((chain) => <span key={chain}>{chain}</span>)}
           </div>
@@ -171,25 +175,24 @@ export default function LandingPage() {
 
         <section className="security-section" id="security">
           <div className="security-copy">
-            <h2>Control every sensitive action</h2>
+            <h2>{t('Control every sensitive action')}</h2>
             <p>
-              Security boundaries are enforced before an operation reaches chain
-              orchestration or tenant funds.
+              {t('Security boundaries are enforced before an operation reaches chain orchestration or tenant funds.')}
             </p>
             <ul>
-              <li><KeyOutlined /><span><strong>API request signing</strong>HMAC signatures, timestamp windows, and replay protection.</span></li>
-              <li><SafetyCertificateOutlined /><span><strong>IP allowlists</strong>Restrict service credentials to explicit IPv4 or IPv6 networks.</span></li>
-              <li><AuditOutlined /><span><strong>Complete audit path</strong>Searchable tenant, credential, address, and delivery changes.</span></li>
-              <li><LinkOutlined /><span><strong>Reliable webhook delivery</strong>Exponential retry, delivery history, and manual replay.</span></li>
+              <li><KeyOutlined /><span><strong>{t('API request signing')}</strong>{t('HMAC signatures, timestamp windows, and replay protection.')}</span></li>
+              <li><SafetyCertificateOutlined /><span><strong>{t('IP allowlists')}</strong>{t('Restrict service credentials to explicit IPv4 or IPv6 networks.')}</span></li>
+              <li><AuditOutlined /><span><strong>{t('Complete audit path')}</strong>{t('Searchable tenant, credential, address, and delivery changes.')}</span></li>
+              <li><LinkOutlined /><span><strong>{t('Reliable webhook delivery')}</strong>{t('Exponential retry, delivery history, and manual replay.')}</span></li>
             </ul>
           </div>
           <div className="security-ledger">
             <div className="ledger-heading">
-              <strong>Operational controls</strong>
-              <span>Live</span>
+              <strong>{t('Operational controls')}</strong>
+              <span>{t('Live')}</span>
             </div>
             <div className="ledger-row ledger-labels">
-              <span>Control</span><span>Enforcement</span><span>State</span>
+              <span>{t('Control')}</span><span>{t('Enforcement')}</span><span>{t('State')}</span>
             </div>
             {[
               ['Request signature', 'Before routing', 'Enforced'],
@@ -198,8 +201,8 @@ export default function LandingPage() {
               ['Event uniqueness', 'Database constraint', 'Enforced'],
             ].map((row) => (
               <div className="ledger-row" key={row[0]}>
-                <span>{row[0]}</span><span>{row[1]}</span>
-                <span className="preview-status"><i />{row[2]}</span>
+                <span>{t(row[0])}</span><span>{t(row[1])}</span>
+                <span className="preview-status"><i />{t(row[2])}</span>
               </div>
             ))}
           </div>
@@ -207,7 +210,7 @@ export default function LandingPage() {
 
         <section className="developers-section" id="developers">
           <div className="developer-code">
-            <div className="code-tabs"><span className="active">Create address</span><span>Webhook verification</span></div>
+            <div className="code-tabs"><span className="active">{t('Create address')}</span><span>{t('Webhook verification')}</span></div>
             <pre>
               <code>{`POST /custody/api/v1/addresses
 Idempotency-Key: customer-8421-ethereum
@@ -225,27 +228,26 @@ X-Custody-Signature: ...
           </div>
           <div className="developer-copy">
             <ApiOutlined />
-            <h2>Integrate once. Keep building.</h2>
+            <h2>{t('Integrate once. Keep building.')}</h2>
             <p>
-              Tenant identity comes from the credential. Your customer, merchant,
-              order, or account stays an opaque external reference.
+              {t('Tenant identity comes from the credential. Your customer, merchant, order, or account stays an opaque external reference.')}
             </p>
             <ol>
-              <li><span>1</span>Create a tenant credential and explicit scopes.</li>
-              <li><span>2</span>Sign a canonical request and add an idempotency key.</li>
-              <li><span>3</span>Receive a tenant-isolated address.</li>
-              <li><span>4</span>Consume signed deposit and withdrawal events.</li>
+              <li><span>1</span>{t('Create a tenant credential and explicit scopes.')}</li>
+              <li><span>2</span>{t('Sign a canonical request and add an idempotency key.')}</li>
+              <li><span>3</span>{t('Receive a tenant-isolated address.')}</li>
+              <li><span>4</span>{t('Consume signed deposit and withdrawal events.')}</li>
             </ol>
           </div>
         </section>
 
         <section className="final-cta">
-          <h2>Ready to streamline your custody operations?</h2>
-          <p>Start building with Surprising Wallet today.</p>
+          <h2>{t('Ready to streamline your custody operations?')}</h2>
+          <p>{t('Start building with Surprising Wallet today.')}</p>
           <div>
-            <Link to="/console/login"><Button type="primary" size="large">Open Console</Button></Link>
+            <Link to="/console/login"><Button type="primary" size="large">{t('Open Console')}</Button></Link>
             <a href={apiDocsUrl} target="_blank" rel="noreferrer">
-              <Button size="large">Read API docs</Button>
+              <Button size="large">{t('Read API docs')}</Button>
             </a>
           </div>
         </section>
@@ -253,7 +255,7 @@ X-Custody-Signature: ...
 
       <footer className="marketing-footer">
         <Brand />
-        <p>Multi-tenant blockchain custody infrastructure.</p>
+        <p>{t('Multi-tenant blockchain custody infrastructure.')}</p>
         <span>© 2026 Surprising Wallet</span>
       </footer>
     </div>

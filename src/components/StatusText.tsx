@@ -1,4 +1,5 @@
 import { Badge } from 'antd';
+import { useI18n } from '../i18n';
 
 const statusMap: Record<string, 'success' | 'processing' | 'warning' | 'error' | 'default'> = {
   ACTIVE: 'success',
@@ -30,5 +31,13 @@ const statusMap: Record<string, 'success' | 'processing' | 'warning' | 'error' |
 
 export function StatusText({ value }: { value?: string | null }) {
   const label = value || 'UNKNOWN';
-  return <Badge status={statusMap[label] ?? 'default'} text={label.replaceAll('_', ' ')} />;
+  const { locale, t } = useI18n();
+  const normalized = label.replaceAll('_', ' ').toLowerCase();
+  const display = normalized.charAt(0).toUpperCase() + normalized.slice(1);
+  return (
+    <Badge
+      status={statusMap[label] ?? 'default'}
+      text={locale === 'zh-CN' ? t(display) : label.replaceAll('_', ' ')}
+    />
+  );
 }

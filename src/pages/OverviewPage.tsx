@@ -13,6 +13,7 @@ import { PageHeader } from '../components/PageHeader';
 import { StatusText } from '../components/StatusText';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { formatAmount, formatDate } from '../utils/format';
+import { useI18n } from '../i18n';
 
 type AssetRow = {
   chain: string;
@@ -101,6 +102,7 @@ const onboardingSteps = [
 
 export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: boolean }) {
   const session = useSession();
+  const { t } = useI18n();
   const query = useApiQuery<OverviewData>(
     async (signal) => {
       if (!session) return { assets: [], webhooks: [], recent: [] };
@@ -136,8 +138,8 @@ export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: bool
   return (
     <div className="page-stack">
       <PageHeader
-        title={assetsOnly ? 'Assets' : 'Asset overview'}
-        description="Consolidated balances and activity across every configured chain."
+        title={t(assetsOnly ? 'Assets' : 'Asset overview')}
+        description={t('Consolidated balances and activity across every configured chain.')}
       />
       <ErrorState message={query.error} onRetry={query.refetch} />
 
@@ -145,10 +147,10 @@ export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: bool
         <section className="data-panel onboarding-panel">
           <div className="onboarding-heading">
             <div>
-              <span className="eyebrow">Tenant activation</span>
-              <h2>{query.data.onboarding.ready ? 'Ready for integration' : 'Finish your setup'}</h2>
+              <span className="eyebrow">{t('Tenant activation')}</span>
+              <h2>{t(query.data.onboarding.ready ? 'Ready for integration' : 'Finish your setup')}</h2>
               <p>
-                Complete each operational control before sending production traffic.
+                {t('Complete each operational control before sending production traffic.')}
               </p>
             </div>
             <div className="onboarding-progress">
@@ -175,8 +177,8 @@ export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: bool
                     ? <CheckCircleFilled aria-hidden />
                     : <ClockCircleOutlined aria-hidden />}
                   <span>
-                    <strong>{step.title}</strong>
-                    <small>{step.description}</small>
+                    <strong>{t(step.title)}</strong>
+                    <small>{t(step.description)}</small>
                   </span>
                   <ArrowRightOutlined aria-hidden />
                 </Link>
@@ -187,63 +189,63 @@ export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: bool
       ) : null}
 
       {!assetsOnly ? (
-        <section className="overview-band" aria-label="Tenant asset summary">
+        <section className="overview-band" aria-label={t('Tenant asset summary')}>
           <div>
-            <span>Tracked assets</span>
+            <span>{t('Tracked assets')}</span>
             <strong>{assets.length}</strong>
-            <small>Tenant total</small>
+            <small>{t('Tenant total')}</small>
           </div>
           <div>
-            <span>Assets with balance</span>
+            <span>{t('Assets with balance')}</span>
             <strong>{activeAssets}</strong>
-            <small>Across enabled networks</small>
+            <small>{t('Across enabled networks')}</small>
           </div>
           <div>
-            <span>Funded address links</span>
+            <span>{t('Funded address links')}</span>
             <strong>{totalAddresses}</strong>
-            <small>Distinct custody mappings</small>
+            <small>{t('Distinct custody mappings')}</small>
           </div>
         </section>
       ) : null}
 
       <section className="data-panel">
-        <div className="panel-heading"><h2>Assets</h2></div>
+        <div className="panel-heading"><h2>{t('Assets')}</h2></div>
         <Table<AssetRow>
           rowKey={(row) => `${row.chain}:${row.assetSymbol}`}
           loading={query.loading}
           dataSource={assets}
           pagination={{ pageSize: 10, hideOnSinglePage: true }}
-          locale={{ emptyText: <Empty description="No funded tenant assets yet" /> }}
+          locale={{ emptyText: <Empty description={t('No funded tenant assets yet')} /> }}
           scroll={{ x: 860 }}
           columns={[
             {
-              title: 'Asset',
+              title: t('Asset'),
               dataIndex: 'assetSymbol',
               render: (value: string) => <Typography.Text strong>{value}</Typography.Text>,
             },
-            { title: 'Network', dataIndex: 'chain' },
+            { title: t('Network'), dataIndex: 'chain' },
             {
-              title: 'Total balance',
+              title: t('Total balance'),
               dataIndex: 'totalBalance',
               align: 'right',
               sorter: (a, b) => Number(a.totalBalance) - Number(b.totalBalance),
               render: (value, row) => `${formatAmount(value)} ${row.assetSymbol}`,
             },
             {
-              title: 'Available',
+              title: t('Available'),
               dataIndex: 'availableBalance',
               align: 'right',
               render: (value, row) => `${formatAmount(value)} ${row.assetSymbol}`,
             },
             {
-              title: 'Locked',
+              title: t('Locked'),
               dataIndex: 'lockedBalance',
               align: 'right',
               render: (value, row) => `${formatAmount(value)} ${row.assetSymbol}`,
             },
-            { title: 'Addresses', dataIndex: 'addressCount', align: 'right' },
+            { title: t('Addresses'), dataIndex: 'addressCount', align: 'right' },
             {
-              title: 'Status',
+              title: t('Status'),
               render: () => <StatusText value="ACTIVE" />,
             },
           ]}
@@ -254,8 +256,8 @@ export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: bool
         <div className="overview-grid">
           <section className="data-panel">
             <div className="panel-heading">
-              <h2>Recent custody activity</h2>
-              <Link to="/console/deposits">View records <ArrowRightOutlined /></Link>
+              <h2>{t('Recent custody activity')}</h2>
+              <Link to="/console/deposits">{t('View records')} <ArrowRightOutlined /></Link>
             </div>
             <Table
               rowKey="id"
@@ -263,29 +265,29 @@ export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: bool
               loading={query.loading}
               dataSource={query.data?.recent ?? []}
               pagination={false}
-              locale={{ emptyText: <Empty description="No custody activity yet" /> }}
+              locale={{ emptyText: <Empty description={t('No custody activity yet')} /> }}
               columns={[
-                { title: 'Type', dataIndex: 'kind' },
-                { title: 'Network', dataIndex: 'chain' },
+                { title: t('Type'), dataIndex: 'kind', render: (value: string) => t(value) },
+                { title: t('Network'), dataIndex: 'chain' },
                 {
-                  title: 'Amount',
+                  title: t('Amount'),
                   render: (_, row) => `${formatAmount(row.amount)} ${row.assetSymbol}`,
                 },
-                { title: 'Status', dataIndex: 'status', render: (value) => <StatusText value={value} /> },
-                { title: 'Time', dataIndex: 'createdAt', render: formatDate },
+                { title: t('Status'), dataIndex: 'status', render: (value) => <StatusText value={value} /> },
+                { title: t('Time'), dataIndex: 'createdAt', render: formatDate },
               ]}
             />
           </section>
           <section className="data-panel">
             <div className="panel-heading">
-              <h2>Webhook health</h2>
-              <Link to="/console/webhooks"><LinkOutlined /> Manage webhooks</Link>
+              <h2>{t('Webhook health')}</h2>
+              <Link to="/console/webhooks"><LinkOutlined /> {t('Manage webhooks')}</Link>
             </div>
             {degradedWebhooks.length ? (
               <Alert
                 showIcon
                 type="warning"
-                title={`${degradedWebhooks.length} endpoint${degradedWebhooks.length > 1 ? 's need' : ' needs'} attention`}
+                title={t('{count} webhook endpoints need attention', { count: degradedWebhooks.length })}
               />
             ) : null}
             <Table<WebhookRow>
@@ -294,16 +296,16 @@ export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: bool
               loading={query.loading}
               dataSource={query.data?.webhooks ?? []}
               pagination={false}
-              locale={{ emptyText: <Empty description="No webhook endpoint configured" /> }}
+              locale={{ emptyText: <Empty description={t('No webhook endpoint configured')} /> }}
               columns={[
-                { title: 'Endpoint', dataIndex: 'name' },
-                { title: 'Status', dataIndex: 'status', render: (value) => <StatusText value={value} /> },
+                { title: t('Endpoint'), dataIndex: 'name' },
+                { title: t('Status'), dataIndex: 'status', render: (value) => <StatusText value={value} /> },
                 {
-                  title: 'Success (24h)',
+                  title: t('Success (24h)'),
                   dataIndex: 'successRate24h',
                   render: (value?: number) => value === null || value === undefined ? '—' : `${value.toFixed(1)}%`,
                 },
-                { title: 'Last delivery', dataIndex: 'lastDeliveryAt', render: formatDate },
+                { title: t('Last delivery'), dataIndex: 'lastDeliveryAt', render: formatDate },
               ]}
             />
           </section>

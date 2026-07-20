@@ -5,6 +5,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { apiRequest } from '../api/client';
 import { saveSession, type AccountType, type Session } from '../auth/session';
 import { Brand } from '../components/Brand';
+import { LanguageSwitch } from '../components/LanguageSwitch';
+import { useI18n } from '../i18n';
 
 type LoginResponse = {
   token: string;
@@ -30,6 +32,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { message } = App.useApp();
+  const { t } = useI18n();
 
   const submit = async (values: LoginValues) => {
     setLoading(true);
@@ -43,12 +46,12 @@ export default function LoginPage() {
       const result = await apiRequest<LoginResponse>(path, { method: 'POST', body });
       const session: Session = { version: 1, accountType, ...result };
       saveSession(session);
-      void message.success('Welcome back');
+      void message.success(t('Welcome back'));
       navigate(accountType === 'platform' ? '/platform/tenants' : '/console/overview', {
         replace: true,
       });
     } catch (error) {
-      void message.error(error instanceof Error ? error.message : 'Unable to sign in');
+      void message.error(t(error instanceof Error ? error.message : 'Unable to sign in'));
     } finally {
       setLoading(false);
     }
@@ -57,26 +60,25 @@ export default function LoginPage() {
   return (
     <main className="login-page">
       <div className="login-brand-area">
-        <Brand />
+        <div className="login-brand-row"><Brand /><LanguageSwitch /></div>
         <div>
-          <h1>Operate custody infrastructure with a complete audit path.</h1>
+          <h1>{t('Operate custody infrastructure with a complete audit path.')}</h1>
           <p>
-            Manage isolated tenants, deposit addresses, signed webhooks, service
-            credentials, and chain activity from one console.
+            {t('Manage isolated tenants, deposit addresses, signed webhooks, service credentials, and chain activity from one console.')}
           </p>
         </div>
-        <Link to="/"><ArrowLeftOutlined /> Back to product</Link>
+        <Link to="/"><ArrowLeftOutlined /> {t('Back to product')}</Link>
       </div>
       <div className="login-form-area">
         <div className="login-form-shell">
-          <h2>Sign in</h2>
-          <p>Use the credentials created for your Console account.</p>
+          <h2>{t('Sign in')}</h2>
+          <p>{t('Use the credentials created for your Console account.')}</p>
           <Segmented<AccountType>
             block
             value={accountType}
             options={[
-              { value: 'tenant', label: 'Tenant Console' },
-              { value: 'platform', label: 'Platform admin' },
+              { value: 'tenant', label: t('Tenant Console') },
+              { value: 'platform', label: t('Platform admin') },
             ]}
             onChange={setAccountType}
           />
@@ -84,31 +86,31 @@ export default function LoginPage() {
             {accountType === 'tenant' ? (
               <Form.Item
                 name="tenantSlug"
-                label="Tenant slug"
-                rules={[{ required: true, message: 'Enter your tenant slug' }]}
+                label={t('Tenant slug')}
+                rules={[{ required: true, message: t('Enter your tenant slug') }]}
               >
                 <Input autoComplete="organization" placeholder="acme-pay" />
               </Form.Item>
             ) : null}
             <Form.Item
               name="email"
-              label="Email"
+              label={t('Email')}
               rules={[
-                { required: true, message: 'Enter your email' },
-                { type: 'email', message: 'Enter a valid email' },
+                { required: true, message: t('Enter your email') },
+                { type: 'email', message: t('Enter a valid email') },
               ]}
             >
               <Input prefix={<MailOutlined />} autoComplete="username" />
             </Form.Item>
             <Form.Item
               name="password"
-              label="Password"
-              rules={[{ required: true, message: 'Enter your password' }]}
+              label={t('Password')}
+              rules={[{ required: true, message: t('Enter your password') }]}
             >
               <Input.Password prefix={<LockOutlined />} autoComplete="current-password" />
             </Form.Item>
             <Button type="primary" htmlType="submit" block size="large" loading={loading}>
-              Sign in
+              {t('Sign in')}
             </Button>
           </Form>
         </div>

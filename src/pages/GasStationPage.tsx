@@ -29,6 +29,7 @@ import { PageHeader } from '../components/PageHeader';
 import { StatusText } from '../components/StatusText';
 import { commonChainOptions } from '../constants/chains';
 import { useApiQuery } from '../hooks/useApiQuery';
+import { useI18n } from '../i18n';
 import { formatAmount, formatDate } from '../utils/format';
 
 type GasAccount = {
@@ -88,6 +89,7 @@ type UpdateGasValues = {
 export default function GasStationPage() {
   const session = useSession();
   const { message } = App.useApp();
+  const { t } = useI18n();
   const [createForm] = Form.useForm<CreateGasValues>();
   const [updateForm] = Form.useForm<UpdateGasValues>();
   const [createOpen, setCreateOpen] = useState(false);
@@ -134,7 +136,7 @@ export default function GasStationPage() {
           lowBalanceThreshold: String(values.lowBalanceThreshold),
         },
       );
-      await message.success(`${created.chain} gas reserve created`);
+      await message.success(t('{chain} gas reserve created', { chain: created.chain }));
       createForm.resetFields();
       setCreateOpen(false);
       setSelected(created);
@@ -143,7 +145,7 @@ export default function GasStationPage() {
       });
       accounts.refetch();
     } catch (error) {
-      void message.error(error instanceof Error ? error.message : 'Unable to create gas reserve');
+      void message.error(error instanceof Error ? error.message : t('Unable to create gas reserve'));
     } finally {
       setCreating(false);
     }
@@ -168,10 +170,10 @@ export default function GasStationPage() {
       updateForm.setFieldsValue({
         lowBalanceThreshold: String(updated.lowBalanceThreshold),
       });
-      await message.success('Gas reserve settings saved');
+      await message.success(t('Gas reserve settings saved'));
       accounts.refetch();
     } catch (error) {
-      void message.error(error instanceof Error ? error.message : 'Unable to update gas reserve');
+      void message.error(error instanceof Error ? error.message : t('Unable to update gas reserve'));
     } finally {
       setSaving(false);
     }
@@ -187,32 +189,32 @@ export default function GasStationPage() {
   return (
     <div className="page-stack">
       <PageHeader
-        title="Gas station"
-        description="Pre-fund native coins, reserve fees atomically for withdrawals, and audit every network-fee settlement."
+        title={t('Gas station')}
+        description={t('Pre-fund native coins, reserve fees atomically for withdrawals, and audit every network-fee settlement.')}
         actions={
           <Button
             type="primary"
             icon={<PlusOutlined />}
             onClick={() => setCreateOpen(true)}
           >
-            Add gas reserve
+            {t('Add gas reserve')}
           </Button>
         }
       />
       <Alert
         showIcon
         type="info"
-        title="Gas reserves use real on-chain balances"
-        description="Create one reserve per network, send only its native coin to the displayed address, and wait for confirmations. A withdrawal locks a conservative fee reserve, releases it on failure, and settles it after confirmation."
+        title={t('Gas reserves use real on-chain balances')}
+        description={t('Create one reserve per network, send only its native coin to the displayed address, and wait for confirmations. A withdrawal locks a conservative fee reserve, releases it on failure, and settles it after confirmation.')}
       />
       <ErrorState message={accounts.error} onRetry={accounts.refetch} />
       <section className="data-panel">
         <div className="panel-heading">
           <div>
-            <h2>Network reserves</h2>
-            <p>Low-balance warnings compare available funds with your configured threshold.</p>
+            <h2>{t('Network reserves')}</h2>
+            <p>{t('Low-balance warnings compare available funds with your configured threshold.')}</p>
           </div>
-          <Button icon={<ReloadOutlined />} onClick={accounts.refetch}>Reload</Button>
+          <Button icon={<ReloadOutlined />} onClick={accounts.refetch}>{t('Reload')}</Button>
         </div>
         <Table<GasAccount>
           rowKey="id"
@@ -221,9 +223,9 @@ export default function GasStationPage() {
           pagination={false}
           locale={{
             emptyText: (
-              <Empty description="No gas reserve configured">
+              <Empty description={t('No gas reserve configured')}>
                 <Button type="primary" onClick={() => setCreateOpen(true)}>
-                  Create first reserve
+                  {t('Create first reserve')}
                 </Button>
               </Empty>
             ),
@@ -231,7 +233,7 @@ export default function GasStationPage() {
           scroll={{ x: 1080 }}
           columns={[
             {
-              title: 'Network',
+              title: t('Network'),
               render: (_, row) => (
                 <Space orientation="vertical" size={0}>
                   <Typography.Text strong>{row.chain}</Typography.Text>
@@ -239,29 +241,29 @@ export default function GasStationPage() {
                 </Space>
               ),
             },
-            { title: 'Gas asset', dataIndex: 'nativeSymbol' },
+            { title: t('Gas asset'), dataIndex: 'nativeSymbol' },
             {
-              title: 'Funding address',
+              title: t('Funding address'),
               dataIndex: 'address',
               render: (value: string) => <CopyText value={value} />,
             },
             {
-              title: 'Available',
+              title: t('Available'),
               align: 'right',
               render: (_, row) => `${formatAmount(row.availableBalance)} ${row.nativeSymbol}`,
             },
             {
-              title: 'Total',
+              title: t('Total'),
               align: 'right',
               render: (_, row) => `${formatAmount(row.totalBalance)} ${row.nativeSymbol}`,
             },
             {
-              title: 'Warning below',
+              title: t('Warning below'),
               align: 'right',
               render: (_, row) => `${formatAmount(row.lowBalanceThreshold)} ${row.nativeSymbol}`,
             },
             {
-              title: 'Health',
+              title: t('Health'),
               render: (_, row) => (
                 <StatusText
                   value={row.status === 'DISABLED'
@@ -279,7 +281,7 @@ export default function GasStationPage() {
                   icon={<EditOutlined />}
                   onClick={() => openDetails(row)}
                 >
-                  Manage
+                  {t('Manage')}
                 </Button>
               ),
             },
@@ -288,18 +290,18 @@ export default function GasStationPage() {
       </section>
 
       <Drawer
-        title="Create gas reserve"
+        title={t('Create gas reserve')}
         size={440}
         open={createOpen}
         destroyOnHidden
         onClose={() => setCreateOpen(false)}
-        extra={<Button onClick={() => setCreateOpen(false)}>Cancel</Button>}
+        extra={<Button onClick={() => setCreateOpen(false)}>{t('Cancel')}</Button>}
       >
         <Alert
           showIcon
           type="warning"
-          title="Choose the exact network"
-          description="The generated address accepts the network native coin used for transaction fees. Sending an unsupported asset or using another network can lose funds."
+          title={t('Choose the exact network')}
+          description={t('The generated address accepts the network native coin used for transaction fees. Sending an unsupported asset or using another network can lose funds.')}
         />
         <Form<CreateGasValues>
           form={createForm}
@@ -310,16 +312,16 @@ export default function GasStationPage() {
         >
           <Form.Item
             name="chain"
-            label="Network"
-            rules={[{ required: true, message: 'Select or enter a network' }]}
+            label={t('Network')}
+            rules={[{ required: true, message: t('Select or enter a network') }]}
           >
             <AutoComplete options={commonChainOptions} placeholder="ETH" filterOption />
           </Form.Item>
           <Form.Item
             name="lowBalanceThreshold"
-            label="Low-balance warning threshold"
-            rules={[{ required: true, message: 'Enter a positive threshold' }]}
-            extra="This is an alert threshold, not a synthetic balance or spending limit."
+            label={t('Low-balance warning threshold')}
+            rules={[{ required: true, message: t('Enter a positive threshold') }]}
+            extra={t('This is an alert threshold, not a synthetic balance or spending limit.')}
           >
             <InputNumber<string>
               stringMode
@@ -335,13 +337,13 @@ export default function GasStationPage() {
             loading={creating}
             icon={<ThunderboltOutlined />}
           >
-            Create funding address
+            {t('Create funding address')}
           </Button>
         </Form>
       </Drawer>
 
       <Drawer
-        title={selected ? `${selected.chain} gas reserve` : 'Gas reserve'}
+        title={selected ? t('{chain} gas reserve', { chain: selected.chain }) : t('Gas reserve')}
         size={620}
         open={Boolean(selected)}
         destroyOnHidden
@@ -353,41 +355,41 @@ export default function GasStationPage() {
               <Alert
                 showIcon
                 type="warning"
-                title="Gas reserve is below its warning threshold"
-                description={`Send ${selected.nativeSymbol} on ${selected.chain} to the funding address below.`}
+                title={t('Gas reserve is below its warning threshold')}
+                description={t('Send {symbol} on {chain} to the funding address below.', { symbol: selected.nativeSymbol, chain: selected.chain })}
               />
             ) : null}
             <div className="gas-stat-grid">
               <Statistic
-                title="Available"
+                title={t('Available')}
                 value={formatAmount(selected.availableBalance)}
                 suffix={selected.nativeSymbol}
               />
               <Statistic
-                title="Locked"
+                title={t('Locked')}
                 value={formatAmount(selected.lockedBalance)}
                 suffix={selected.nativeSymbol}
               />
               <Statistic
-                title="Total"
+                title={t('Total')}
                 value={formatAmount(selected.totalBalance)}
                 suffix={selected.nativeSymbol}
               />
             </div>
             <Descriptions column={1} bordered size="small">
-              <Descriptions.Item label="Network">
+              <Descriptions.Item label={t('Network')}>
                 {selected.chain} · {selected.network}
               </Descriptions.Item>
-              <Descriptions.Item label="Funding address">
+              <Descriptions.Item label={t('Funding address')}>
                 <CopyText value={selected.address} />
               </Descriptions.Item>
               {selected.memo ? (
-                <Descriptions.Item label="Memo">{selected.memo}</Descriptions.Item>
+                <Descriptions.Item label={t('Memo')}>{selected.memo}</Descriptions.Item>
               ) : null}
-              <Descriptions.Item label="Status">
+              <Descriptions.Item label={t('Status')}>
                 <StatusText value={selected.status} />
               </Descriptions.Item>
-              <Descriptions.Item label="Last updated">
+              <Descriptions.Item label={t('Last updated')}>
                 {formatDate(selected.updatedAt)}
               </Descriptions.Item>
             </Descriptions>
@@ -400,7 +402,7 @@ export default function GasStationPage() {
             >
               <Form.Item
                 name="lowBalanceThreshold"
-                label={`Low-balance warning threshold (${selected.nativeSymbol})`}
+                label={t('Low-balance warning threshold ({symbol})', { symbol: selected.nativeSymbol })}
                 rules={[{ required: true }]}
               >
                 <InputNumber<string>
@@ -412,20 +414,20 @@ export default function GasStationPage() {
               </Form.Item>
               <Space>
                 <Button type="primary" htmlType="submit" loading={saving}>
-                  Save threshold
+                  {t('Save threshold')}
                 </Button>
                 <Popconfirm
                   title={selected.status === 'ACTIVE'
-                    ? 'Disable this gas reserve?'
-                    : 'Enable this gas reserve?'}
-                  description="The address remains monitored and existing funds stay visible."
+                    ? t('Disable this gas reserve?')
+                    : t('Enable this gas reserve?')}
+                  description={t('The address remains monitored and existing funds stay visible.')}
                   onConfirm={() => void updateAccount(
                     updateForm.getFieldsValue(),
                     selected.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE',
                   )}
                 >
                   <Button danger={selected.status === 'ACTIVE'}>
-                    {selected.status === 'ACTIVE' ? 'Disable reserve' : 'Enable reserve'}
+                    {selected.status === 'ACTIVE' ? t('Disable reserve') : t('Enable reserve')}
                   </Button>
                 </Popconfirm>
               </Space>
@@ -434,8 +436,8 @@ export default function GasStationPage() {
             <section className="embedded-table">
               <div className="panel-heading">
               <div>
-                  <h3>Funding history</h3>
-                  <p>Only confirmed native-coin deposits increase this reserve.</p>
+                  <h3>{t('Funding history')}</h3>
+                  <p>{t('Only confirmed native-coin deposits increase this reserve.')}</p>
                 </div>
                 <Button
                   icon={<ReloadOutlined />}
@@ -444,7 +446,7 @@ export default function GasStationPage() {
                     usage.refetch();
                   }}
                 >
-                  Reload
+                  {t('Reload')}
                 </Button>
               </div>
               <ErrorState message={topups.error} onRetry={topups.refetch} />
@@ -454,25 +456,24 @@ export default function GasStationPage() {
                 loading={topups.loading}
                 dataSource={topups.data ?? []}
                 pagination={{ pageSize: 10 }}
-                locale={{ emptyText: <Empty description="No confirmed funding deposits yet" /> }}
+                locale={{ emptyText: <Empty description={t('No confirmed funding deposits yet')} /> }}
                 columns={[
-                  { title: 'Transaction', dataIndex: 'txHash', render: (value) => <CopyText value={value} /> },
+                  { title: t('Transaction'), dataIndex: 'txHash', render: (value) => <CopyText value={value} /> },
                   {
-                    title: 'Amount',
+                    title: t('Amount'),
                     render: (_, row) => `${formatAmount(row.amount)} ${row.assetSymbol}`,
                   },
-                  { title: 'Status', dataIndex: 'status', render: (value) => <StatusText value={value} /> },
-                  { title: 'Credited', dataIndex: 'creditedAt', render: formatDate },
+                  { title: t('Status'), dataIndex: 'status', render: (value) => <StatusText value={value} /> },
+                  { title: t('Credited'), dataIndex: 'creditedAt', render: formatDate },
                 ]}
               />
             </section>
             <section className="embedded-table">
               <div className="panel-heading">
                 <div>
-                  <h3>Network fee usage</h3>
+                  <h3>{t('Network fee usage')}</h3>
                   <p>
-                    Reserved fees are locked when a withdrawal is accepted. Confirmed
-                    chain fees settle the charge; failed orders release it.
+                    {t('Reserved fees are locked when a withdrawal is accepted. Confirmed chain fees settle the charge; failed orders release it.')}
                   </p>
                 </div>
               </div>
@@ -483,36 +484,36 @@ export default function GasStationPage() {
                 loading={usage.loading}
                 dataSource={usage.data ?? []}
                 pagination={{ pageSize: 10 }}
-                locale={{ emptyText: <Empty description="No network fee usage yet" /> }}
+                locale={{ emptyText: <Empty description={t('No network fee usage yet')} /> }}
                 scroll={{ x: 760 }}
                 columns={[
-                  { title: 'Withdrawal', dataIndex: 'orderNo', render: (value) => <CopyText value={value} /> },
+                  { title: t('Withdrawal'), dataIndex: 'orderNo', render: (value) => <CopyText value={value} /> },
                   {
-                    title: 'Reserved',
+                    title: t('Reserved'),
                     render: (_, row) => `${formatAmount(row.reservedAmount)} ${row.nativeSymbol}`,
                   },
                   {
-                    title: 'Settled',
+                    title: t('Settled'),
                     render: (_, row) => row.actualAmount == null
                       ? '—'
                       : `${formatAmount(row.actualAmount)} ${row.nativeSymbol}`,
                   },
-                  { title: 'Status', dataIndex: 'status', render: (value) => <StatusText value={value} /> },
+                  { title: t('Status'), dataIndex: 'status', render: (value) => <StatusText value={value} /> },
                   {
-                    title: 'Pricing',
+                    title: t('Pricing'),
                     dataIndex: 'pricingSource',
                     render: (value: string) => value.replaceAll('_', ' '),
                   },
-                  { title: 'Transaction', dataIndex: 'txHash', render: (value?: string) => <CopyText value={value} /> },
-                  { title: 'Settled at', dataIndex: 'settledAt', render: formatDate },
+                  { title: t('Transaction'), dataIndex: 'txHash', render: (value?: string) => <CopyText value={value} /> },
+                  { title: t('Settled at'), dataIndex: 'settledAt', render: formatDate },
                 ]}
               />
               {(usage.data ?? []).some((item) => item.status === 'OVERDUE') ? (
                 <Alert
                   showIcon
                   type="error"
-                  title="Gas balance requires attention"
-                  description="An actual network fee exceeded the funded balance. Add native coin; the overdue charge will settle automatically after confirmation, then new withdrawals resume."
+                  title={t('Gas balance requires attention')}
+                  description={t('An actual network fee exceeded the funded balance. Add native coin; the overdue charge will settle automatically after confirmation, then new withdrawals resume.')}
                 />
               ) : null}
             </section>

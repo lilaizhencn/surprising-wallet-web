@@ -30,6 +30,7 @@ import type {
   TenantSummary,
 } from '../types/platform';
 import { formatDate, queryString } from '../utils/format';
+import { useI18n } from '../i18n';
 
 type TenantForm = {
   slug: string;
@@ -45,6 +46,7 @@ export default function TenantsPage() {
   const session = useSession();
   const navigate = useNavigate();
   const { message } = App.useApp();
+  const { t } = useI18n();
   const [form] = Form.useForm<TenantForm>();
   const [createOpen, setCreateOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -78,12 +80,12 @@ export default function TenantsPage() {
         session.token,
         values,
       );
-      await message.success('Tenant created');
+      await message.success(t('Tenant created'));
       setCreateOpen(false);
       form.resetFields();
       navigate(`/platform/tenants/${tenant.id}`);
     } catch (error) {
-      void message.error(error instanceof Error ? error.message : 'Unable to create tenant');
+      void message.error(t(error instanceof Error ? error.message : 'Unable to create tenant'));
     } finally {
       setSaving(false);
     }
@@ -101,13 +103,13 @@ export default function TenantsPage() {
   return (
     <div className="page-stack">
       <PageHeader
-        title="Tenants"
-        description="Create, find, inspect, and control every isolated custody customer."
+        title={t('Tenants')}
+        description={t('Create, find, inspect, and control every isolated custody customer.')}
         actions={
           <Space>
-            <Button icon={<ReloadOutlined />} onClick={query.refetch}>Reload</Button>
+            <Button icon={<ReloadOutlined />} onClick={query.refetch}>{t('Reload')}</Button>
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
-              Create tenant
+              {t('Create tenant')}
             </Button>
           </Space>
         }
@@ -115,22 +117,22 @@ export default function TenantsPage() {
 
       <section className="data-panel tenant-filter-panel">
         <Input.Search
-          aria-label="Search tenants"
+          aria-label={t('Search tenants')}
           allowClear
           value={searchDraft}
           prefix={<SearchOutlined />}
-          placeholder="Search by tenant name or slug"
-          enterButton="Search"
+          placeholder={t('Search by tenant name or slug')}
+          enterButton={t('Search')}
           onChange={(event) => setSearchDraft(event.target.value)}
           onSearch={applySearch}
         />
         <Select<TenantStatus | ''>
-          aria-label="Filter tenant status"
+          aria-label={t('Filter tenant status')}
           value={status}
           options={[
-            { value: '', label: 'All statuses' },
-            { value: 'ACTIVE', label: 'Active' },
-            { value: 'SUSPENDED', label: 'Suspended' },
+            { value: '', label: t('All statuses') },
+            { value: 'ACTIVE', label: t('Active') },
+            { value: 'SUSPENDED', label: t('Suspended') },
           ]}
           onChange={(value) => {
             setPage(1);
@@ -145,13 +147,13 @@ export default function TenantsPage() {
           rowKey="id"
           loading={query.loading}
           dataSource={query.data?.items ?? []}
-          locale={{ emptyText: <Empty description="No tenants match these filters" /> }}
+          locale={{ emptyText: <Empty description={t('No tenants match these filters')} /> }}
           pagination={{
             current: page,
             pageSize: PAGE_SIZE,
             total: query.data?.total ?? 0,
             showSizeChanger: false,
-            showTotal: (total) => `${total} tenants`,
+            showTotal: (total) => t('{count} tenants', { count: total }),
           }}
           onChange={(pagination) => setPage(pagination.current ?? 1)}
           onRow={(row) => ({ onClick: () => openTenant(row.id) })}
@@ -159,7 +161,7 @@ export default function TenantsPage() {
           scroll={{ x: 1120 }}
           columns={[
             {
-              title: 'Tenant',
+              title: t('Tenant'),
               render: (_, row) => (
                 <Space orientation="vertical" size={0}>
                   <Typography.Text strong>{row.name}</Typography.Text>
@@ -167,12 +169,12 @@ export default function TenantsPage() {
                 </Space>
               ),
             },
-            { title: 'Status', dataIndex: 'status', render: (value) => <StatusText value={value} /> },
-            { title: 'Addresses', dataIndex: 'addressCount', align: 'right' },
-            { title: 'Deposits', dataIndex: 'depositCount', align: 'right' },
-            { title: 'Withdrawals', dataIndex: 'withdrawalCount', align: 'right' },
+            { title: t('Status'), dataIndex: 'status', render: (value) => <StatusText value={value} /> },
+            { title: t('Addresses'), dataIndex: 'addressCount', align: 'right' },
+            { title: t('Deposits'), dataIndex: 'depositCount', align: 'right' },
+            { title: t('Withdrawals'), dataIndex: 'withdrawalCount', align: 'right' },
             {
-              title: 'Setup',
+              title: t('Setup'),
               render: (_, row) => (
                 <StatusText
                   value={
@@ -187,12 +189,12 @@ export default function TenantsPage() {
               ),
             },
             {
-              title: 'Webhook failures',
+              title: t('Webhook failures'),
               dataIndex: 'failedWebhookDeliveryCount',
               align: 'right',
               render: (value: number) => value || '—',
             },
-            { title: 'Created', dataIndex: 'createdAt', render: formatDate },
+            { title: t('Created'), dataIndex: 'createdAt', render: formatDate },
             {
               title: '',
               fixed: 'right',
@@ -200,7 +202,7 @@ export default function TenantsPage() {
               render: (_, row) => (
                 <Button
                   type="text"
-                  aria-label={`View ${row.name}`}
+                  aria-label={t('View {name}', { name: row.name })}
                   icon={<EyeOutlined />}
                   onClick={(event) => {
                     event.stopPropagation();
@@ -214,26 +216,26 @@ export default function TenantsPage() {
       </section>
 
       <Modal
-        title="Create tenant"
+        title={t('Create tenant')}
         open={createOpen}
         confirmLoading={saving}
-        okText="Create tenant"
+        okText={t('Create tenant')}
         onOk={() => form.submit()}
         onCancel={() => setCreateOpen(false)}
       >
         <Form<TenantForm> form={form} layout="vertical" requiredMark={false} onFinish={create}>
-          <Form.Item name="name" label="Tenant name" rules={[{ required: true }]}>
+          <Form.Item name="name" label={t('Tenant name')} rules={[{ required: true }]}>
             <Input placeholder="Acme Pay" />
           </Form.Item>
           <Form.Item
             name="slug"
-            label="Tenant slug"
-            extra="This stable integration identifier cannot be changed later."
+            label={t('Tenant slug')}
+            extra={t('This stable integration identifier cannot be changed later.')}
             rules={[
               { required: true },
               {
                 pattern: /^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/,
-                message: 'Use 3-64 lowercase letters, digits, or internal hyphens',
+                message: t('Use 3-64 lowercase letters, digits, or internal hyphens'),
               },
             ]}
           >
@@ -241,17 +243,17 @@ export default function TenantsPage() {
           </Form.Item>
           <Form.Item
             name="adminEmail"
-            label="Tenant admin email"
+            label={t('Tenant admin email')}
             rules={[{ required: true }, { type: 'email' }]}
           >
             <Input autoComplete="email" />
           </Form.Item>
-          <Form.Item name="adminDisplayName" label="Admin display name" rules={[{ required: true }]}>
+          <Form.Item name="adminDisplayName" label={t('Admin display name')} rules={[{ required: true }]}>
             <Input />
           </Form.Item>
           <Form.Item
             name="adminPassword"
-            label="Initial admin password"
+            label={t('Initial admin password')}
             rules={[{ required: true }, { min: 12 }]}
           >
             <Input.Password autoComplete="new-password" />

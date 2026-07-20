@@ -7,6 +7,7 @@ import { ErrorState } from '../components/ErrorState';
 import { PageHeader } from '../components/PageHeader';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { formatDate } from '../utils/format';
+import { useI18n } from '../i18n';
 
 type AuditRow = {
   id: string;
@@ -22,6 +23,7 @@ type AuditRow = {
 
 export default function AuditPage({ platform = false }: { platform?: boolean }) {
   const session = useSession();
+  const { t } = useI18n();
   const query = useApiQuery<AuditRow[]>(
     (signal) => session
       ? api.get(platform
@@ -34,11 +36,11 @@ export default function AuditPage({ platform = false }: { platform?: boolean }) 
   return (
     <div className="page-stack">
       <PageHeader
-        title={platform ? 'Wallet configuration audit' : 'Audit log'}
+        title={t(platform ? 'Wallet configuration audit' : 'Audit log')}
         description={platform
-          ? 'Platform wallet configuration changes recorded with actor and source context.'
-          : 'Tenant security and operational changes recorded with actor and source context.'}
-        actions={<Button icon={<ReloadOutlined />} onClick={query.refetch}>Reload</Button>}
+          ? t('Platform wallet configuration changes recorded with actor and source context.')
+          : t('Tenant security and operational changes recorded with actor and source context.')}
+        actions={<Button icon={<ReloadOutlined />} onClick={query.refetch}>{t('Reload')}</Button>}
       />
       <ErrorState message={query.error} onRetry={query.refetch} />
       <section className="data-panel">
@@ -47,7 +49,7 @@ export default function AuditPage({ platform = false }: { platform?: boolean }) 
           loading={query.loading}
           dataSource={query.data ?? []}
           pagination={{ pageSize: 25, showSizeChanger: true }}
-          locale={{ emptyText: <Empty description="No audit events yet" /> }}
+          locale={{ emptyText: <Empty description={t('No audit events yet')} /> }}
           scroll={{ x: 1080 }}
           expandable={{
             expandedRowRender: (row) => (
@@ -55,13 +57,13 @@ export default function AuditPage({ platform = false }: { platform?: boolean }) 
             ),
           }}
           columns={[
-            { title: 'Action', dataIndex: 'action' },
-            { title: 'Actor', dataIndex: 'actorType' },
-            { title: 'Actor ID', dataIndex: 'actorId', render: (value) => <CopyText value={value} /> },
-            { title: 'Resource', dataIndex: 'resourceType' },
-            { title: 'Resource ID', dataIndex: 'resourceId', render: (value) => <CopyText value={value} /> },
-            { title: 'Source IP', dataIndex: 'sourceIp', render: (value) => value || '—' },
-            { title: 'Time', dataIndex: 'createdAt', render: formatDate },
+            { title: t('Action'), dataIndex: 'action' },
+            { title: t('Actor'), dataIndex: 'actorType' },
+            { title: t('Actor ID'), dataIndex: 'actorId', render: (value) => <CopyText value={value} /> },
+            { title: t('Resource'), dataIndex: 'resourceType' },
+            { title: t('Resource ID'), dataIndex: 'resourceId', render: (value) => <CopyText value={value} /> },
+            { title: t('Source IP'), dataIndex: 'sourceIp', render: (value) => value || '—' },
+            { title: t('Time'), dataIndex: 'createdAt', render: formatDate },
           ]}
         />
       </section>

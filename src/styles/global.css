@@ -1526,3 +1526,14 @@ a {
     animation-iteration-count: 1 !important;
   }
 }
+.language-switch {
+  flex: none;
+}
+
+.login-brand-row,
+.marketing-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}

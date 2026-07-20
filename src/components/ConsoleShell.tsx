@@ -21,11 +21,13 @@ import {
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { clearSession, useSession, type AccountType } from '../auth/session';
+import { useI18n } from '../i18n';
 import { Brand } from './Brand';
+import { LanguageSwitch } from './LanguageSwitch';
 
 const { Header, Sider, Content } = Layout;
 
-const tenantItems = [
+const tenantItemDefinitions = [
   { key: '/console/overview', icon: <DashboardOutlined />, label: 'Overview' },
   { key: '/console/assets', icon: <BankOutlined />, label: 'Assets' },
   { key: '/console/gas-station', icon: <ThunderboltOutlined />, label: 'Gas station' },
@@ -37,7 +39,7 @@ const tenantItems = [
   { key: '/console/audit-log', icon: <AuditOutlined />, label: 'Audit log' },
 ];
 
-const platformItems = [
+const platformItemDefinitions = [
   { key: '/platform/wallet-config', icon: <DashboardOutlined />, label: 'Wallet config' },
   { key: '/platform/wallet-config/chains', icon: <GlobalOutlined />, label: 'Chains & RPC' },
   { key: '/platform/wallet-config/tokens', icon: <BankOutlined />, label: 'Tokens' },
@@ -53,6 +55,9 @@ export function ConsoleShell({ accountType }: { accountType: AccountType }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { message } = App.useApp();
+  const { t } = useI18n();
+  const tenantItems = tenantItemDefinitions.map((item) => ({ ...item, label: t(item.label) }));
+  const platformItems = platformItemDefinitions.map((item) => ({ ...item, label: t(item.label) }));
   const items = accountType === 'platform' ? platformItems : tenantItems;
   const selectedMenuKey = accountType === 'platform'
     ? [...platformItems]
@@ -71,7 +76,7 @@ export function ConsoleShell({ accountType }: { accountType: AccountType }) {
       {
         key: 'logout',
         icon: <LogoutOutlined />,
-        label: 'Sign out',
+        label: t('Sign out'),
         onClick: async () => {
           if (session) {
             const path = accountType === 'platform'
@@ -84,12 +89,12 @@ export function ConsoleShell({ accountType }: { accountType: AccountType }) {
             }
           }
           clearSession();
-          await message.success('Signed out');
+          await message.success(t('Signed out'));
           navigate('/console/login', { replace: true });
         },
       },
     ],
-    [accountType, message, navigate, session],
+    [accountType, message, navigate, session, t],
   );
 
   return (
@@ -118,7 +123,7 @@ export function ConsoleShell({ accountType }: { accountType: AccountType }) {
           icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
           onClick={() => setCollapsed((value) => !value)}
         >
-          {!collapsed ? 'Collapse' : null}
+          {!collapsed ? t('Collapse') : null}
         </Button>
       </Sider>
       <Layout>
@@ -127,16 +132,17 @@ export function ConsoleShell({ accountType }: { accountType: AccountType }) {
             {accountType === 'tenant' ? (
               <Space size={8}>
                 <Typography.Text strong>{session?.tenantSlug}</Typography.Text>
-                <Tag variant="filled">Tenant</Tag>
+                <Tag variant="filled">{t('Tenant')}</Tag>
                 <Tag icon={<SafetyCertificateOutlined />} color="blue">
                   {deploymentEnvironment}
                 </Tag>
               </Space>
             ) : (
-              <Typography.Text strong>Platform administration</Typography.Text>
+              <Typography.Text strong>{t('Platform administration')}</Typography.Text>
             )}
           </div>
           <Space size={16}>
+            <LanguageSwitch compact />
             <Dropdown menu={{ items: profileItems }} placement="bottomRight">
               <Button type="text" className="profile-button">
                 <Avatar size={30}>{initials}</Avatar>

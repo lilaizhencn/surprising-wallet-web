@@ -21,6 +21,7 @@ import { ErrorState } from '../components/ErrorState';
 import { PageHeader } from '../components/PageHeader';
 import { StatusText } from '../components/StatusText';
 import { useApiQuery } from '../hooks/useApiQuery';
+import { useI18n } from '../i18n';
 import { formatDate } from '../utils/format';
 
 type ApiKeyRow = {
@@ -58,6 +59,7 @@ const scopeOptions = [
 export default function ApiAccessPage() {
   const session = useSession();
   const { message } = App.useApp();
+  const { t } = useI18n();
   const [keyForm] = Form.useForm<{ name: string; scopes: string[] }>();
   const [ruleForm] = Form.useForm<{ label: string; cidr: string }>();
   const [keyModal, setKeyModal] = useState(false);
@@ -91,7 +93,7 @@ export default function ApiAccessPage() {
       keyForm.resetFields();
       query.refetch();
     } catch (error) {
-      void message.error(error instanceof Error ? error.message : 'Unable to create API key');
+      void message.error(error instanceof Error ? error.message : t('Unable to create API key'));
     } finally {
       setSaving(false);
     }
@@ -101,10 +103,10 @@ export default function ApiAccessPage() {
     if (!session) return;
     try {
       await api.delete(`/custody/console/v1/api-keys/${row.id}`, session.token);
-      await message.success('API key revoked');
+      await message.success(t('API key revoked'));
       query.refetch();
     } catch (error) {
-      void message.error(error instanceof Error ? error.message : 'Unable to revoke API key');
+      void message.error(error instanceof Error ? error.message : t('Unable to revoke API key'));
     }
   };
 
@@ -112,10 +114,10 @@ export default function ApiAccessPage() {
     if (!session) return;
     try {
       await api.put('/custody/console/v1/ip-allowlist/enforcement', session.token, { enabled });
-      await message.success(enabled ? 'IP allowlist enforced' : 'IP allowlist disabled');
+      await message.success(enabled ? t('IP allowlist enforced') : t('IP allowlist disabled'));
       query.refetch();
     } catch (error) {
-      void message.error(error instanceof Error ? error.message : 'Unable to change IP allowlist');
+      void message.error(error instanceof Error ? error.message : t('Unable to change IP allowlist'));
     }
   };
 
@@ -126,10 +128,10 @@ export default function ApiAccessPage() {
       await api.post('/custody/console/v1/ip-allowlist/rules', session.token, values);
       setRuleModal(false);
       ruleForm.resetFields();
-      await message.success('IP rule added');
+      await message.success(t('IP rule added'));
       query.refetch();
     } catch (error) {
-      void message.error(error instanceof Error ? error.message : 'Unable to add IP rule');
+      void message.error(error instanceof Error ? error.message : t('Unable to add IP rule'));
     } finally {
       setSaving(false);
     }
@@ -141,7 +143,7 @@ export default function ApiAccessPage() {
       await api.delete(`/custody/console/v1/ip-allowlist/rules/${row.id}`, session.token);
       query.refetch();
     } catch (error) {
-      void message.error(error instanceof Error ? error.message : 'Unable to delete IP rule');
+      void message.error(error instanceof Error ? error.message : t('Unable to delete IP rule'));
     }
   };
 
@@ -150,31 +152,31 @@ export default function ApiAccessPage() {
   return (
     <div className="page-stack">
       <PageHeader
-        title="API access"
-        description="Manage service credentials, request scopes, and source-network enforcement."
+        title={t('API access')}
+        description={t('Manage service credentials, request scopes, and source-network enforcement.')}
       />
       <ErrorState message={query.error} onRetry={query.refetch} />
       <div className="security-grid">
         <section className="data-panel">
           <div className="panel-heading">
             <div>
-              <h2>API keys</h2>
-              <p>Secrets are displayed once and encrypted at rest.</p>
+              <h2>{t('API keys')}</h2>
+              <p>{t('Secrets are displayed once and encrypted at rest.')}</p>
             </div>
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setKeyModal(true)}>
-              Create API key
+              {t('Create API key')}
             </Button>
           </div>
           <Table<ApiKeyRow>
             rowKey="id"
             loading={query.loading}
             dataSource={query.data?.keys ?? []}
-            locale={{ emptyText: <Empty description="No API keys created" /> }}
+            locale={{ emptyText: <Empty description={t('No API keys created')} /> }}
             pagination={{ pageSize: 10 }}
             scroll={{ x: 840 }}
             columns={[
               {
-                title: 'Name',
+                title: t('Name'),
                 dataIndex: 'name',
                 render: (value, row) => (
                   <Space orientation="vertical" size={0}>
@@ -183,20 +185,20 @@ export default function ApiAccessPage() {
                   </Space>
                 ),
               },
-              { title: 'Scopes', dataIndex: 'scopes', render: (value: string[]) => value.join(', ') },
-              { title: 'Last used', dataIndex: 'lastUsedAt', render: formatDate },
-              { title: 'Source IP', dataIndex: 'lastUsedIp', render: (value) => value || '—' },
-              { title: 'Created', dataIndex: 'createdAt', render: formatDate },
-              { title: 'Status', dataIndex: 'status', render: (value) => <StatusText value={value} /> },
+              { title: t('Scopes'), dataIndex: 'scopes', render: (value: string[]) => value.join(', ') },
+              { title: t('Last used'), dataIndex: 'lastUsedAt', render: formatDate },
+              { title: t('Source IP'), dataIndex: 'lastUsedIp', render: (value) => value || '—' },
+              { title: t('Created'), dataIndex: 'createdAt', render: formatDate },
+              { title: t('Status'), dataIndex: 'status', render: (value) => <StatusText value={value} /> },
               {
                 title: '',
                 render: (_, row) => row.status === 'ACTIVE' ? (
                   <Popconfirm
-                    title="Revoke this API key?"
-                    description="Existing clients using this key will be rejected immediately."
+                    title={t('Revoke this API key?')}
+                    description={t('Existing clients using this key will be rejected immediately.')}
                     onConfirm={() => void revokeKey(row)}
                   >
-                    <Button danger type="text" icon={<StopOutlined />}>Revoke</Button>
+                    <Button danger type="text" icon={<StopOutlined />}>{t('Revoke')}</Button>
                   </Popconfirm>
                 ) : null,
               },
@@ -207,13 +209,13 @@ export default function ApiAccessPage() {
         <section className="data-panel allowlist-panel">
           <div className="panel-heading">
             <div>
-              <h2>IP allowlist</h2>
-              <p>Apply enabled CIDR rules to every API key for this tenant.</p>
+              <h2>{t('IP allowlist')}</h2>
+              <p>{t('Apply enabled CIDR rules to every API key for this tenant.')}</p>
             </div>
             <Switch
               checked={allowlist.enabled}
-              checkedChildren="Enforced"
-              unCheckedChildren="Off"
+              checkedChildren={t('Enforced')}
+              unCheckedChildren={t('Off')}
               onChange={(checked) => void toggleAllowlist(checked)}
             />
           </div>
@@ -221,11 +223,11 @@ export default function ApiAccessPage() {
             <Alert
               showIcon
               type="warning"
-              title="Add at least one rule before enabling enforcement."
+              title={t('Add at least one rule before enabling enforcement.')}
             />
           ) : null}
           <div className="panel-subaction">
-            <Button icon={<PlusOutlined />} onClick={() => setRuleModal(true)}>Add rule</Button>
+            <Button icon={<PlusOutlined />} onClick={() => setRuleModal(true)}>{t('Add rule')}</Button>
           </div>
           <Table<IpRule>
             rowKey="id"
@@ -233,12 +235,12 @@ export default function ApiAccessPage() {
             loading={query.loading}
             dataSource={allowlist.rules}
             pagination={false}
-            locale={{ emptyText: <Empty description="No trusted network rules" /> }}
+            locale={{ emptyText: <Empty description={t('No trusted network rules')} /> }}
             columns={[
-              { title: 'Label', dataIndex: 'label' },
+              { title: t('Label'), dataIndex: 'label' },
               { title: 'CIDR', dataIndex: 'cidr' },
               {
-                title: 'Status',
+                title: t('Status'),
                 dataIndex: 'enabled',
                 render: (value: boolean) => <StatusText value={value ? 'ACTIVE' : 'DISABLED'} />,
               },
@@ -246,10 +248,10 @@ export default function ApiAccessPage() {
                 title: '',
                 render: (_, row) => (
                   <Popconfirm
-                    title="Delete this IP rule?"
+                    title={t('Delete this IP rule?')}
                     onConfirm={() => void deleteRule(row)}
                   >
-                    <Button type="text" danger>Delete</Button>
+                    <Button type="text" danger>{t('Delete')}</Button>
                   </Popconfirm>
                 ),
               },
@@ -259,47 +261,47 @@ export default function ApiAccessPage() {
       </div>
 
       <Modal
-        title="Create API key"
+        title={t('Create API key')}
         open={keyModal}
         confirmLoading={saving}
-        okText="Create API key"
+        okText={t('Create API key')}
         onOk={() => keyForm.submit()}
         onCancel={() => setKeyModal(false)}
       >
         <Form form={keyForm} layout="vertical" requiredMark={false} onFinish={createKey}>
-          <Form.Item name="name" label="Name" rules={[{ required: true }]}>
-            <Input placeholder="Production backend" />
+          <Form.Item name="name" label={t('Name')} rules={[{ required: true }]}>
+            <Input placeholder={t('Production backend')} />
           </Form.Item>
-          <Form.Item name="scopes" label="Scopes" rules={[{ required: true }]}>
+          <Form.Item name="scopes" label={t('Scopes')} rules={[{ required: true }]}>
             <Select mode="multiple" options={scopeOptions} />
           </Form.Item>
         </Form>
       </Modal>
 
       <Modal
-        title="API key created"
+        title={t('API key created')}
         open={Boolean(createdKey)}
         closable={false}
         mask={{ closable: false }}
         footer={
           <Button type="primary" onClick={() => setCreatedKey(undefined)}>
-            I saved the secret
+            {t('I saved the secret')}
           </Button>
         }
       >
         <Alert
           showIcon
           type="success"
-          title="Copy the key ID and secret now. The secret will not be shown again."
+          title={t('Copy the key ID and secret now. The secret will not be shown again.')}
         />
         <div className="secret-fields">
-          <label>Key ID</label>
+          <label>{t('Key ID')}</label>
           <Input
             readOnly
             value={createdKey?.keyId}
             addonAfter={<CopyOutlined onClick={() => createdKey && void navigator.clipboard.writeText(createdKey.keyId)} />}
           />
-          <label>Secret</label>
+          <label>{t('Secret')}</label>
           <Input
             readOnly
             value={createdKey?.secret}
@@ -309,22 +311,22 @@ export default function ApiAccessPage() {
       </Modal>
 
       <Modal
-        title="Add IP rule"
+        title={t('Add IP rule')}
         open={ruleModal}
         confirmLoading={saving}
-        okText="Add rule"
+        okText={t('Add rule')}
         onOk={() => ruleForm.submit()}
         onCancel={() => setRuleModal(false)}
       >
         <Form form={ruleForm} layout="vertical" requiredMark={false} onFinish={addRule}>
-          <Form.Item name="label" label="Label" rules={[{ required: true }]}>
-            <Input placeholder="Production NAT gateway" />
+          <Form.Item name="label" label={t('Label')} rules={[{ required: true }]}>
+            <Input placeholder={t('Production NAT gateway')} />
           </Form.Item>
           <Form.Item
             name="cidr"
-            label="IPv4 or IPv6 CIDR"
+            label={t('IPv4 or IPv6 CIDR')}
             rules={[{ required: true }]}
-            extra="Examples: 203.0.113.20/32 or 2001:db8:1200::/48"
+            extra={t('Examples: 203.0.113.20/32 or 2001:db8:1200::/48')}
           >
             <Input placeholder="203.0.113.20/32" />
           </Form.Item>

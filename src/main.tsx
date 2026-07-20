@@ -1,8 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { ConfigProvider } from 'antd';
+import enUS from 'antd/locale/en_US';
+import zhCN from 'antd/locale/zh_CN';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
+import { I18nProvider, useI18n } from './i18n';
 import './styles/global.css';
 
 const root = document.getElementById('root');
@@ -11,9 +14,11 @@ if (!root) {
   throw new Error('Application root was not found');
 }
 
-ReactDOM.createRoot(root).render(
-  <React.StrictMode>
+function LocalizedApplication() {
+  const { locale } = useI18n();
+  return (
     <ConfigProvider
+      locale={locale === 'zh-CN' ? zhCN : enUS}
       theme={{
         token: {
           colorPrimary: '#1648f5',
@@ -54,5 +59,13 @@ ReactDOM.createRoot(root).render(
         <App />
       </BrowserRouter>
     </ConfigProvider>
+  );
+}
+
+ReactDOM.createRoot(root).render(
+  <React.StrictMode>
+    <I18nProvider>
+      <LocalizedApplication />
+    </I18nProvider>
   </React.StrictMode>,
 );

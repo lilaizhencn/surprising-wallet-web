@@ -52,6 +52,7 @@ import type {
   TenantWithdrawal,
 } from '../types/platform';
 import { formatAmount, formatDate } from '../utils/format';
+import { useI18n } from '../i18n';
 
 type EditTenantForm = {
   name: string;
@@ -216,7 +217,7 @@ const depositColumns: TableColumnsType<TenantDeposit> = [
     title: 'Deposit',
     render: (_, row) => (
       <Space orientation="vertical" size={0}>
-        <Typography.Text strong>{row.externalReference || 'Unreferenced customer'}</Typography.Text>
+        <Typography.Text strong>{row.externalReference || '—'}</Typography.Text>
         <Typography.Text className="mono-cell" copyable={{ text: row.txHash }} ellipsis>
           {row.txHash}
         </Typography.Text>
@@ -296,11 +297,22 @@ function DetailSection({
   );
 }
 
+function translateColumns<T>(
+  columns: TableColumnsType<T>,
+  t: (message: string, values?: Record<string, string | number>) => string,
+): TableColumnsType<T> {
+  return columns.map((column) => ({
+    ...column,
+    title: typeof column.title === 'string' ? t(column.title) : column.title,
+  }));
+}
+
 export default function TenantDetailPage() {
   const { tenantId } = useParams();
   const session = useSession();
   const navigate = useNavigate();
   const { message } = App.useApp();
+  const { t } = useI18n();
   const [editValues, setEditValues] = useState<EditTenantForm>({
     name: '',
     displayCurrency: 'USD',
@@ -312,8 +324,8 @@ export default function TenantDetailPage() {
   const query = useApiQuery<TenantDetail>(
     (signal) => session && tenantId
       ? api.get(`/custody/platform/v1/tenants/${tenantId}`, session.token, signal)
-      : Promise.reject(new Error('Tenant identifier is missing')),
-    [session?.token, tenantId],
+      : Promise.reject(new Error(t('Tenant identifier is missing'))),
+    [session?.token, tenantId, t],
   );
 
   useEffect(() => {
@@ -333,19 +345,19 @@ export default function TenantDetailPage() {
         `/custody/platform/v1/tenants/${tenantId}/administrators/${administrator.id}/unlock`,
         session.token,
       );
-      await message.success('Tenant administrator unlocked');
+      await message.success(t('Tenant administrator unlocked'));
       query.refetch();
     } catch (error) {
-      void message.error(error instanceof Error ? error.message : 'Unable to unlock administrator');
+      void message.error(t(error instanceof Error ? error.message : 'Unable to unlock administrator'));
     } finally {
       setUnlockingId(undefined);
     }
-  }, [message, query.refetch, session, tenantId]);
+  }, [message, query.refetch, session, t, tenantId]);
 
   const administratorColumns = useMemo<TableColumnsType<TenantAdministrator>>(
     () => [
       {
-        title: 'Administrator',
+        title: t('Administrator'),
         render: (_, row) => (
           <Space orientation="vertical" size={0}>
             <Typography.Text strong>{row.displayName}</Typography.Text>
@@ -353,15 +365,15 @@ export default function TenantDetailPage() {
           </Space>
         ),
       },
-      { title: 'Role', dataIndex: 'role' },
-      { title: 'Status', dataIndex: 'status', render: (value) => <StatusText value={value} /> },
-      { title: 'Failed logins', dataIndex: 'failedLoginCount', align: 'right' },
+      { title: t('Role'), dataIndex: 'role' },
+      { title: t('Status'), dataIndex: 'status', render: (value) => <StatusText value={value} /> },
+      { title: t('Failed logins'), dataIndex: 'failedLoginCount', align: 'right' },
       {
-        title: 'Locked until',
+        title: t('Locked until'),
         dataIndex: 'lockedUntil',
         render: formatDate,
       },
-      { title: 'Last login', dataIndex: 'lastLoginAt', render: formatDate },
+      { title: t('Last login'), dataIndex: 'lastLoginAt', render: formatDate },
       {
         title: '',
         width: 100,
@@ -371,8 +383,8 @@ export default function TenantDetailPage() {
           );
           return locked ? (
             <Popconfirm
-              title="Unlock this tenant administrator?"
-              description="Failed-login counters and the temporary login lock will be cleared."
+              title={t('Unlock this tenant administrator?')}
+              description={t('Failed-login counters and the temporary login lock will be cleared.')}
               onConfirm={() => void unlockAdministrator(row)}
             >
               <Button
@@ -380,14 +392,14 @@ export default function TenantDetailPage() {
                 icon={<LockOutlined />}
                 loading={unlockingId === row.id}
               >
-                Unlock
+                {t('Unlock')}
               </Button>
             </Popconfirm>
           ) : null;
         },
       },
     ],
-    [unlockAdministrator, unlockingId],
+    [t, unlockAdministrator, unlockingId],
   );
 
   const saveTenant = async () => {
@@ -397,20 +409,20 @@ export default function TenantDetailPage() {
       displayCurrency: editValues.displayCurrency.trim().toUpperCase(),
     };
     if (!values.name || values.name.length > 160) {
-      void message.error('Tenant name is required and must not exceed 160 characters');
+      void message.error(t('Tenant name is required and must not exceed 160 characters'));
       return;
     }
     if (!/^[A-Z0-9]{3,12}$/.test(values.displayCurrency)) {
-      void message.error('Display currency must contain 3-12 uppercase letters or digits');
+      void message.error(t('Display currency must contain 3-12 uppercase letters or digits'));
       return;
     }
     setSaving(true);
     try {
       await api.patch(`/custody/platform/v1/tenants/${tenantId}`, session.token, values);
-      await message.success('Tenant details updated');
+      await message.success(t('Tenant details updated'));
       query.refetch();
     } catch (error) {
-      void message.error(error instanceof Error ? error.message : 'Unable to update tenant');
+      void message.error(t(error instanceof Error ? error.message : 'Unable to update tenant'));
     } finally {
       setSaving(false);
     }
@@ -427,10 +439,10 @@ export default function TenantDetailPage() {
         session.token,
         { status },
       );
-      await message.success(`Tenant ${status === 'ACTIVE' ? 'activated' : 'suspended'}`);
+      await message.success(t(status === 'ACTIVE' ? 'Tenant activated' : 'Tenant suspended'));
       query.refetch();
     } catch (error) {
-      void message.error(error instanceof Error ? error.message : 'Unable to change tenant status');
+      void message.error(t(error instanceof Error ? error.message : 'Unable to change tenant status'));
     } finally {
       setStatusSaving(false);
     }
@@ -443,11 +455,11 @@ export default function TenantDetailPage() {
     return (
       <div className="page-stack">
         <PageHeader
-          title="Tenant details"
-          description="Loading the platform operations view."
+          title={t('Tenant details')}
+          description={t('Loading the platform operations view.')}
           actions={
             <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/platform/tenants')}>
-              Back to tenants
+              {t('Back to tenants')}
             </Button>
           }
         />
@@ -470,17 +482,17 @@ export default function TenantDetailPage() {
     <div className="page-stack">
       <div className="tenant-metric-grid">
         <div className="metric-card">
-          <Statistic title="Customer assets" value={data.assets.length} />
+          <Statistic title={t('Customer assets')} value={data.assets.length} />
         </div>
         <div className="metric-card">
-          <Statistic title="Customer addresses" value={data.statistics.addressCount} />
+          <Statistic title={t('Customer addresses')} value={data.statistics.addressCount} />
         </div>
         <div className="metric-card">
-          <Statistic title="Withdrawals" value={data.statistics.withdrawalCount} />
+          <Statistic title={t('Withdrawals')} value={data.statistics.withdrawalCount} />
         </div>
         <div className="metric-card">
           <Statistic
-            title="Webhook failures"
+            title={t('Webhook failures')}
             value={data.statistics.failedWebhookDeliveryCount}
             styles={{
               content: data.statistics.failedWebhookDeliveryCount > 0
@@ -490,11 +502,11 @@ export default function TenantDetailPage() {
           />
         </div>
         <div className="metric-card">
-          <Statistic title="Active sessions" value={data.statistics.activeSessionCount} />
+          <Statistic title={t('Active sessions')} value={data.statistics.activeSessionCount} />
         </div>
         <div className="metric-card">
           <Statistic
-            title="Onboarding"
+            title={t('Onboarding')}
             value={data.onboarding.completedSteps}
             suffix={`/ ${data.onboarding.totalSteps}`}
           />
@@ -502,29 +514,29 @@ export default function TenantDetailPage() {
       </div>
 
       <div className="tenant-detail-grid">
-        <DetailSection title="Tenant settings">
+        <DetailSection title={t('Tenant settings')}>
           <Descriptions column={1} bordered size="small">
-            <Descriptions.Item label="Tenant ID">
+            <Descriptions.Item label={t('Tenant ID')}>
               <Typography.Text copyable>{tenant.id}</Typography.Text>
             </Descriptions.Item>
-            <Descriptions.Item label="Slug">
+            <Descriptions.Item label={t('Slug')}>
               <Typography.Text copyable>{tenant.slug}</Typography.Text>
             </Descriptions.Item>
-            <Descriptions.Item label="Status"><StatusText value={tenant.status} /></Descriptions.Item>
-            <Descriptions.Item label="Derivation namespace">
+            <Descriptions.Item label={t('Status')}><StatusText value={tenant.status} /></Descriptions.Item>
+            <Descriptions.Item label={t('Derivation namespace')}>
               {tenant.derivationNamespace}
             </Descriptions.Item>
-            <Descriptions.Item label="Display currency">
+            <Descriptions.Item label={t('Display currency')}>
               {tenant.displayCurrency}
             </Descriptions.Item>
-            <Descriptions.Item label="IP allowlist">
-              {tenant.ipAllowlistEnabled ? 'Enforced' : 'Not enforced'}
+            <Descriptions.Item label={t('IP allowlist')}>
+              {t(tenant.ipAllowlistEnabled ? 'Enforced' : 'Not enforced')}
             </Descriptions.Item>
-            <Descriptions.Item label="Created">{formatDate(tenant.createdAt)}</Descriptions.Item>
-            <Descriptions.Item label="Updated">{formatDate(tenant.updatedAt)}</Descriptions.Item>
+            <Descriptions.Item label={t('Created')}>{formatDate(tenant.createdAt)}</Descriptions.Item>
+            <Descriptions.Item label={t('Updated')}>{formatDate(tenant.updatedAt)}</Descriptions.Item>
           </Descriptions>
           <form
-            aria-label="Edit tenant details"
+            aria-label={t('Edit tenant details')}
             className="tenant-profile-form"
             onSubmit={(event) => {
               event.preventDefault();
@@ -532,9 +544,9 @@ export default function TenantDetailPage() {
             }}
           >
             <label>
-              <span>Tenant name</span>
+              <span>{t('Tenant name')}</span>
               <Input
-                aria-label="Tenant name"
+                aria-label={t('Tenant name')}
                 maxLength={160}
                 value={editValues.name}
                 onChange={(event) => setEditValues((current) => ({
@@ -544,9 +556,9 @@ export default function TenantDetailPage() {
               />
             </label>
             <label>
-              <span>Display currency</span>
+              <span>{t('Display currency')}</span>
               <Input
-                aria-label="Display currency"
+                aria-label={t('Display currency')}
                 maxLength={12}
                 value={editValues.displayCurrency}
                 onChange={(event) => setEditValues((current) => ({
@@ -554,19 +566,19 @@ export default function TenantDetailPage() {
                   displayCurrency: event.target.value.toUpperCase(),
                 }))}
               />
-              <small>Reporting label only; ledger balances are not converted.</small>
+              <small>{t('Reporting label only; ledger balances are not converted.')}</small>
             </label>
             <div className="tenant-profile-actions">
               <Button type="primary" htmlType="submit" loading={saving}>
-                Save changes
+                {t('Save changes')}
               </Button>
             </div>
           </form>
         </DetailSection>
 
         <DetailSection
-          title="Integration readiness"
-          description="All six controls should be complete before production traffic."
+          title={t('Integration readiness')}
+          description={t('All six controls should be complete before production traffic.')}
         >
           <Progress
             percent={Math.round(
@@ -578,7 +590,7 @@ export default function TenantDetailPage() {
             {onboardingItems.map(([label, complete]) => (
               <div key={label} className={complete ? 'complete' : 'incomplete'}>
                 {complete ? <CheckCircleOutlined /> : <StopOutlined />}
-                <span>{label}</span>
+                <span>{t(label)}</span>
                 <StatusText value={complete ? 'READY' : 'SETUP_REQUIRED'} />
               </div>
             ))}
@@ -587,8 +599,8 @@ export default function TenantDetailPage() {
       </div>
 
       <DetailSection
-        title="Tenant administrators"
-        description="Platform administrators can inspect lockouts without accessing tenant passwords."
+        title={t('Tenant administrators')}
+        description={t('Platform administrators can inspect lockouts without accessing tenant passwords.')}
       >
         <Table<TenantAdministrator>
           rowKey="id"
@@ -596,43 +608,43 @@ export default function TenantDetailPage() {
           pagination={false}
           dataSource={data.administrators}
           columns={administratorColumns}
-          locale={{ emptyText: <Empty description="No tenant administrators" /> }}
+          locale={{ emptyText: <Empty description={t('No tenant administrators')} /> }}
           scroll={{ x: 900 }}
         />
       </DetailSection>
 
-      <DetailSection title="Customer asset balances">
+      <DetailSection title={t('Customer asset balances')}>
         <Table<TenantAsset>
           rowKey={(row) => `${row.chain}:${row.assetSymbol}`}
           size="small"
           pagination={false}
           dataSource={data.assets}
-          columns={assetColumns}
-          locale={{ emptyText: <Empty description="No funded customer assets" /> }}
+          columns={translateColumns(assetColumns, t)}
+          locale={{ emptyText: <Empty description={t('No funded customer assets')} /> }}
           scroll={{ x: 760 }}
         />
       </DetailSection>
 
-      <DetailSection title="Gas reserves">
+      <DetailSection title={t('Gas reserves')}>
         <Table<TenantGasAccount>
           rowKey="id"
           size="small"
           pagination={false}
           dataSource={data.gasAccounts}
-          columns={gasColumns}
-          locale={{ emptyText: <Empty description="No Gas reserve accounts" /> }}
+          columns={translateColumns(gasColumns, t)}
+          locale={{ emptyText: <Empty description={t('No Gas reserve accounts')} /> }}
           scroll={{ x: 760 }}
         />
       </DetailSection>
 
-      <DetailSection title="Recent customer addresses">
+      <DetailSection title={t('Recent customer addresses')}>
         <Table<TenantAddress>
           rowKey="id"
           size="small"
           pagination={false}
           dataSource={data.recentAddresses}
-          columns={addressColumns}
-          locale={{ emptyText: <Empty description="No customer addresses" /> }}
+          columns={translateColumns(addressColumns, t)}
+          locale={{ emptyText: <Empty description={t('No customer addresses')} /> }}
           scroll={{ x: 1000 }}
         />
       </DetailSection>
@@ -641,53 +653,53 @@ export default function TenantDetailPage() {
 
   const integration = (
     <div className="page-stack">
-      <DetailSection title="API request keys">
+      <DetailSection title={t('API request keys')}>
         <Table<TenantApiKey>
           rowKey="id"
           size="small"
           pagination={false}
           dataSource={data.apiKeys}
-          columns={apiKeyColumns}
-          locale={{ emptyText: <Empty description="No API request keys" /> }}
+          columns={translateColumns(apiKeyColumns, t)}
+          locale={{ emptyText: <Empty description={t('No API request keys')} /> }}
           scroll={{ x: 980 }}
         />
       </DetailSection>
       <DetailSection
-        title="IP allowlist"
-        description={tenant.ipAllowlistEnabled ? 'Enforcement is active.' : 'Enforcement is off.'}
+        title={t('IP allowlist')}
+        description={t(tenant.ipAllowlistEnabled ? 'Enforcement is active.' : 'Enforcement is off.')}
       >
         <Table<TenantIpRule>
           rowKey="id"
           size="small"
           pagination={false}
           dataSource={data.ipRules}
-          columns={ipRuleColumns}
-          locale={{ emptyText: <Empty description="No IP rules" /> }}
+          columns={translateColumns(ipRuleColumns, t)}
+          locale={{ emptyText: <Empty description={t('No IP rules')} /> }}
           scroll={{ x: 700 }}
         />
       </DetailSection>
-      <DetailSection title="Webhook endpoints">
+      <DetailSection title={t('Webhook endpoints')}>
         <Table<TenantWebhook>
           rowKey="id"
           size="small"
           pagination={false}
           dataSource={data.webhooks}
-          columns={webhookColumns}
-          locale={{ emptyText: <Empty description="No Webhook endpoints" /> }}
+          columns={translateColumns(webhookColumns, t)}
+          locale={{ emptyText: <Empty description={t('No Webhook endpoints')} /> }}
           scroll={{ x: 900 }}
         />
       </DetailSection>
       <DetailSection
-        title="Recent Webhook deliveries"
-        description="Failures remain visible after automatic or manual retries."
+        title={t('Recent Webhook deliveries')}
+        description={t('Failures remain visible after automatic or manual retries.')}
       >
         <Table<TenantWebhookDelivery>
           rowKey="id"
           size="small"
           pagination={false}
           dataSource={data.webhookDeliveries}
-          columns={deliveryColumns}
-          locale={{ emptyText: <Empty description="No Webhook deliveries" /> }}
+          columns={translateColumns(deliveryColumns, t)}
+          locale={{ emptyText: <Empty description={t('No Webhook deliveries')} /> }}
           scroll={{ x: 1050 }}
         />
       </DetailSection>
@@ -696,36 +708,36 @@ export default function TenantDetailPage() {
 
   const activity = (
     <div className="page-stack">
-      <DetailSection title="Recent deposits">
+      <DetailSection title={t('Recent deposits')}>
         <Table<TenantDeposit>
           rowKey="id"
           size="small"
           pagination={false}
           dataSource={data.recentDeposits}
-          columns={depositColumns}
-          locale={{ emptyText: <Empty description="No deposits" /> }}
+          columns={translateColumns(depositColumns, t)}
+          locale={{ emptyText: <Empty description={t('No deposits')} /> }}
           scroll={{ x: 950 }}
         />
       </DetailSection>
-      <DetailSection title="Recent withdrawals">
+      <DetailSection title={t('Recent withdrawals')}>
         <Table<TenantWithdrawal>
           rowKey="id"
           size="small"
           pagination={false}
           dataSource={data.recentWithdrawals}
-          columns={withdrawalColumns}
-          locale={{ emptyText: <Empty description="No withdrawals" /> }}
+          columns={translateColumns(withdrawalColumns, t)}
+          locale={{ emptyText: <Empty description={t('No withdrawals')} /> }}
           scroll={{ x: 1000 }}
         />
       </DetailSection>
-      <DetailSection title="Recent audit activity">
+      <DetailSection title={t('Recent audit activity')}>
         <Table<TenantAuditEntry>
           rowKey="id"
           size="small"
           pagination={{ pageSize: 10, hideOnSinglePage: true }}
           dataSource={data.recentAudit}
-          columns={auditColumns}
-          locale={{ emptyText: <Empty description="No audit activity" /> }}
+          columns={translateColumns(auditColumns, t)}
+          locale={{ emptyText: <Empty description={t('No audit activity')} /> }}
           scroll={{ x: 950 }}
         />
       </DetailSection>
@@ -736,19 +748,19 @@ export default function TenantDetailPage() {
     <div className="page-stack">
       <PageHeader
         title={tenant.name}
-        description={`Platform operations view for ${tenant.slug}`}
+        description={t('Platform operations view for {slug}', { slug: tenant.slug })}
         actions={
           <Space wrap>
             <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/platform/tenants')}>
-              Back
+              {t('Back')}
             </Button>
-            <Button icon={<ReloadOutlined />} onClick={query.refetch}>Reload</Button>
+            <Button icon={<ReloadOutlined />} onClick={query.refetch}>{t('Reload')}</Button>
             <Popconfirm
-              title={tenant.status === 'ACTIVE' ? 'Suspend this tenant?' : 'Activate this tenant?'}
+              title={t(tenant.status === 'ACTIVE' ? 'Suspend this tenant?' : 'Activate this tenant?')}
               description={
                 tenant.status === 'ACTIVE'
-                  ? 'API access stops immediately and all active tenant Console sessions are revoked.'
-                  : 'Tenant credentials can authenticate again. Previously revoked sessions stay revoked.'
+                  ? t('API access stops immediately and all active tenant Console sessions are revoked.')
+                  : t('Tenant credentials can authenticate again. Previously revoked sessions stay revoked.')
               }
               onConfirm={() => void changeStatus()}
             >
@@ -757,7 +769,7 @@ export default function TenantDetailPage() {
                 type={tenant.status === 'SUSPENDED' ? 'primary' : 'default'}
                 loading={statusSaving}
               >
-                {tenant.status === 'ACTIVE' ? 'Suspend tenant' : 'Activate tenant'}
+                {t(tenant.status === 'ACTIVE' ? 'Suspend tenant' : 'Activate tenant')}
               </Button>
             </Popconfirm>
           </Space>
@@ -768,33 +780,33 @@ export default function TenantDetailPage() {
         <Alert
           type="warning"
           showIcon
-          title="Tenant access is suspended"
-          description="Console login and signed API requests are blocked until the platform reactivates this tenant."
+          title={t('Tenant access is suspended')}
+          description={t('Console login and signed API requests are blocked until the platform reactivates this tenant.')}
         />
       ) : null}
       {!data.onboarding.ready ? (
         <Alert
           type="info"
           showIcon
-          title={`Integration setup is ${data.onboarding.completedSteps}/${data.onboarding.totalSteps}`}
-          description="Review the Overview and Integration tabs to see the missing controls."
+          title={t('Integration setup is {completed}/{total}', { completed: data.onboarding.completedSteps, total: data.onboarding.totalSteps })}
+          description={t('Review the Overview and Integration tabs to see the missing controls.')}
         />
       ) : null}
       {data.statistics.failedWebhookDeliveryCount > 0 ? (
         <Alert
           type="error"
           showIcon
-          title={`${data.statistics.failedWebhookDeliveryCount} failed Webhook deliveries`}
-          description="Open the Integration tab to review the latest delivery errors."
+          title={t('{count} failed Webhook deliveries', { count: data.statistics.failedWebhookDeliveryCount })}
+          description={t('Open the Integration tab to review the latest delivery errors.')}
         />
       ) : null}
 
       <Tabs
         className="tenant-detail-tabs"
         items={[
-          { key: 'overview', label: 'Overview', children: overview },
-          { key: 'integration', label: 'Integration', children: integration },
-          { key: 'activity', label: 'Activity & audit', children: activity },
+          { key: 'overview', label: t('Overview'), children: overview },
+          { key: 'integration', label: t('Integration'), children: integration },
+          { key: 'activity', label: t('Activity & audit'), children: activity },
         ]}
       />
 

@@ -1,8 +1,10 @@
+import { getIntlLocale } from '../i18n';
+
 export function formatAmount(value: unknown, maximumFractionDigits = 8) {
   if (value === null || value === undefined || value === '') return '0';
   const number = Number(value);
   if (!Number.isFinite(number)) return String(value);
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat(getIntlLocale(), {
     maximumFractionDigits,
     minimumFractionDigits: 0,
   }).format(number);
@@ -12,7 +14,7 @@ export function formatDate(value?: string | null) {
   if (!value) return '—';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(getIntlLocale(), {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(date);
