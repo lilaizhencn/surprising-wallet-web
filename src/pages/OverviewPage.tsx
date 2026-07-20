@@ -1,5 +1,10 @@
-import { Alert, Button, Empty, Table, Typography } from 'antd';
-import { ArrowRightOutlined, LinkOutlined } from '@ant-design/icons';
+import { Alert, Button, Empty, Progress, Table, Typography } from 'antd';
+import {
+  ArrowRightOutlined,
+  CheckCircleFilled,
+  ClockCircleOutlined,
+  LinkOutlined,
+} from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useSession } from '../auth/session';
@@ -40,7 +45,59 @@ type OverviewData = {
   assets: AssetRow[];
   webhooks: WebhookRow[];
   recent: Array<TransferRow & { kind: 'Deposit' | 'Withdrawal' }>;
+  onboarding?: OnboardingStatus;
 };
+
+type OnboardingStatus = {
+  apiKeyConfigured: boolean;
+  webhookConfigured: boolean;
+  ipAllowlistConfigured: boolean;
+  addressCreated: boolean;
+  gasAccountConfigured: boolean;
+  gasAccountFunded: boolean;
+  completedSteps: number;
+  totalSteps: number;
+  ready: boolean;
+};
+
+const onboardingSteps = [
+  {
+    key: 'apiKeyConfigured' as const,
+    title: 'Create an API key',
+    description: 'Give your backend only the scopes it needs.',
+    to: '/console/api-access',
+  },
+  {
+    key: 'ipAllowlistConfigured' as const,
+    title: 'Enforce trusted IPs',
+    description: 'Add a CIDR rule before turning enforcement on.',
+    to: '/console/api-access',
+  },
+  {
+    key: 'webhookConfigured' as const,
+    title: 'Verify a Webhook',
+    description: 'Complete the signed challenge-response check.',
+    to: '/console/webhooks',
+  },
+  {
+    key: 'gasAccountConfigured' as const,
+    title: 'Create a gas reserve',
+    description: 'Allocate a tenant-owned native-coin funding address.',
+    to: '/console/gas-station',
+  },
+  {
+    key: 'gasAccountFunded' as const,
+    title: 'Fund the gas reserve',
+    description: 'Wait for a confirmed native-coin deposit.',
+    to: '/console/gas-station',
+  },
+  {
+    key: 'addressCreated' as const,
+    title: 'Create a customer address',
+    description: 'Test the same address-allocation flow your API will use.',
+    to: '/console/addresses',
+  },
+];
 
 export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: boolean }) {
   const session = useSession();
@@ -51,11 +108,12 @@ export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: bool
         const assets = await api.get<AssetRow[]>('/custody/console/v1/assets', session.token, signal);
         return { assets, webhooks: [], recent: [] };
       }
-      const [assets, webhooks, deposits, withdrawals] = await Promise.all([
+      const [assets, webhooks, deposits, withdrawals, onboarding] = await Promise.all([
         api.get<AssetRow[]>('/custody/console/v1/assets', session.token, signal),
         api.get<WebhookRow[]>('/custody/console/v1/webhooks', session.token, signal),
         api.get<TransferRow[]>('/custody/console/v1/deposits?limit=5', session.token, signal),
         api.get<TransferRow[]>('/custody/console/v1/withdrawals?limit=5', session.token, signal),
+        api.get<OnboardingStatus>('/custody/console/v1/onboarding', session.token, signal),
       ]);
       const recent = [
         ...deposits.map((row) => ({ ...row, kind: 'Deposit' as const })),
@@ -63,7 +121,7 @@ export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: bool
       ]
         .toSorted((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
         .slice(0, 8);
-      return { assets, webhooks, recent };
+      return { assets, webhooks, recent, onboarding };
     },
     [session?.token, assetsOnly],
   );
@@ -82,6 +140,51 @@ export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: bool
         description="Consolidated balances and activity across every configured chain."
       />
       <ErrorState message={query.error} onRetry={query.refetch} />
+
+      {!assetsOnly && query.data?.onboarding ? (
+        <section className="data-panel onboarding-panel">
+          <div className="onboarding-heading">
+            <div>
+              <span className="eyebrow">Tenant activation</span>
+              <h2>{query.data.onboarding.ready ? 'Ready for integration' : 'Finish your setup'}</h2>
+              <p>
+                Complete each operational control before sending production traffic.
+              </p>
+            </div>
+            <div className="onboarding-progress">
+              <Progress
+                type="circle"
+                size={76}
+                percent={Math.round(
+                  query.data.onboarding.completedSteps
+                    / query.data.onboarding.totalSteps * 100,
+                )}
+              />
+            </div>
+          </div>
+          <div className="onboarding-steps">
+            {onboardingSteps.map((step) => {
+              const complete = query.data?.onboarding?.[step.key] === true;
+              return (
+                <Link
+                  key={step.key}
+                  to={step.to}
+                  className={`onboarding-step${complete ? ' complete' : ''}`}
+                >
+                  {complete
+                    ? <CheckCircleFilled aria-hidden />
+                    : <ClockCircleOutlined aria-hidden />}
+                  <span>
+                    <strong>{step.title}</strong>
+                    <small>{step.description}</small>
+                  </span>
+                  <ArrowRightOutlined aria-hidden />
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
 
       {!assetsOnly ? (
         <section className="overview-band" aria-label="Tenant asset summary">

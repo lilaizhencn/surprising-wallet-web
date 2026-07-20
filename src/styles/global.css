@@ -843,6 +843,102 @@ a {
   align-items: start;
 }
 
+.onboarding-panel {
+  padding: 20px;
+}
+
+.onboarding-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 18px;
+}
+
+.onboarding-heading h2,
+.onboarding-heading p {
+  margin: 0;
+}
+
+.onboarding-heading h2 {
+  margin-top: 4px;
+  font-size: 20px;
+}
+
+.onboarding-heading p {
+  margin-top: 5px;
+  color: #6d7a90;
+  font-size: 13px;
+}
+
+.eyebrow {
+  color: #1648f5;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.onboarding-progress {
+  flex: 0 0 auto;
+}
+
+.onboarding-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.onboarding-step {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #dfe5ee;
+  border-radius: 8px;
+  padding: 12px;
+  color: #0b1c3b;
+  background: #fbfcfe;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.onboarding-step:hover {
+  border-color: #9eb5ff;
+  background: #f5f8ff;
+}
+
+.onboarding-step > .anticon:first-child {
+  color: #8592a6;
+}
+
+.onboarding-step.complete > .anticon:first-child {
+  color: #16a36a;
+}
+
+.onboarding-step > .anticon:last-child {
+  color: #1648f5;
+  font-size: 11px;
+}
+
+.onboarding-step span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.onboarding-step strong {
+  font-size: 13px;
+}
+
+.onboarding-step small {
+  overflow: hidden;
+  color: #718097;
+  font-size: 11px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+}
+
 .security-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(400px, 0.75fr);
@@ -940,6 +1036,63 @@ a {
   font-size: 14px;
 }
 
+.gas-account-details,
+.delivery-details,
+.withdrawal-confirmation {
+  display: grid;
+  gap: 18px;
+}
+
+.gas-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.gas-stat-grid .ant-statistic {
+  border: 1px solid #dfe5ee;
+  border-radius: 8px;
+  padding: 14px;
+  background: #fbfcfe;
+}
+
+.gas-stat-grid .ant-statistic-content {
+  font-size: 19px;
+}
+
+.embedded-table {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #dfe5ee;
+  border-radius: 8px;
+}
+
+.embedded-table .panel-heading h3,
+.delivery-attempt-heading h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.embedded-table .panel-heading p,
+.delivery-attempt-heading p {
+  margin: 4px 0 0;
+  color: #718097;
+  font-size: 12px;
+}
+
+.drawer-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 14px 0 10px;
+}
+
+.delivery-attempt-heading {
+  margin-top: 4px;
+  border: 0;
+  border-bottom: 1px solid #e5eaf1;
+  padding-inline: 0;
+}
+
 .ant-table-wrapper .ant-table {
   font-size: 13px;
 }
@@ -992,6 +1145,10 @@ a {
 
   .overview-grid {
     grid-template-columns: 1fr;
+  }
+
+  .onboarding-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .login-page {
@@ -1087,6 +1244,15 @@ a {
 
   .overview-band > div:last-child {
     border-bottom: 0;
+  }
+
+  .onboarding-heading {
+    align-items: flex-start;
+  }
+
+  .onboarding-steps,
+  .gas-stat-grid {
+    grid-template-columns: 1fr;
   }
 
   .table-toolbar > * {

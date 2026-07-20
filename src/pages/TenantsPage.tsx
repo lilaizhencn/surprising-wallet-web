@@ -34,6 +34,9 @@ type Tenant = {
   depositCount: number;
   withdrawalCount: number;
   activeWebhookCount: number;
+  activeApiKeyCount: number;
+  gasAccountCount: number;
+  failedWebhookDeliveryCount: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -134,7 +137,27 @@ export default function TenantsPage() {
             { title: 'Addresses', dataIndex: 'addressCount', align: 'right' },
             { title: 'Deposits', dataIndex: 'depositCount', align: 'right' },
             { title: 'Withdrawals', dataIndex: 'withdrawalCount', align: 'right' },
-            { title: 'Active webhooks', dataIndex: 'activeWebhookCount', align: 'right' },
+            {
+              title: 'Setup',
+              render: (_, row) => (
+                <StatusText
+                  value={
+                    row.activeWebhookCount > 0
+                    && row.activeApiKeyCount > 0
+                    && row.gasAccountCount > 0
+                    && row.ipAllowlistEnabled
+                      ? 'READY'
+                      : 'SETUP_REQUIRED'
+                  }
+                />
+              ),
+            },
+            {
+              title: 'Webhook failures',
+              dataIndex: 'failedWebhookDeliveryCount',
+              align: 'right',
+              render: (value: number) => value || '—',
+            },
             { title: 'Created', dataIndex: 'createdAt', render: formatDate },
           ]}
         />
@@ -205,6 +228,18 @@ export default function TenantsPage() {
               <Descriptions.Item label="Addresses">{selected.addressCount}</Descriptions.Item>
               <Descriptions.Item label="Deposits">{selected.depositCount}</Descriptions.Item>
               <Descriptions.Item label="Withdrawals">{selected.withdrawalCount}</Descriptions.Item>
+              <Descriptions.Item label="Active API keys">
+                {selected.activeApiKeyCount}
+              </Descriptions.Item>
+              <Descriptions.Item label="Active webhooks">
+                {selected.activeWebhookCount}
+              </Descriptions.Item>
+              <Descriptions.Item label="Gas reserves">
+                {selected.gasAccountCount}
+              </Descriptions.Item>
+              <Descriptions.Item label="Failed Webhook deliveries">
+                {selected.failedWebhookDeliveryCount}
+              </Descriptions.Item>
               <Descriptions.Item label="Created">{formatDate(selected.createdAt)}</Descriptions.Item>
               <Descriptions.Item label="Updated">{formatDate(selected.updatedAt)}</Descriptions.Item>
             </Descriptions>

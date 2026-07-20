@@ -23,6 +23,7 @@ import { CopyText } from '../components/CopyText';
 import { ErrorState } from '../components/ErrorState';
 import { PageHeader } from '../components/PageHeader';
 import { StatusText } from '../components/StatusText';
+import { commonChainOptions } from '../constants/chains';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { formatDate, queryString } from '../utils/format';
 
@@ -52,13 +53,6 @@ type UpdateAddressValues = {
   status: 'ACTIVE' | 'DISABLED';
   metadata?: string;
 };
-
-const commonChains = [
-  'BTC', 'LTC', 'DOGE', 'BCH',
-  'ETH', 'BNB', 'POLYGON', 'ARBITRUM', 'OPTIMISM', 'BASE', 'AVAX_C',
-  'HYPEREVM', 'MANTLE', 'LINEA', 'SCROLL', 'UNICHAIN', 'HYPERCORE',
-  'TRON', 'XRP', 'SOLANA', 'TON', 'APTOS', 'SUI', 'ADA', 'DOT', 'NEAR', 'XMR',
-].map((value) => ({ value }));
 
 export default function AddressesPage() {
   const session = useSession();
@@ -155,7 +149,7 @@ export default function AddressesPage() {
   };
 
   const networkOptions = useMemo(() => {
-    const values = new Set(commonChains.map((item) => item.value));
+    const values = new Set<string>(commonChainOptions.map((item) => item.value));
     query.data?.forEach((row) => values.add(row.chain));
     return [...values].toSorted().map((value) => ({ label: value, value }));
   }, [query.data]);
@@ -283,7 +277,7 @@ export default function AddressesPage() {
             rules={[{ required: true, message: 'Select or enter a network' }]}
             extra="An EVM network address can receive its enabled native and token assets."
           >
-            <AutoComplete options={commonChains} placeholder="ETH" filterOption />
+            <AutoComplete options={commonChainOptions} placeholder="ETH" filterOption />
           </Form.Item>
           <Form.Item
             name="externalReference"

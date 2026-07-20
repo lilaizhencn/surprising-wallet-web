@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import {
+  Alert,
   App,
   Button,
+  Descriptions,
   Drawer,
   Empty,
   Form,
@@ -47,10 +49,29 @@ type Delivery = {
   eventType: string;
   status: string;
   attemptCount: number;
+  totalAttemptCount: number;
+  manualRetryCount: number;
+  nextAttemptAt?: string;
+  nextAttemptTrigger?: string;
   lastHttpStatus?: number;
   lastError?: string;
   createdAt: string;
   deliveredAt?: string;
+};
+
+type DeliveryAttempt = {
+  id: string;
+  attemptNumber: number;
+  retryCycle: number;
+  trigger: 'AUTOMATIC' | 'MANUAL' | 'RECOVERY';
+  status: string;
+  httpStatus?: number;
+  errorMessage?: string;
+  responseBody?: string;
+  nextAttemptAt?: string;
+  startedAt: string;
+  completedAt?: string;
+  durationMs?: number;
 };
 
 type CreatedEndpoint = Endpoint & { signingSecret: string };
@@ -73,6 +94,8 @@ export default function WebhooksPage() {
   const [creating, setCreating] = useState(false);
   const [created, setCreated] = useState<CreatedEndpoint>();
   const [deliveryEndpoint, setDeliveryEndpoint] = useState<Endpoint>();
+  const [selectedDelivery, setSelectedDelivery] = useState<Delivery>();
+  const [retryingId, setRetryingId] = useState<string>();
 
   const endpoints = useApiQuery<Endpoint[]>(
     (signal) => session
@@ -92,6 +115,16 @@ export default function WebhooksPage() {
         )
       : Promise.resolve([]),
     [session?.token, deliveryEndpoint?.id],
+  );
+  const attempts = useApiQuery<DeliveryAttempt[]>(
+    (signal) => session && selectedDelivery
+      ? api.get(
+          `/custody/console/v1/webhook-deliveries/${selectedDelivery.id}/attempts?limit=100`,
+          session.token,
+          signal,
+        )
+      : Promise.resolve([]),
+    [session?.token, selectedDelivery?.id],
   );
 
   const create = async (values: EndpointForm) => {
@@ -139,6 +172,7 @@ export default function WebhooksPage() {
 
   const retry = async (delivery: Delivery) => {
     if (!session) return;
+    setRetryingId(delivery.id);
     try {
       await api.post(
         `/custody/console/v1/webhook-deliveries/${delivery.id}/retry`,
@@ -146,8 +180,11 @@ export default function WebhooksPage() {
       );
       await message.success('Delivery queued for retry');
       deliveries.refetch();
+      attempts.refetch();
     } catch (error) {
       void message.error(error instanceof Error ? error.message : 'Unable to retry delivery');
+    } finally {
+      setRetryingId(undefined);
     }
   };
 
@@ -292,7 +329,16 @@ export default function WebhooksPage() {
         open={Boolean(deliveryEndpoint)}
         onClose={() => setDeliveryEndpoint(undefined)}
       >
+        <Alert
+          showIcon
+          type="info"
+          title="Automatic retry policy"
+          description="Failed deliveries retry up to 10 times with exponential backoff, deterministic jitter, and Retry-After support. Every attempt is retained; a manual retry starts a new cycle without erasing history."
+        />
         <ErrorState message={deliveries.error} onRetry={deliveries.refetch} />
+        <div className="drawer-toolbar">
+          <Button icon={<ReloadOutlined />} onClick={deliveries.refetch}>Reload deliveries</Button>
+        </div>
         <Table<Delivery>
           rowKey="id"
           size="small"
@@ -304,8 +350,14 @@ export default function WebhooksPage() {
             { title: 'Event', dataIndex: 'eventType' },
             { title: 'Event ID', dataIndex: 'eventId', render: (value) => <CopyText value={value} /> },
             { title: 'HTTP', dataIndex: 'lastHttpStatus', render: (value) => value ?? '—' },
-            { title: 'Attempts', dataIndex: 'attemptCount' },
+            { title: 'Attempts', dataIndex: 'totalAttemptCount' },
             { title: 'Status', dataIndex: 'status', render: (value) => <StatusText value={value} /> },
+            {
+              title: 'Next attempt',
+              dataIndex: 'nextAttemptAt',
+              render: (value: string | undefined, row) =>
+                row.status === 'RETRY' ? formatDate(value) : '—',
+            },
             {
               title: 'Last error',
               dataIndex: 'lastError',
@@ -314,16 +366,110 @@ export default function WebhooksPage() {
             },
             { title: 'Created', dataIndex: 'createdAt', render: formatDate },
             {
-              title: '',
-              render: (_, row) => row.status === 'FAILED' || row.status === 'RETRY' ? (
-                <Popconfirm title="Queue this delivery again?" onConfirm={() => void retry(row)}>
-                  <Button type="text" icon={<RetweetOutlined />} aria-label="Retry delivery" />
-                </Popconfirm>
-              ) : null,
+              title: 'Actions',
+              render: (_, row) => (
+                <Space>
+                  <Button type="link" onClick={() => setSelectedDelivery(row)}>
+                    Details
+                  </Button>
+                  {row.status === 'FAILED' || row.status === 'RETRY' ? (
+                    <Popconfirm
+                      title="Queue this delivery now?"
+                      description="This starts a new manual retry cycle and keeps all previous attempts."
+                      onConfirm={() => void retry(row)}
+                    >
+                      <Button
+                        type="text"
+                        icon={<RetweetOutlined />}
+                        loading={retryingId === row.id}
+                      >
+                        Retry now
+                      </Button>
+                    </Popconfirm>
+                  ) : null}
+                </Space>
+              ),
             },
           ]}
         />
       </Drawer>
+
+      <Modal
+        title="Webhook delivery details"
+        width={900}
+        open={Boolean(selectedDelivery)}
+        footer={<Button onClick={() => setSelectedDelivery(undefined)}>Close</Button>}
+        onCancel={() => setSelectedDelivery(undefined)}
+      >
+        {selectedDelivery ? (
+          <div className="delivery-details">
+            <Descriptions column={2} bordered size="small">
+              <Descriptions.Item label="Event">{selectedDelivery.eventType}</Descriptions.Item>
+              <Descriptions.Item label="Status">
+                <StatusText value={selectedDelivery.status} />
+              </Descriptions.Item>
+              <Descriptions.Item label="Event ID" span={2}>
+                <CopyText value={selectedDelivery.eventId} />
+              </Descriptions.Item>
+              <Descriptions.Item label="Total attempts">
+                {selectedDelivery.totalAttemptCount}
+              </Descriptions.Item>
+              <Descriptions.Item label="Manual retry cycles">
+                {selectedDelivery.manualRetryCount}
+              </Descriptions.Item>
+              <Descriptions.Item label="Next automatic attempt">
+                {selectedDelivery.status === 'RETRY'
+                  ? formatDate(selectedDelivery.nextAttemptAt)
+                  : '—'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Last HTTP status">
+                {selectedDelivery.lastHttpStatus ?? '—'}
+              </Descriptions.Item>
+              {selectedDelivery.lastError ? (
+                <Descriptions.Item label="Last error" span={2}>
+                  <Typography.Text type="danger">
+                    {selectedDelivery.lastError}
+                  </Typography.Text>
+                </Descriptions.Item>
+              ) : null}
+            </Descriptions>
+            <div className="panel-heading delivery-attempt-heading">
+              <div>
+                <h3>Attempt history</h3>
+                <p>Newest attempt first. Recovery means a worker lease expired and was safely reclaimed.</p>
+              </div>
+              <Button icon={<ReloadOutlined />} onClick={attempts.refetch}>Reload</Button>
+            </div>
+            <ErrorState message={attempts.error} onRetry={attempts.refetch} />
+            <Table<DeliveryAttempt>
+              rowKey="id"
+              size="small"
+              loading={attempts.loading}
+              dataSource={attempts.data ?? []}
+              pagination={{ pageSize: 10 }}
+              locale={{ emptyText: <Empty description="No dispatch attempt has started yet" /> }}
+              scroll={{ x: 820 }}
+              columns={[
+                { title: '#', dataIndex: 'attemptNumber', width: 54 },
+                { title: 'Trigger', dataIndex: 'trigger' },
+                { title: 'Status', dataIndex: 'status', render: (value) => <StatusText value={value} /> },
+                { title: 'HTTP', dataIndex: 'httpStatus', render: (value) => value ?? '—' },
+                {
+                  title: 'Duration',
+                  dataIndex: 'durationMs',
+                  render: (value?: number) => value === undefined || value === null ? '—' : `${value} ms`,
+                },
+                { title: 'Started', dataIndex: 'startedAt', render: formatDate },
+                {
+                  title: 'Result',
+                  render: (_, row) => row.errorMessage || row.responseBody || '—',
+                  ellipsis: true,
+                },
+              ]}
+            />
+          </div>
+        ) : null}
+      </Modal>
     </div>
   );
 }

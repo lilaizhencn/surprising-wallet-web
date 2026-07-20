@@ -7,6 +7,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const OverviewPage = lazy(() => import('./pages/OverviewPage'));
+const GasStationPage = lazy(() => import('./pages/GasStationPage'));
 const AddressesPage = lazy(() => import('./pages/AddressesPage'));
 const TransfersPage = lazy(() => import('./pages/TransfersPage'));
 const WebhooksPage = lazy(() => import('./pages/WebhooksPage'));
@@ -34,6 +35,7 @@ export default function App() {
               <Route index element={<Navigate to="overview" replace />} />
               <Route path="overview" element={<OverviewPage />} />
               <Route path="assets" element={<OverviewPage assetsOnly />} />
+              <Route path="gas-station" element={<GasStationPage />} />
               <Route path="addresses" element={<AddressesPage />} />
               <Route path="deposits" element={<TransfersPage type="deposits" />} />
               <Route path="withdrawals" element={<TransfersPage type="withdrawals" />} />

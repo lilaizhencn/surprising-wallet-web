@@ -1,12 +1,15 @@
 import { useMemo, useState } from 'react';
 import {
+  Alert,
   App,
   Button,
+  Descriptions,
   Drawer,
   Empty,
   Form,
   Input,
   InputNumber,
+  Modal,
   Select,
   Space,
   Table,
@@ -59,6 +62,15 @@ type AddressOption = {
   address: string;
   label?: string;
   externalReference?: string;
+  metadata?: Record<string, unknown>;
+};
+
+type GasAccount = {
+  chain: string;
+  nativeSymbol: string;
+  availableBalance: string | number;
+  lowBalance: boolean;
+  status: string;
 };
 
 type WithdrawalValues = {
@@ -76,7 +88,9 @@ export default function TransfersPage({ type }: { type: TransferType }) {
   const [status, setStatus] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [pendingWithdrawal, setPendingWithdrawal] = useState<WithdrawalValues>();
   const [form] = Form.useForm<WithdrawalValues>();
+  const selectedChain = Form.useWatch('chain', form);
 
   const query = useApiQuery<Array<DepositRow | WithdrawalRow>>(
     (signal) => session
@@ -95,14 +109,28 @@ export default function TransfersPage({ type }: { type: TransferType }) {
       : Promise.resolve([]),
     [session?.token, type],
   );
+  const gasQuery = useApiQuery<GasAccount[]>(
+    (signal) => session && type === 'withdrawals'
+      ? api.get('/custody/console/v1/gas-accounts', session.token, signal)
+      : Promise.resolve([]),
+    [session?.token, type],
+  );
 
   const addressOptions = useMemo(
-    () => (addressQuery.data ?? []).map((row) => ({
+    () => (addressQuery.data ?? [])
+      .filter((row) => row.metadata?.systemPurpose !== 'GAS_FUNDING')
+      .map((row) => ({
       value: row.id,
       label: `${row.label || row.externalReference || row.chain} — ${row.address.slice(0, 10)}…`,
       row,
     })),
     [addressQuery.data],
+  );
+  const selectedGas = (gasQuery.data ?? []).find(
+    (account) => account.chain === selectedChain && account.status === 'ACTIVE',
+  );
+  const gasReady = Boolean(
+    selectedGas && Number(selectedGas.availableBalance) > 0,
   );
 
   const createWithdrawal = async (values: WithdrawalValues) => {
@@ -112,9 +140,11 @@ export default function TransfersPage({ type }: { type: TransferType }) {
       await api.post('/custody/console/v1/withdrawals', session.token, {
         ...values,
         amount: String(values.amount),
+        confirmed: true,
       });
-      await message.success('Withdrawal created and balance frozen');
+      await message.success('Withdrawal created; asset and network-fee reserves are frozen');
       form.resetFields();
+      setPendingWithdrawal(undefined);
       setDrawerOpen(false);
       query.refetch();
     } catch (error) {
@@ -240,7 +270,7 @@ export default function TransfersPage({ type }: { type: TransferType }) {
           form={form}
           layout="vertical"
           requiredMark={false}
-          onFinish={createWithdrawal}
+          onFinish={setPendingWithdrawal}
         >
           <Form.Item
             name="custodyAddressId"
@@ -292,13 +322,71 @@ export default function TransfersPage({ type }: { type: TransferType }) {
           </Form.Item>
           <div className="form-warning">
             The selected address account is the funding boundary. Available balance is
-            checked and frozen atomically before the order is accepted.
+            checked and frozen atomically with the tenant network-fee reserve.
           </div>
-          <Button type="primary" htmlType="submit" block loading={creating}>
-            Create and freeze withdrawal
+          {selectedChain ? (
+            selectedGas ? (
+              <Alert
+                showIcon
+                type={selectedGas.lowBalance ? 'warning' : 'success'}
+                title={`${selectedGas.chain} gas balance: ${formatAmount(selectedGas.availableBalance)} ${selectedGas.nativeSymbol}`}
+                description={selectedGas.lowBalance
+                  ? 'The reserve is below its warning threshold. Funding it before a busy payout window is recommended.'
+                  : 'A conservative network-fee amount will be locked when you confirm.'}
+              />
+            ) : (
+              <Alert
+                showIcon
+                type="error"
+                title={`No funded ${selectedChain} gas reserve`}
+                description="Create and fund this network in Gas station before requesting a withdrawal."
+              />
+            )
+          ) : null}
+          <Button type="primary" htmlType="submit" block disabled={Boolean(selectedChain) && !gasReady}>
+            Review withdrawal
           </Button>
         </Form>
       </Drawer>
+
+      <Modal
+        title="Confirm withdrawal"
+        open={Boolean(pendingWithdrawal)}
+        zIndex={1300}
+        confirmLoading={creating}
+        okText="Confirm and freeze funds"
+        cancelText="Go back"
+        onOk={() => pendingWithdrawal && void createWithdrawal(pendingWithdrawal)}
+        onCancel={() => setPendingWithdrawal(undefined)}
+      >
+        {pendingWithdrawal ? (
+          <div className="withdrawal-confirmation">
+            <Alert
+              showIcon
+              type="warning"
+              title="Check every value carefully"
+              description="After broadcast, a blockchain withdrawal cannot be reversed. The source asset and a conservative tenant gas reserve are frozen atomically when you confirm."
+            />
+            <Descriptions column={1} bordered size="small">
+              <Descriptions.Item label="Network">
+                {pendingWithdrawal.chain}
+              </Descriptions.Item>
+              <Descriptions.Item label="Asset">
+                {pendingWithdrawal.assetSymbol}
+              </Descriptions.Item>
+              <Descriptions.Item label="Amount">
+                {pendingWithdrawal.amount} {pendingWithdrawal.assetSymbol}
+              </Descriptions.Item>
+              <Descriptions.Item label="Destination">
+                <CopyText value={pendingWithdrawal.toAddress} />
+              </Descriptions.Item>
+              <Descriptions.Item label="External reference">
+                {pendingWithdrawal.externalReference || '—'}
+              </Descriptions.Item>
+            </Descriptions>
+          </div>
+        ) : null}
+      </Modal>
     </div>
   );
 }

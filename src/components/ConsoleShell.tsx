@@ -15,6 +15,7 @@ import {
   SafetyCertificateOutlined,
   SwapOutlined,
   TeamOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
@@ -26,6 +27,7 @@ const { Header, Sider, Content } = Layout;
 const tenantItems = [
   { key: '/console/overview', icon: <DashboardOutlined />, label: 'Overview' },
   { key: '/console/assets', icon: <BankOutlined />, label: 'Assets' },
+  { key: '/console/gas-station', icon: <ThunderboltOutlined />, label: 'Gas station' },
   { key: '/console/addresses', icon: <DatabaseOutlined />, label: 'Addresses' },
   { key: '/console/deposits', icon: <GlobalOutlined />, label: 'Deposits' },
   { key: '/console/withdrawals', icon: <SwapOutlined />, label: 'Withdrawals' },

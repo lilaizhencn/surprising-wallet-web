@@ -57,6 +57,37 @@ function installConsoleApi() {
         addressCount: 2,
       }]);
     }
+    if (path.startsWith('/custody/console/v1/onboarding')) {
+      return jsonResponse({
+        apiKeyConfigured: true,
+        webhookConfigured: true,
+        ipAllowlistConfigured: true,
+        addressCreated: true,
+        gasAccountConfigured: true,
+        gasAccountFunded: true,
+        completedSteps: 6,
+        totalSteps: 6,
+        ready: true,
+      });
+    }
+    if (path.startsWith('/custody/console/v1/gas-accounts')) {
+      return jsonResponse([{
+        id: '12121212-1212-1212-1212-121212121212',
+        custodyAddressId: '13131313-1313-1313-1313-131313131313',
+        chain: 'ETH',
+        network: 'sepolia',
+        nativeSymbol: 'ETH',
+        address: '0x3333333333333333333333333333333333333333',
+        availableBalance: 2.5,
+        lockedBalance: 0,
+        totalBalance: 2.5,
+        lowBalanceThreshold: 0.05,
+        lowBalance: false,
+        status: 'ACTIVE',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }]);
+    }
     if (path.startsWith('/custody/console/v1/addresses')) {
       return jsonResponse([{
         id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
@@ -169,6 +200,7 @@ describe('tenant Console routes', () => {
   it.each([
     ['/console/overview', 'Asset overview', '12.5 ETH'],
     ['/console/assets', 'Assets', '12.5 ETH'],
+    ['/console/gas-station', 'Gas station', '2.5 ETH'],
     ['/console/addresses', 'Addresses', 'user_10086'],
     ['/console/deposits', 'Deposits', 'user_10086'],
     ['/console/withdrawals', 'Withdrawals', 'merchant-order-1'],
@@ -209,6 +241,9 @@ describe('platform Console route', () => {
         depositCount: 1,
         withdrawalCount: 1,
         activeWebhookCount: 1,
+        activeApiKeyCount: 1,
+        gasAccountCount: 1,
+        failedWebhookDeliveryCount: 0,
         createdAt: timestamp,
         updatedAt: timestamp,
       }]);
