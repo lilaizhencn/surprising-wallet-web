@@ -698,6 +698,20 @@ const messages: Record<string, string> = {
   'Replace username': '替换用户名',
   'Username': '用户名',
   'Replace password': '替换密码',
+  'Key management system': '密钥管理系统',
+  'Online': '在线',
+  'Keyset state': '密钥集状态',
+  'Seed slots': 'Seed 槽位',
+  'Mutation policy': '修改策略',
+  'Read only': '只读',
+  'Writable': '可写',
+  'Last synchronization': '最后同步',
+  'Atomic keyset': '原子密钥集',
+  'Seed vault': 'Seed 密钥库',
+  'Four roots are committed and loaded as one logical unit.': '四个根密钥作为一个逻辑单元统一提交和加载。',
+  'Awaiting initial configuration': '等待初始配置',
+  'Address derivation detected · keyset mutation disabled': '检测到地址派生 · 已禁用密钥集修改',
+  'Changes are committed for all four seeds together': '所有修改将对四个 Seed 一并提交',
 };
 
 export default messages;

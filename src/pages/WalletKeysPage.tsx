@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Alert, App, Button, Form, Input, Space, Spin, Tag, Typography } from 'antd';
-import { ReloadOutlined, SaveOutlined } from '@ant-design/icons';
+import { Alert, App, Button, Form, Input, Spin, Tag } from 'antd';
+import {
+  DatabaseOutlined,
+  KeyOutlined,
+  LockOutlined,
+  ReloadOutlined,
+  SafetyCertificateOutlined,
+  SaveOutlined,
+} from '@ant-design/icons';
 import { api } from '../api/client';
 import { useSession } from '../auth/session';
 import { ErrorState } from '../components/ErrorState';
@@ -61,87 +68,156 @@ export default function WalletKeysPage() {
   };
 
   return (
-    <div className="page-stack">
-      <PageHeader
-        title={t('Wallet keys')}
-        description={t('Manage the four seeds as one atomic wallet keyset.')}
-        actions={<Button icon={<ReloadOutlined />} onClick={query.refetch}>{t('Reload')}</Button>}
-      />
-
-      <Alert
-        type="warning"
-        showIcon
-        title={t('Development-only plaintext storage')}
-        description={t('All four values are stored as plaintext in PostgreSQL and returned by this page. Each value must be Base64 and decode to exactly 32 bytes. Start or restart sig1 and sig2 after saving so their JVMs load the keyset.')}
-      />
-      {query.data?.locked ? (
-        <Alert
-          type="info"
-          showIcon
-          title={t('Keyset locked')}
-          description={t('Derived addresses already exist, so the keyset can be viewed but cannot be changed.')}
+    <div className="page-stack wallet-keys-page">
+      <section className="wallet-key-hero">
+        <div className="wallet-key-grid-overlay" aria-hidden />
+        <div className="wallet-key-orb wallet-key-orb-one" aria-hidden />
+        <div className="wallet-key-orb wallet-key-orb-two" aria-hidden />
+        <div className="wallet-key-eyebrow">
+          <SafetyCertificateOutlined />
+          <span>{t('Key management system')}</span>
+          <i aria-hidden />
+          <span>{t('Online')}</span>
+        </div>
+        <PageHeader
+          title={t('Wallet keys')}
+          description={t('Manage the four seeds as one atomic wallet keyset.')}
+          actions={(
+            <Button className="wallet-key-reload" icon={<ReloadOutlined />} onClick={query.refetch}>
+              {t('Reload')}
+            </Button>
+          )}
         />
-      ) : null}
+        <div className="wallet-key-telemetry">
+          <div>
+            <span>{t('Keyset state')}</span>
+            <strong className={query.data?.configured ? 'is-ready' : 'is-pending'}>
+              <i aria-hidden />
+              {t(query.data?.configured ? 'Configured' : 'Not configured')}
+            </strong>
+          </div>
+          <div>
+            <span>{t('Seed slots')}</span>
+            <strong>04 / 04</strong>
+          </div>
+          <div>
+            <span>{t('Mutation policy')}</span>
+            <strong>{t(query.data?.locked ? 'Read only' : 'Writable')}</strong>
+          </div>
+          <div>
+            <span>{t('Last synchronization')}</span>
+            <strong>
+              {query.data?.updatedAt ? formatDate(query.data.updatedAt) : '—'}
+            </strong>
+          </div>
+        </div>
+      </section>
+
+      <div className="wallet-key-notices">
+        <Alert
+          type="warning"
+          showIcon
+          title={t('Development-only plaintext storage')}
+          description={t('All four values are stored as plaintext in PostgreSQL and returned by this page. Each value must be Base64 and decode to exactly 32 bytes. Start or restart sig1 and sig2 after saving so their JVMs load the keyset.')}
+        />
+        {query.data?.locked ? (
+          <Alert
+            type="info"
+            showIcon
+            title={t('Keyset locked')}
+            description={t('Derived addresses already exist, so the keyset can be viewed but cannot be changed.')}
+          />
+        ) : null}
+      </div>
 
       <ErrorState message={query.error} onRetry={query.refetch} />
-      <section className="data-panel wallet-key-panel">
+      <section className="wallet-key-panel">
         {query.loading && !query.data ? <Spin /> : (
           <>
-            <Space wrap className="wallet-key-status">
-              <Tag color={query.data?.configured ? 'green' : 'gold'}>
-                {t(query.data?.configured ? 'Configured' : 'Not configured')}
-              </Tag>
-              {query.data?.updatedAt ? (
-                <Typography.Text type="secondary">
-                  {t('Updated {time} by {actor}', { time: formatDate(query.data.updatedAt), actor: query.data.updatedBy ?? t('unknown') })}
-                </Typography.Text>
-              ) : null}
-            </Space>
+            <header className="wallet-key-panel-header">
+              <div className="wallet-key-emblem" aria-hidden>
+                <KeyOutlined />
+              </div>
+              <div>
+                <span className="wallet-key-panel-kicker">{t('Atomic keyset')}</span>
+                <h2>{t('Seed vault')}</h2>
+                <p>{t('Four roots are committed and loaded as one logical unit.')}</p>
+              </div>
+              <div className="wallet-key-database-state">
+                <DatabaseOutlined />
+                <span>
+                  {query.data?.updatedAt
+                    ? t('Updated {time} by {actor}', {
+                        time: formatDate(query.data.updatedAt),
+                        actor: query.data.updatedBy ?? t('unknown'),
+                      })
+                    : t('Awaiting initial configuration')}
+                </span>
+              </div>
+            </header>
             <Form<WalletKeysetInput>
               form={form}
+              className="wallet-key-form"
               layout="vertical"
               requiredMark={false}
               onFinish={save}
             >
-              {fields.map((field) => (
-                <Form.Item
-                  key={field.name}
-                  name={field.name}
-                  label={t(field.label)}
-                  extra={t(field.help)}
-                  rules={[
-                    { required: true, message: t('{field} is required', { field: t(field.label) }) },
-                    {
-                      validator: (_, value: string) => {
-                        try {
-                          const bytes = Uint8Array.from(atob(value.trim()), (character) => character.charCodeAt(0));
-                          return bytes.length === 32
-                            ? Promise.resolve()
-                            : Promise.reject(new Error(t('Must decode to exactly 32 bytes')));
-                        } catch {
-                          return Promise.reject(new Error(t('Must be valid Base64')));
-                        }
-                      },
-                    },
-                  ]}
+              <div className="wallet-seed-grid">
+                {fields.map((field, index) => (
+                  <div className="wallet-seed-card" key={field.name}>
+                    <div className="wallet-seed-card-topline">
+                      <span className="wallet-seed-index">0{index + 1}</span>
+                      <Tag bordered={false}>{index === 3 ? 'ED25519' : 'BIP32'}</Tag>
+                    </div>
+                    <Form.Item
+                      name={field.name}
+                      label={t(field.label)}
+                      extra={t(field.help)}
+                      rules={[
+                        { required: true, message: t('{field} is required', { field: t(field.label) }) },
+                        {
+                          validator: (_, value: string) => {
+                            try {
+                              const bytes = Uint8Array.from(atob(value.trim()), (character) => character.charCodeAt(0));
+                              return bytes.length === 32
+                                ? Promise.resolve()
+                                : Promise.reject(new Error(t('Must decode to exactly 32 bytes')));
+                            } catch {
+                              return Promise.reject(new Error(t('Must be valid Base64')));
+                            }
+                          },
+                        },
+                      ]}
+                    >
+                      <Input.Password
+                        visibilityToggle
+                        readOnly={query.data?.locked}
+                        autoComplete="off"
+                        placeholder={t('Base64-encoded 32-byte seed')}
+                      />
+                    </Form.Item>
+                  </div>
+                ))}
+              </div>
+              <footer className="wallet-key-form-footer">
+                <div>
+                  <LockOutlined />
+                  <span>
+                    {t(query.data?.locked
+                      ? 'Address derivation detected · keyset mutation disabled'
+                      : 'Changes are committed for all four seeds together')}
+                  </span>
+                </div>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  icon={<SaveOutlined />}
+                  loading={saving}
+                  disabled={query.loading || query.data?.locked}
                 >
-                  <Input.Password
-                    visibilityToggle
-                    readOnly={query.data?.locked}
-                    autoComplete="off"
-                    placeholder={t('Base64-encoded 32-byte seed')}
-                  />
-                </Form.Item>
-              ))}
-              <Button
-                type="primary"
-                htmlType="submit"
-                icon={<SaveOutlined />}
-                loading={saving}
-                disabled={query.loading || query.data?.locked}
-              >
-                {t('Save all four seeds')}
-              </Button>
+                  {t('Save all four seeds')}
+                </Button>
+              </footer>
             </Form>
           </>
         )}
