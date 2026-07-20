@@ -770,6 +770,57 @@ a {
   margin-top: 5px;
 }
 
+.wallet-config-loading {
+  display: grid;
+  min-height: 180px;
+  place-items: center;
+}
+
+.wallet-panel-heading {
+  display: flex;
+  min-height: 72px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e5eaf1;
+}
+
+.wallet-panel-heading h2 {
+  margin: 0 0 4px;
+  font-size: 17px;
+}
+
+.wallet-switch-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.wallet-switch-item {
+  display: flex;
+  min-width: 0;
+  min-height: 110px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px 16px;
+  border-right: 1px solid #e8ecf2;
+}
+
+.wallet-switch-item:last-child {
+  border-right: 0;
+}
+
+.wallet-switch-item > div {
+  display: grid;
+  gap: 6px;
+}
+
+.wallet-switch-item .ant-typography-secondary {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .data-panel {
   min-width: 0;
   overflow: hidden;
@@ -1285,6 +1336,14 @@ a {
   .tenant-metric-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+
+  .wallet-switch-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .wallet-switch-item:nth-child(2n) {
+    border-right: 0;
+  }
 }
 
 @media (max-width: 900px) {
@@ -1430,8 +1489,18 @@ a {
   }
 
   .tenant-filter-panel,
-  .tenant-metric-grid {
+  .tenant-metric-grid,
+  .wallet-switch-grid {
     grid-template-columns: 1fr;
+  }
+
+  .wallet-switch-item {
+    border-right: 0;
+    border-bottom: 1px solid #e8ecf2;
+  }
+
+  .wallet-switch-item:last-child {
+    border-bottom: 0;
   }
 
   .tenant-filter-panel > * {

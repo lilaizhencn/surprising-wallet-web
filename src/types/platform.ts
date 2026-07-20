@@ -19,6 +19,61 @@ export type WalletKeysetInput = {
   ed25519Seed: string;
 };
 
+export type WalletGlobalSwitches = {
+  walletEnabled: boolean;
+  scanEnabled: boolean;
+  withdrawEnabled: boolean;
+  collectionEnabled: boolean;
+  transferEnabled: boolean;
+};
+
+export type WalletTaskSwitches = {
+  scanEnabled: boolean;
+  withdrawEnabled: boolean;
+  collectionEnabled: boolean;
+  transferEnabled: boolean;
+};
+
+export type WalletChainStatus = {
+  profileId: number;
+  chain: string;
+  network: string;
+  family: string;
+  configuredEnabled: boolean;
+  configuredTasks: WalletTaskSwitches;
+  effectiveTasks: WalletTaskSwitches;
+  enabledTokenCount: number;
+  enabledRpcNodeCount: number;
+  status: 'ACTIVE' | 'INACTIVE' | 'BLOCKED' | 'DISABLED';
+  blockers: string[];
+};
+
+export type WalletConfigAnomaly = {
+  code: string;
+  severity: 'ERROR' | 'WARNING';
+  chain?: string | null;
+  network?: string | null;
+  message: string;
+};
+
+export type WalletConfigSummary = {
+  environment: string;
+  production: boolean;
+  keysetConfigured: boolean;
+  globalSwitches: WalletGlobalSwitches;
+  statistics: {
+    configuredChainProfileCount: number;
+    enabledChainCount: number;
+    enabledNetworkCount: number;
+    enabledTokenCount: number;
+    enabledRpcNodeCount: number;
+    anomalyCount: number;
+  };
+  chains: WalletChainStatus[];
+  anomalies: WalletConfigAnomaly[];
+  generatedAt: string;
+};
+
 export type TenantSummary = {
   id: string;
   slug: string;

@@ -238,6 +238,58 @@ describe('platform Console route', () => {
           updatedBy: '33333333-3333-3333-3333-333333333333',
         });
       }
+      if (path === '/custody/platform/v1/wallet-config/summary') {
+        return jsonResponse({
+          environment: 'test2',
+          production: false,
+          keysetConfigured: true,
+          globalSwitches: {
+            walletEnabled: true,
+            scanEnabled: true,
+            withdrawEnabled: true,
+            collectionEnabled: false,
+            transferEnabled: true,
+          },
+          statistics: {
+            configuredChainProfileCount: 2,
+            enabledChainCount: 1,
+            enabledNetworkCount: 2,
+            enabledTokenCount: 2,
+            enabledRpcNodeCount: 2,
+            anomalyCount: 1,
+          },
+          chains: [{
+            profileId: 1,
+            chain: 'ETH',
+            network: 'devnet',
+            family: 'evm',
+            configuredEnabled: true,
+            configuredTasks: {
+              scanEnabled: true,
+              withdrawEnabled: true,
+              collectionEnabled: true,
+              transferEnabled: true,
+            },
+            effectiveTasks: {
+              scanEnabled: true,
+              withdrawEnabled: true,
+              collectionEnabled: false,
+              transferEnabled: true,
+            },
+            enabledTokenCount: 2,
+            enabledRpcNodeCount: 1,
+            status: 'BLOCKED',
+            blockers: ['Global collection switch is off.'],
+          }],
+          anomalies: [{
+            code: 'TOKEN_NETWORK_MISSING',
+            severity: 'WARNING',
+            chain: 'ETH',
+            message: 'USDC does not declare its network.',
+          }],
+          generatedAt: timestamp,
+        });
+      }
       if (!path.startsWith('/custody/platform/v1/tenants')) {
         throw new Error(`Unhandled Platform request: ${path}`);
       }
@@ -369,5 +421,20 @@ describe('platform Console route', () => {
     expect(await screen.findByText('Configured')).toBeInTheDocument();
     expect(screen.getByLabelText('Sig1 BIP32 Seed')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Save all four seeds/ })).toBeEnabled();
+  }, 15_000);
+
+  it('renders wallet configuration health and effective runtime state', async () => {
+    render(
+      <MemoryRouter initialEntries={['/platform/wallet-config']}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Wallet configuration', level: 1 }))
+      .toBeInTheDocument();
+    expect(await screen.findByText('test2 environment')).toBeInTheDocument();
+    expect((await screen.findAllByText('ETH')).length).toBeGreaterThan(0);
+    expect(await screen.findByText('USDC does not declare its network.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Save switches/ })).toBeDisabled();
   }, 15_000);
 });

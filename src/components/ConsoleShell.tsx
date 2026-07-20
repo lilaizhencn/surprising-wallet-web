@@ -38,6 +38,7 @@ const tenantItems = [
 ];
 
 const platformItems = [
+  { key: '/platform/wallet-config', icon: <DashboardOutlined />, label: 'Wallet config' },
   { key: '/platform/tenants', icon: <TeamOutlined />, label: 'Tenants' },
   { key: '/platform/wallet-keys', icon: <KeyOutlined />, label: 'Wallet keys' },
 ];

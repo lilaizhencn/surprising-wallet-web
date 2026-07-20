@@ -16,6 +16,7 @@ const AuditPage = lazy(() => import('./pages/AuditPage'));
 const TenantsPage = lazy(() => import('./pages/TenantsPage'));
 const TenantDetailPage = lazy(() => import('./pages/TenantDetailPage'));
 const WalletKeysPage = lazy(() => import('./pages/WalletKeysPage'));
+const WalletConfigOverviewPage = lazy(() => import('./pages/WalletConfigOverviewPage'));
 
 function RouteFallback() {
   return (
@@ -48,7 +49,8 @@ export default function App() {
           </Route>
           <Route element={<ProtectedRoute accountType="platform" />}>
             <Route path="/platform" element={<ConsoleShell accountType="platform" />}>
-              <Route index element={<Navigate to="tenants" replace />} />
+              <Route index element={<Navigate to="wallet-config" replace />} />
+              <Route path="wallet-config" element={<WalletConfigOverviewPage />} />
               <Route path="tenants" element={<TenantsPage />} />
               <Route path="tenants/:tenantId" element={<TenantDetailPage />} />
               <Route path="wallet-keys" element={<WalletKeysPage />} />
