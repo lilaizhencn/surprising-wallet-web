@@ -11,6 +11,9 @@ importers:
       '@ant-design/icons':
         specifier: 6.3.2
         version: 6.3.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@web3icons/react':
+        specifier: 4.1.6
+        version: 4.1.6(react@19.2.7)(typescript@7.0.2)
       antd:
         specifier: 6.5.1
         version: 6.5.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -792,6 +795,16 @@ packages:
 
   '@vitest/utils@4.1.10':
     resolution: {integrity: sha512-fy9am/HWxbaGt/Sawrp90vt6Y6jQwf1RX77cz3uwoJwJVMli/e1IEwRPnMNJ7vKfPTwo0diXifkpPvwH9v7nGA==}
+
+  '@web3icons/common@0.11.35':
+    resolution: {integrity: sha512-fBJOsmld+HYl1MJHM01FXAGPuIVPU5zbnBBCb0BDVtwtYpY4qi61GacBNtHd1v2+hC8ST6wRNgfeJIDTao5C/A==}
+    peerDependencies:
+      typescript: ^5.0.0
+
+  '@web3icons/react@4.1.6':
+    resolution: {integrity: sha512-yR4rnjk9BG8Okaf9gMycajvZUHdLHcrKbLno6L1WRBh7Rsh+VKaAly1sY23C4iaa4rl0RsuwO7PHBsgBcnYb4Q==}
+    peerDependencies:
+      react: ^18.0.0 || ^19.0.0
 
   ansi-regex@5.0.1:
     resolution: {integrity: sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ==}
@@ -1994,6 +2007,17 @@ snapshots:
       '@vitest/pretty-format': 4.1.10
       convert-source-map: 2.0.0
       tinyrainbow: 3.1.0
+
+  '@web3icons/common@0.11.35(typescript@7.0.2)':
+    dependencies:
+      typescript: 7.0.2
+
+  '@web3icons/react@4.1.6(react@19.2.7)(typescript@7.0.2)':
+    dependencies:
+      '@web3icons/common': 0.11.35(typescript@7.0.2)
+      react: 19.2.7
+    transitivePeerDependencies:
+      - typescript
 
   ansi-regex@5.0.1: {}
 

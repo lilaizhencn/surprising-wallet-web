@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -338,7 +338,22 @@ describe('platform Console route', () => {
         updatedAt: timestamp,
       };
       if (path === '/custody/platform/v1/wallet-config/chains') {
-        return jsonResponse([chain]);
+        return jsonResponse([
+          chain,
+          {
+            ...chain,
+            id: 2,
+            network: 'mainnet',
+            chainId: 1,
+            enabled: false,
+            scanEnabled: false,
+            withdrawEnabled: false,
+            collectionEnabled: false,
+            transferEnabled: false,
+            tokenSymbols: ['USDC'],
+            rpcCount: 0,
+          },
+        ]);
       }
       if (path === '/custody/platform/v1/wallet-config/chains/1') {
         return jsonResponse({
@@ -368,9 +383,6 @@ describe('platform Console route', () => {
           production: false,
           environment: 'test2',
         });
-      }
-      if (path === '/custody/platform/v1/wallet-config/tokens/matrix') {
-        return jsonResponse([token]);
       }
       if (path.startsWith('/custody/platform/v1/wallet-config/audit-log')) {
         return jsonResponse([{
@@ -537,10 +549,25 @@ describe('platform Console route', () => {
     expect(screen.getByRole('button', { name: /Save switches/ })).toBeDisabled();
   }, 15_000);
 
+  it('groups network profiles into one chain row with token logos and symbols', async () => {
+    render(<MemoryRouter initialEntries={['/platform/wallet-config/chains']}><App /></MemoryRouter>);
+
+    expect(await screen.findByRole('heading', { name: 'Chains & Tokens', level: 1 }))
+      .toBeInTheDocument();
+    const table = screen.getByRole('table');
+    expect(within(table).getAllByRole('row')).toHaveLength(2);
+    expect(within(table).getAllByText('devnet')).toHaveLength(2);
+    expect(within(table).getByText('mainnet')).toBeInTheDocument();
+    expect(within(table).getByText('USDT')).toBeInTheDocument();
+    expect(within(table).getByText('USDC')).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /Chains & Tokens$/ })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /^Tokens$/ })).not.toBeInTheDocument();
+  }, 15_000);
+
   it.each([
-    ['/platform/wallet-config/chains', 'Chains & RPC', 'devnet'],
-    ['/platform/wallet-config/chains/1', 'ETH · devnet', 'Local Hardhat'],
-    ['/platform/wallet-config/tokens', 'Token management', 'USDT'],
+    ['/platform/wallet-config/chains', 'Chains & Tokens', 'devnet'],
+    ['/platform/wallet-config/chains/1', 'ETH', 'Local Hardhat'],
+    ['/platform/wallet-config/tokens', 'Chains & Tokens', 'USDT'],
     ['/platform/wallet-config/audit-log', 'Wallet configuration audit', 'WALLET_RPC.UPDATE'],
   ])('renders %s from platform wallet APIs', async (route, heading, record) => {
     render(<MemoryRouter initialEntries={[route]}><App /></MemoryRouter>);

@@ -1,15 +1,66 @@
-import { useState } from 'react';
-import { App, Button, Form, Input, Modal, Space, Switch, Table, Tag, Typography } from 'antd';
-import { PlusOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
+import { useMemo, useState } from 'react';
+import { App, Button, Empty, Form, Input, Modal, Space, Table, Tag, Typography } from 'antd';
+import {
+  ArrowRightOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+  SearchOutlined,
+} from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useSession } from '../auth/session';
-import { defaultChainValues, WalletChainForm, type WalletChainFormValues } from '../components/WalletChainForm';
+import { AssetLogo, ChainLogo } from '../components/Web3Logo';
+import {
+  defaultChainValues,
+  WalletChainForm,
+  type WalletChainFormValues,
+} from '../components/WalletChainForm';
 import { ErrorState } from '../components/ErrorState';
 import { PageHeader } from '../components/PageHeader';
 import { useApiQuery } from '../hooks/useApiQuery';
 import type { WalletChain, WalletChainDetail } from '../types/platform';
 import { useI18n } from '../i18n';
+
+type ChainGroup = {
+  chain: string;
+  family: string;
+  nativeSymbol: string;
+  profiles: WalletChain[];
+  tokenSymbols: string[];
+  rpcCount: number;
+  enabledProfile?: WalletChain;
+  targetProfile: WalletChain;
+};
+
+function groupProfiles(profiles: WalletChain[]): ChainGroup[] {
+  const grouped = new Map<string, WalletChain[]>();
+  profiles.forEach((profile) => {
+    const current = grouped.get(profile.chain) ?? [];
+    current.push(profile);
+    grouped.set(profile.chain, current);
+  });
+
+  return [...grouped.entries()].map(([chain, chainProfiles]) => {
+    const sorted = chainProfiles.toSorted((left, right) => {
+      if (left.enabled !== right.enabled) return left.enabled ? -1 : 1;
+      if (left.network === 'mainnet') return -1;
+      if (right.network === 'mainnet') return 1;
+      return left.network.localeCompare(right.network);
+    });
+    const tokenSymbols = [...new Set(sorted.flatMap((profile) => profile.tokenSymbols))]
+      .toSorted((left, right) => left.localeCompare(right));
+    return {
+      chain,
+      family: sorted[0].family,
+      nativeSymbol: sorted[0].nativeSymbol,
+      profiles: sorted,
+      tokenSymbols,
+      rpcCount: sorted.reduce((total, profile) => total + profile.rpcCount, 0),
+      enabledProfile: sorted.find((profile) => profile.enabled),
+      targetProfile: sorted[0],
+    };
+  }).toSorted((left, right) => left.chain.localeCompare(right.chain));
+}
 
 export default function WalletChainsPage() {
   const session = useSession();
@@ -17,7 +68,6 @@ export default function WalletChainsPage() {
   const { message } = App.useApp();
   const { t } = useI18n();
   const [search, setSearch] = useState('');
-  const [enabledOnly, setEnabledOnly] = useState(false);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form] = Form.useForm<WalletChainFormValues>();
@@ -25,10 +75,17 @@ export default function WalletChainsPage() {
     ? api.get('/custody/platform/v1/wallet-config/chains', session.token, signal)
     : Promise.resolve([]), [session?.token]);
 
-  const rows = (query.data ?? []).filter((row) => {
+  const groups = useMemo(() => groupProfiles(query.data ?? []), [query.data]);
+  const rows = groups.filter((row) => {
     const needle = search.trim().toLowerCase();
-    return (!needle || [row.chain, row.network, row.family, row.nativeSymbol, ...row.tokenSymbols]
-      .some((value) => value.toLowerCase().includes(needle))) && (!enabledOnly || row.enabled);
+    if (!needle) return true;
+    return [
+      row.chain,
+      row.family,
+      row.nativeSymbol,
+      ...row.profiles.map((profile) => profile.network),
+      ...row.tokenSymbols,
+    ].some((value) => value.toLowerCase().includes(needle));
   });
 
   const create = async () => {
@@ -51,37 +108,125 @@ export default function WalletChainsPage() {
   };
 
   return (
-    <div className="page-stack">
+    <div className="page-stack chain-management-page">
       <PageHeader
-        title={t('Chains & RPC')}
-        description={t('Manage network profiles and open a chain to configure its RPC nodes.')}
-        actions={<Space><Button icon={<ReloadOutlined />} onClick={query.refetch}>{t('Reload')}</Button><Button type="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)}>{t('Add chain')}</Button></Space>}
+        title={t('Chains & Tokens')}
+        description={t('Select a chain, switch networks, and manage its configuration, RPC nodes, and tokens in one place.')}
+        actions={(
+          <Space>
+            <Button icon={<ReloadOutlined />} onClick={query.refetch}>{t('Reload')}</Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)}>
+              {t('Add chain profile')}
+            </Button>
+          </Space>
+        )}
       />
       <ErrorState message={query.error} onRetry={query.refetch} />
-      <section className="data-panel">
-        <Space wrap className="table-toolbar">
-          <Input prefix={<SearchOutlined />} placeholder={t('Search chain, network or family')} value={search} onChange={(event) => setSearch(event.target.value)} allowClear />
-          <Space><Switch checked={enabledOnly} onChange={setEnabledOnly} /> {t('Enabled only')}</Space>
-        </Space>
-        <Table<WalletChain>
-          rowKey="id"
+      <section className="data-panel chain-directory-panel">
+        <div className="chain-search-bar">
+          <Input
+            size="large"
+            prefix={<SearchOutlined />}
+            placeholder={t('Search by chain or token')}
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            allowClear
+          />
+          <div className="chain-directory-summary">
+            <span>{t('{count} chains', { count: rows.length })}</span>
+            <i aria-hidden />
+            <span>{t('{count} network profiles', { count: rows.reduce((total, row) => total + row.profiles.length, 0) })}</span>
+          </div>
+        </div>
+        <Table<ChainGroup>
+          className="chain-directory-table"
+          rowKey="chain"
           loading={query.loading}
           dataSource={rows}
-          pagination={{ pageSize: 25 }}
-          onRow={(row) => ({ onClick: () => navigate(`/platform/wallet-config/chains/${row.id}`), style: { cursor: 'pointer' } })}
+          pagination={false}
+          locale={{ emptyText: <Empty description={t('No chains match this search')} /> }}
+          scroll={{ x: 1080 }}
+          onRow={(row) => ({
+            onClick: () => navigate(`/platform/wallet-config/chains/${row.targetProfile.id}`),
+            style: { cursor: 'pointer' },
+          })}
           columns={[
-            { title: t('Chain'), render: (_, row) => <><Typography.Text strong>{row.chain}</Typography.Text><br /><Typography.Text type="secondary">{row.nativeSymbol}</Typography.Text></> },
-            { title: t('Network'), dataIndex: 'network' },
-            { title: t('Family'), dataIndex: 'family' },
-            { title: t('Status'), dataIndex: 'enabled', render: (value) => <Tag color={value ? 'green' : 'default'}>{t(value ? 'Enabled' : 'Disabled')}</Tag> },
-            { title: t('Task switches'), render: (_, row) => [row.scanEnabled && t('Scan'), row.withdrawEnabled && t('Withdraw'), row.collectionEnabled && t('Collect'), row.transferEnabled && t('Transfer')].filter(Boolean).join(' · ') || '—' },
-            { title: t('Tokens'), dataIndex: 'tokenCount' },
-            { title: t('RPC nodes'), dataIndex: 'rpcCount' },
+            {
+              title: t('Chain'),
+              width: 250,
+              render: (_, row) => (
+                <div className="chain-identity-cell">
+                  <ChainLogo chain={row.chain} size={42} />
+                  <div>
+                    <Typography.Text strong>{row.chain}</Typography.Text>
+                    <Typography.Text type="secondary">
+                      {row.nativeSymbol} · {row.family}
+                    </Typography.Text>
+                  </div>
+                </div>
+              ),
+            },
+            {
+              title: t('Networks'),
+              width: 280,
+              render: (_, row) => (
+                <div className="chain-network-list">
+                  {row.profiles.map((profile) => (
+                    <Tag key={profile.id} color={profile.enabled ? 'green' : 'default'}>
+                      {profile.enabled ? <i aria-hidden /> : null}
+                      {profile.network}
+                    </Tag>
+                  ))}
+                </div>
+              ),
+            },
+            {
+              title: t('Supported tokens'),
+              render: (_, row) => row.tokenSymbols.length ? (
+                <div className="chain-token-list">
+                  {row.tokenSymbols.map((symbol) => (
+                    <span className="chain-token-chip" key={symbol}>
+                      <AssetLogo symbol={symbol} size={22} />
+                      {symbol}
+                    </span>
+                  ))}
+                </div>
+              ) : <Typography.Text type="secondary">{t('Native asset only')}</Typography.Text>,
+            },
+            {
+              title: t('Active network'),
+              width: 150,
+              render: (_, row) => row.enabledProfile ? (
+                <Tag color="green">{row.enabledProfile.network}</Tag>
+              ) : <Tag>{t('None')}</Tag>,
+            },
+            {
+              title: t('RPC nodes'),
+              dataIndex: 'rpcCount',
+              width: 105,
+              align: 'center',
+            },
+            {
+              title: '',
+              width: 54,
+              fixed: 'right',
+              render: () => <Button type="text" icon={<ArrowRightOutlined />} aria-label={t('Open chain')} />,
+            },
           ]}
         />
       </section>
-      <Modal title={t('Add chain profile')} open={open} width={900} confirmLoading={saving} onOk={create} onCancel={() => setOpen(false)} destroyOnHidden>
-        <Form form={form} layout="vertical" initialValues={defaultChainValues}><WalletChainForm /></Form>
+      <Modal
+        title={t('Add chain profile')}
+        open={open}
+        width={1040}
+        confirmLoading={saving}
+        onOk={create}
+        onCancel={() => setOpen(false)}
+        destroyOnHidden
+      >
+        <Form form={form} layout="vertical" initialValues={defaultChainValues}>
+          <WalletChainForm />
+        </Form>
       </Modal>
     </div>
   );
