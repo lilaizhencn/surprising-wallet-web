@@ -226,6 +226,18 @@ describe('platform Console route', () => {
     platformSession();
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
       const path = String(input);
+      if (path === '/custody/platform/v1/wallet-config/keyset') {
+        return jsonResponse({
+          configured: true,
+          locked: false,
+          sig1Seed: 'AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+          sig2Seed: 'AgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+          recoverySeed: 'AwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+          ed25519Seed: 'BAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+          updatedAt: timestamp,
+          updatedBy: '33333333-3333-3333-3333-333333333333',
+        });
+      }
       if (!path.startsWith('/custody/platform/v1/tenants')) {
         throw new Error(`Unhandled Platform request: ${path}`);
       }
@@ -343,5 +355,19 @@ describe('platform Console route', () => {
     expect(await screen.findByText('Acme Admin')).toBeInTheDocument();
     expect(await screen.findByText('1,250')).toBeInTheDocument();
     expect(await screen.findByText('Integration readiness')).toBeInTheDocument();
+  }, 15_000);
+
+  it('renders the atomic wallet keyset page', async () => {
+    render(
+      <MemoryRouter initialEntries={['/platform/wallet-keys']}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Wallet keys', level: 1 }))
+      .toBeInTheDocument();
+    expect(await screen.findByText('Configured')).toBeInTheDocument();
+    expect(screen.getByLabelText('Sig1 BIP32 Seed')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Save all four seeds/ })).toBeEnabled();
   }, 15_000);
 });

@@ -9,6 +9,7 @@ import {
   DownOutlined,
   GlobalOutlined,
   LinkOutlined,
+  KeyOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -38,6 +39,7 @@ const tenantItems = [
 
 const platformItems = [
   { key: '/platform/tenants', icon: <TeamOutlined />, label: 'Tenants' },
+  { key: '/platform/wallet-keys', icon: <KeyOutlined />, label: 'Wallet keys' },
 ];
 const deploymentEnvironment = import.meta.env.VITE_CUSTODY_ENVIRONMENT ?? 'Sandbox';
 
@@ -49,8 +51,7 @@ export function ConsoleShell({ accountType }: { accountType: AccountType }) {
   const { message } = App.useApp();
   const items = accountType === 'platform' ? platformItems : tenantItems;
   const selectedMenuKey = accountType === 'platform'
-    && location.pathname.startsWith('/platform/tenants')
-    ? '/platform/tenants'
+    ? platformItems.find((item) => location.pathname.startsWith(item.key))?.key ?? location.pathname
     : location.pathname;
   const initials = (session?.displayName || session?.email || 'A')
     .split(/\s+/)

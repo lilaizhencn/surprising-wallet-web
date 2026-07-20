@@ -758,6 +758,18 @@ a {
   flex: 0 0 auto;
 }
 
+.wallet-key-panel {
+  max-width: 860px;
+}
+
+.wallet-key-status {
+  margin-bottom: 22px;
+}
+
+.wallet-key-panel .ant-form-item-extra {
+  margin-top: 5px;
+}
+
 .data-panel {
   min-width: 0;
   overflow: hidden;

@@ -1,5 +1,24 @@
 export type TenantStatus = 'ACTIVE' | 'SUSPENDED';
 
+export type WalletKeyset = {
+  configured: boolean;
+  locked: boolean;
+  sig1Seed?: string | null;
+  sig2Seed?: string | null;
+  recoverySeed?: string | null;
+  ed25519Seed?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  updatedBy?: string | null;
+};
+
+export type WalletKeysetInput = {
+  sig1Seed: string;
+  sig2Seed: string;
+  recoverySeed: string;
+  ed25519Seed: string;
+};
+
 export type TenantSummary = {
   id: string;
   slug: string;

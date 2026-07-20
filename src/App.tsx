@@ -15,6 +15,7 @@ const ApiAccessPage = lazy(() => import('./pages/ApiAccessPage'));
 const AuditPage = lazy(() => import('./pages/AuditPage'));
 const TenantsPage = lazy(() => import('./pages/TenantsPage'));
 const TenantDetailPage = lazy(() => import('./pages/TenantDetailPage'));
+const WalletKeysPage = lazy(() => import('./pages/WalletKeysPage'));
 
 function RouteFallback() {
   return (
@@ -50,6 +51,7 @@ export default function App() {
               <Route index element={<Navigate to="tenants" replace />} />
               <Route path="tenants" element={<TenantsPage />} />
               <Route path="tenants/:tenantId" element={<TenantDetailPage />} />
+              <Route path="wallet-keys" element={<WalletKeysPage />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
