@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { Alert, Button, Empty, Progress, Table, Typography } from 'antd';
+import { useEffect, useState } from 'react';
+import { Alert, App, Button, Empty, Progress, Space, Table, Tag, Typography } from 'antd';
 import {
   ArrowRightOutlined,
   CheckCircleFilled,
@@ -8,7 +8,8 @@ import {
 } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
-import { useSession } from '../auth/session';
+import { hasRole, useSession } from '../auth/session';
+import { CopyText } from '../components/CopyText';
 import { ErrorState } from '../components/ErrorState';
 import { PageHeader } from '../components/PageHeader';
 import { StatusText } from '../components/StatusText';
@@ -46,6 +47,24 @@ type AssetDashboard = {
   oldestPriceObservedAt?: string;
   assets: AssetRow[];
   bySymbol: SymbolAggregate[];
+  openedChains: OpenedChain[];
+};
+
+type OpenedChain = {
+  chain: string;
+  network: string;
+  family: string;
+  nativeSymbol: string;
+  assetSymbols: string[];
+  collectionAddressId?: string;
+  collectionAddress?: string;
+  memo?: string;
+  childIndex?: number;
+  availableBalance: string | number;
+  lockedBalance: string | number;
+  totalBalance: string | number;
+  lowBalance: boolean;
+  status: string;
 };
 
 type WebhookRow = {
@@ -93,6 +112,7 @@ const emptyDashboard: AssetDashboard = {
   unpricedAssetCount: 0,
   assets: [],
   bySymbol: [],
+  openedChains: [],
 };
 
 const onboardingSteps = [
@@ -122,15 +142,15 @@ const onboardingSteps = [
   },
   {
     key: 'gasAccountConfigured' as const,
-    title: 'Create a gas reserve',
-    description: 'Allocate a tenant-owned native-coin funding address.',
-    to: '/console/gas-station',
+    title: 'Create a collection address',
+    description: 'Generate the fixed childIndex 1 address for every enabled chain.',
+    to: '/console/assets',
   },
   {
     key: 'gasAccountFunded' as const,
-    title: 'Fund the gas reserve',
-    description: 'Wait for a confirmed native-coin deposit.',
-    to: '/console/gas-station',
+    title: 'Fund a chain address',
+    description: 'Confirmed native coins are automatically available for network fees.',
+    to: '/console/assets',
   },
   {
     key: 'addressCreated' as const,
@@ -142,7 +162,9 @@ const onboardingSteps = [
 
 export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: boolean }) {
   const session = useSession();
+  const { message } = App.useApp();
   const { t } = useI18n();
+  const [generatingChain, setGeneratingChain] = useState<string>();
   const query = useApiQuery<OverviewData>(
     async (signal) => {
       if (!session) return { dashboard: emptyDashboard, webhooks: [], recent: [] };
@@ -179,6 +201,22 @@ export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: bool
   const degradedWebhooks = (query.data?.webhooks ?? []).filter(
     (row) => row.status !== 'ACTIVE' || (row.successRate24h ?? 100) < 95,
   );
+  const canGenerateCollectionAddress = hasRole(session, 'TENANT_ADMIN');
+
+  const generateCollectionAddress = async (chain: string) => {
+    setGeneratingChain(chain);
+    try {
+      await api.post('/custody/console/v1/gas-accounts', { chain });
+      query.refetch();
+      void message.success(t('{chain} collection address generated', { chain }));
+    } catch (error) {
+      void message.error(error instanceof Error
+        ? error.message
+        : t('Unable to generate collection address'));
+    } finally {
+      setGeneratingChain(undefined);
+    }
+  };
 
   return (
     <div className="page-stack">
@@ -263,6 +301,89 @@ export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: bool
           </div>
         </section>
       ) : null}
+
+      <section className="data-panel">
+        <div className="panel-heading">
+          <div>
+            <h2>{t('Enabled chain addresses')}</h2>
+            <p>{t('Every enabled chain is listed even before it has a balance.')}</p>
+          </div>
+        </div>
+        <Alert
+          showIcon
+          type="info"
+          title={t('Generated addresses can receive deposits and pay network fees')}
+          description={t('Send assets only on the matching chain. Confirmed native-coin deposits to generated addresses are automatically available as gas for on-chain operations.')}
+        />
+        <Table<OpenedChain>
+          rowKey="chain"
+          loading={query.loading}
+          dataSource={query.data?.dashboard.openedChains ?? []}
+          pagination={false}
+          locale={{ emptyText: <Empty description={t('No chain has been enabled for this tenant')} /> }}
+          scroll={{ x: 1180 }}
+          columns={[
+            {
+              title: t('Network'),
+              render: (_, row) => (
+                <Space orientation="vertical" size={0}>
+                  <Typography.Text strong>{row.chain}</Typography.Text>
+                  <Typography.Text type="secondary">{row.network}</Typography.Text>
+                </Space>
+              ),
+            },
+            {
+              title: t('Supported assets'),
+              dataIndex: 'assetSymbols',
+              render: (symbols: string[]) => (
+                <Space size={[4, 4]} wrap>
+                  {symbols.map((symbol) => <Tag key={symbol}>{symbol}</Tag>)}
+                </Space>
+              ),
+            },
+            {
+              title: t('Collection / gas address'),
+              dataIndex: 'collectionAddress',
+              render: (address?: string) => address
+                ? <CopyText value={address} compact={false} />
+                : <Typography.Text type="secondary">{t('Not generated')}</Typography.Text>,
+            },
+            {
+              title: t('Child index'),
+              dataIndex: 'childIndex',
+              align: 'center',
+              render: (value?: number) => value ?? '—',
+            },
+            {
+              title: t('Native balance'),
+              align: 'right',
+              render: (_, row) => `${formatAmount(row.totalBalance)} ${row.nativeSymbol}`,
+            },
+            {
+              title: t('Status'),
+              render: (_, row) => (
+                <StatusText value={row.collectionAddress ? row.status : 'NOT_GENERATED'} />
+              ),
+            },
+            {
+              title: t('Action'),
+              fixed: 'right',
+              render: (_, row) => row.collectionAddress ? (
+                <Typography.Text type="secondary">—</Typography.Text>
+              ) : (
+                <Button
+                  type="primary"
+                  disabled={!canGenerateCollectionAddress}
+                  loading={generatingChain === row.chain}
+                  onClick={() => void generateCollectionAddress(row.chain)}
+                >
+                  {t('Generate address')}
+                </Button>
+              ),
+            },
+          ]}
+        />
+      </section>
 
       <section className="data-panel">
         <div className="panel-heading"><h2>{t('Assets')}</h2></div>

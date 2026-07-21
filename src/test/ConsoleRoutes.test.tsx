@@ -67,6 +67,14 @@ function installConsoleApi() {
           totalBalance: 12.5, valueUsd: 37500, chains: ['ETH'],
         }],
         byChain: [{ chain: 'ETH', valueUsd: 37500, assets: [asset] }],
+        openedChains: [{
+          chain: 'ETH', network: 'sepolia', family: 'evm', nativeSymbol: 'ETH',
+          assetSymbols: ['ETH', 'USDT', 'USDC'],
+          collectionAddressId: '13131313-1313-1313-1313-131313131313',
+          collectionAddress: '0x3333333333333333333333333333333333333333',
+          childIndex: 1, availableBalance: 2.5, lockedBalance: 0,
+          totalBalance: 2.5, lowBalance: false, status: 'ACTIVE',
+        }],
       });
     }
     if (path.startsWith('/custody/console/v1/chains')) {
@@ -222,7 +230,6 @@ describe('tenant Console routes', () => {
     ['/console/overview', 'Asset overview', '12.5 ETH'],
     ['/console/assets', 'Assets', '12.5 ETH'],
     ['/console/chains', 'Tenant chains', 'TRON'],
-    ['/console/gas-station', 'Gas station', '2.5 ETH'],
     ['/console/addresses', 'Addresses', 'user_10086'],
     ['/console/deposits', 'Deposits', 'user_10086'],
     ['/console/withdrawals', 'Withdrawals', 'merchant-order-1'],

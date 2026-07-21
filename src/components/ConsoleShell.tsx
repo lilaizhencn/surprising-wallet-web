@@ -18,7 +18,6 @@ import {
   ReadOutlined,
   SwapOutlined,
   TeamOutlined,
-  ThunderboltOutlined,
 } from '@ant-design/icons';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
@@ -41,7 +40,6 @@ const tenantItemDefinitions: TenantItemDefinition[] = [
   { key: '/console/overview', icon: <DashboardOutlined />, label: 'Overview', scope: 'assets:read' },
   { key: '/console/assets', icon: <BankOutlined />, label: 'Assets', scope: 'assets:read' },
   { key: '/console/chains', icon: <GlobalOutlined />, label: 'Tenant chains', scope: 'chains:read' },
-  { key: '/console/gas-station', icon: <ThunderboltOutlined />, label: 'Gas station', role: 'TENANT_ADMIN' },
   { key: '/console/addresses', icon: <DatabaseOutlined />, label: 'Addresses', scope: 'addresses:read' },
   { key: '/console/deposits', icon: <GlobalOutlined />, label: 'Deposits', scope: 'deposits:read' },
   { key: '/console/withdrawals', icon: <SwapOutlined />, label: 'Withdrawals', scope: 'withdrawals:read' },

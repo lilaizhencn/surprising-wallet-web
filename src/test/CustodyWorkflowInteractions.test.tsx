@@ -210,54 +210,66 @@ describe('custody operator workflows', () => {
     ]);
   }, 60_000);
 
-  it('shows confirmed funding and auditable gas fee settlement history', async () => {
-    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+  it('lists an enabled zero-balance chain and generates its childIndex 1 address', async () => {
+    let generated = false;
+    const requests: Array<{ path: string; init?: RequestInit }> = [];
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const path = String(input);
-      if (path.endsWith('/topups?limit=100')) {
-        return response([{
-          id: 'topup-1',
-          chain: 'ETH',
-          assetSymbol: 'ETH',
-          txHash: '0xtopup',
-          amount: 3,
-          status: 'CONFIRMED',
-          creditedAt: '2026-07-20T00:00:00Z',
-          createdAt: '2026-07-20T00:00:00Z',
-        }]);
+      requests.push({ path, init });
+      if (path === '/custody/console/v1/gas-accounts' && init?.method === 'POST') {
+        generated = true;
+        return response({ ...gasAccount, childIndex: 1 }, 201);
       }
-      if (path.endsWith('/usage?limit=100')) {
-        return response([{
-          id: 'usage-1',
-          custodyWithdrawalId: 'withdrawal-1',
-          orderNo: 'CW-workflow-1',
-          chain: 'ETH',
-          nativeSymbol: 'ETH',
-          reservedAmount: 0.001,
-          actualAmount: 0.00042,
-          status: 'SETTLED',
-          pricingSource: 'CHAIN_CONFIRMED',
-          txHash: '0xwithdrawal',
-          createdAt: '2026-07-20T00:00:00Z',
-          settledAt: '2026-07-20T00:01:00Z',
-        }]);
+      if (path === '/custody/console/v1/dashboard') {
+        return response({
+          asOf: '2026-07-20T00:00:00Z',
+          displayCurrency: 'USD',
+          totalValueUsd: 0,
+          unpricedAssetCount: 0,
+          assets: [],
+          bySymbol: [],
+          byChain: [],
+          openedChains: [{
+            chain: 'ETH',
+            network: 'sepolia',
+            family: 'evm',
+            nativeSymbol: 'ETH',
+            assetSymbols: ['ETH', 'USDT', 'USDC'],
+            collectionAddressId: generated ? gasAccount.custodyAddressId : null,
+            collectionAddress: generated ? gasAccount.address : null,
+            childIndex: generated ? 1 : null,
+            availableBalance: 0,
+            lockedBalance: 0,
+            totalBalance: 0,
+            lowBalance: false,
+            status: generated ? 'ACTIVE' : 'NOT_GENERATED',
+          }],
+        });
       }
-      if (path === '/custody/console/v1/gas-accounts') return response([gasAccount]);
       throw new Error(`Unhandled request: ${path}`);
     }));
 
     const user = userEvent.setup();
     render(
-      <MemoryRouter initialEntries={['/console/gas-station']}>
+      <MemoryRouter initialEntries={['/console/assets']}>
         <App />
       </MemoryRouter>,
     );
 
-    await screen.findByRole('heading', { name: 'Gas station' }, { timeout: 15_000 });
-    await user.click(await screen.findByRole('button', { name: /Manage/ }, { timeout: 10_000 }));
-    expect(await screen.findByText('Funding history')).toBeInTheDocument();
-    expect(await screen.findByText('Network fee usage')).toBeInTheDocument();
-    expect(await screen.findByText('CW-workflow-1')).toBeInTheDocument();
-    expect(screen.getByText('CHAIN CONFIRMED')).toBeInTheDocument();
-    expect(screen.getAllByText(/SETTLED/).length).toBeGreaterThan(0);
+    await screen.findByRole('heading', { name: 'Assets', level: 1 }, { timeout: 15_000 });
+    const initialRow = (await screen.findByText('sepolia')).closest('tr');
+    expect(initialRow).not.toBeNull();
+    if (!initialRow) throw new Error('Enabled chain row was not rendered');
+    expect(within(initialRow).getByText('Not generated')).toBeInTheDocument();
+    await user.click(within(initialRow).getByRole('button', { name: 'Generate address' }));
+
+    const address = await screen.findByText(gasAccount.address);
+    const generatedRow = address.closest('tr');
+    expect(generatedRow).not.toBeNull();
+    if (!generatedRow) throw new Error('Generated chain row was not rendered');
+    expect(within(generatedRow).getByText('1')).toBeInTheDocument();
+    const create = requests.find((item) => item.path === '/custody/console/v1/gas-accounts'
+      && item.init?.method === 'POST');
+    expect(JSON.parse(String(create?.init?.body))).toEqual({ chain: 'ETH' });
   }, 60_000);
 });

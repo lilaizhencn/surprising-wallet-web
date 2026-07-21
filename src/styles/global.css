@@ -1834,28 +1834,10 @@ a {
   font-size: 14px;
 }
 
-.gas-account-details,
 .delivery-details,
 .withdrawal-confirmation {
   display: grid;
   gap: 18px;
-}
-
-.gas-stat-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.gas-stat-grid .ant-statistic {
-  border: 1px solid #dfe5ee;
-  border-radius: 8px;
-  padding: 14px;
-  background: #fbfcfe;
-}
-
-.gas-stat-grid .ant-statistic-content {
-  font-size: 19px;
 }
 
 .embedded-table {
@@ -2370,8 +2352,7 @@ a {
     align-items: flex-start;
   }
 
-  .onboarding-steps,
-  .gas-stat-grid {
+  .onboarding-steps {
     grid-template-columns: 1fr;
   }
 

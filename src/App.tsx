@@ -8,7 +8,6 @@ import { PublicDocsShell } from './components/PublicDocsShell';
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const OverviewPage = lazy(() => import('./pages/OverviewPage'));
-const GasStationPage = lazy(() => import('./pages/GasStationPage'));
 const AddressesPage = lazy(() => import('./pages/AddressesPage'));
 const TransfersPage = lazy(() => import('./pages/TransfersPage'));
 const WebhooksPage = lazy(() => import('./pages/WebhooksPage'));
@@ -52,7 +51,6 @@ export default function App() {
                 <Route path="chains" element={<TenantChainsPage />} />
               </Route>
               <Route element={<ProtectedRoute accountType="tenant" requiredRole="TENANT_ADMIN" />}>
-                <Route path="gas-station" element={<GasStationPage />} />
                 <Route path="api-access" element={<ApiAccessPage />} />
               </Route>
               <Route element={<ProtectedRoute accountType="tenant" requiredScope="addresses:read" />}>
