@@ -5,13 +5,14 @@ import { describe, expect, it } from 'vitest';
 import LandingPage from '../pages/LandingPage';
 
 describe('LandingPage', () => {
-  it('presents the custody product and opens the Console login route', async () => {
+  it('links the Console and developer actions to their application routes', async () => {
     const user = userEvent.setup();
     render(
       <MemoryRouter initialEntries={['/']}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/console/login" element={<h1>Console sign in</h1>} />
+          <Route path="/console/developer-docs" element={<h1>Developer documentation</h1>} />
         </Routes>
       </MemoryRouter>,
     );
@@ -28,5 +29,20 @@ describe('LandingPage', () => {
     expect(
       screen.getByRole('heading', { name: /console sign in/i }),
     ).toBeInTheDocument();
+  });
+
+  it('opens the API integration guide from the top developer menu', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/console/developer-docs" element={<h1>Developer documentation</h1>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('link', { name: /^developers$/i }));
+    expect(screen.getByRole('heading', { name: /developer documentation/i })).toBeInTheDocument();
   });
 });

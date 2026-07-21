@@ -55,9 +55,6 @@ const workflow = [
   },
 ];
 
-const apiDocsUrl =
-  'https://github.com/lilaizhencn/surprising-wallet/blob/master/docs/openapi/custody-v1.yaml';
-
 export default function LandingPage() {
   const { t } = useI18n();
   return (
@@ -68,7 +65,7 @@ export default function LandingPage() {
           <a href="#product">{t('Product')}</a>
           <a href="#chains">{t('Chains')}</a>
           <a href="#security">{t('Security')}</a>
-          <a href="#developers">{t('Developers')}</a>
+          <Link to="/console/developer-docs">{t('Developers')}</Link>
         </nav>
         <div className="marketing-header-actions">
           <LanguageSwitch compact />
@@ -91,9 +88,9 @@ export default function LandingPage() {
                   {t('Open Console')} <ArrowRightOutlined />
                 </Button>
               </Link>
-              <a href={apiDocsUrl} target="_blank" rel="noreferrer">
+              <Link to="/console/developer-docs">
                 <Button size="large">{t('Read API docs')} <CodeOutlined /></Button>
-              </a>
+              </Link>
             </div>
           </div>
           <div className="hero-console" aria-label={t('Custody address workflow preview')}>
@@ -213,16 +210,14 @@ export default function LandingPage() {
             <div className="code-tabs"><span className="active">{t('Create address')}</span><span>{t('Webhook verification')}</span></div>
             <pre>
               <code>{`POST /custody/api/v1/addresses
-Idempotency-Key: customer-8421-ethereum
 X-Custody-Key: swk_...
 X-Custody-Timestamp: 1784486400
 X-Custody-Nonce: 2FSvJwQp1QdwLk2B
 X-Custody-Signature: ...
 
 {
-  "chain": "ETH",
-  "externalReference": "customer-8421",
-  "label": "Primary deposit address"
+  "chainId": "ETH",
+  "subject": "customer-8421"
 }`}</code>
             </pre>
           </div>
@@ -246,9 +241,9 @@ X-Custody-Signature: ...
           <p>{t('Start building with Surprising Wallet today.')}</p>
           <div>
             <Link to="/console/login"><Button type="primary" size="large">{t('Open Console')}</Button></Link>
-            <a href={apiDocsUrl} target="_blank" rel="noreferrer">
+            <Link to="/console/developer-docs">
               <Button size="large">{t('Read API docs')}</Button>
-            </a>
+            </Link>
           </div>
         </section>
       </main>

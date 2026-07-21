@@ -47,7 +47,14 @@ export default function LoginPage() {
       const session: Session = { version: 2, accountType, ...result };
       saveSession(session);
       void message.success(t('Welcome back'));
-      navigate(accountType === 'platform' ? '/platform/tenants' : '/console/overview', {
+      const requestedPath = (location.state as { from?: string } | null)?.from;
+      const destination = requestedPath
+        && (accountType === 'platform'
+          ? requestedPath.startsWith('/platform/')
+          : requestedPath.startsWith('/console/'))
+        ? requestedPath
+        : accountType === 'platform' ? '/platform/tenants' : '/console/overview';
+      navigate(destination, {
         replace: true,
       });
     } catch (error) {

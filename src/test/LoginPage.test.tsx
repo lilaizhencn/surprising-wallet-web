@@ -68,4 +68,39 @@ describe('LoginPage', () => {
       expect(getSession()).not.toHaveProperty('token');
     });
   }, 15_000);
+
+  it('returns a tenant to the requested developer guide after sign-in', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({
+      expiresAt: '2099-01-01T00:00:00Z',
+      userId: '11111111-1111-1111-1111-111111111111',
+      tenantId: '22222222-2222-2222-2222-222222222222',
+      tenantSlug: 'acme-pay',
+      email: 'admin@acme.test',
+      displayName: 'Acme Admin',
+      role: 'TENANT_ADMIN',
+      scopes: ['*'],
+    })));
+
+    render(
+      <AntApp>
+        <MemoryRouter initialEntries={[{
+          pathname: '/console/login',
+          state: { from: '/console/developer-docs', accountType: 'tenant' },
+        }]}>
+          <Routes>
+            <Route path="/console/login" element={<LoginPage />} />
+            <Route path="/console/developer-docs" element={<h1>Developer documentation</h1>} />
+          </Routes>
+        </MemoryRouter>
+      </AntApp>,
+    );
+
+    await user.type(screen.getByLabelText(/tenant slug/i), 'acme-pay');
+    await user.type(screen.getByLabelText(/email/i), 'admin@acme.test');
+    await user.type(screen.getByLabelText(/password/i), 'correct horse battery staple');
+    await user.click(screen.getByRole('button', { name: /^sign in$/i }));
+
+    expect(await screen.findByRole('heading', { name: /developer documentation/i })).toBeInTheDocument();
+  }, 15_000);
 });
