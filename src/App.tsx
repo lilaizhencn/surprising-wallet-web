@@ -44,7 +44,6 @@ export default function App() {
               <Route index element={<Navigate to="overview" replace />} />
               <Route element={<ProtectedRoute accountType="tenant" requiredScope="assets:read" />}>
                 <Route path="overview" element={<OverviewPage />} />
-                <Route path="assets" element={<OverviewPage assetsOnly />} />
               </Route>
               <Route element={<ProtectedRoute accountType="tenant" requiredScope="chains:read" />}>
                 <Route path="chains" element={<TenantChainsPage />} />

@@ -50,31 +50,35 @@ function installConsoleApi() {
   const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
     const path = String(input);
     if (path.startsWith('/custody/console/v1/dashboard')) {
-      const asset = {
-        chain: 'ETH', assetSymbol: 'ETH', availableBalance: 12.5,
+      const nativeAsset = {
+        chain: 'ETH', assetSymbol: 'ETH', nativeAsset: true, availableBalance: 12.5,
         lockedBalance: 0, totalBalance: 12.5, addressCount: 2,
         usdPrice: 3000, valueUsd: 37500, priceSource: 'TEST', priceObservedAt: timestamp,
       };
+      const tokenAssets = [
+        {
+          chain: 'ETH', assetSymbol: 'USDT', nativeAsset: false,
+          availableBalance: 5, lockedBalance: 0, totalBalance: 5,
+          addressCount: 1, usdPrice: 1, valueUsd: 5,
+        },
+        {
+          chain: 'TRON', assetSymbol: 'USDT', nativeAsset: false,
+          availableBalance: 7, lockedBalance: 0, totalBalance: 7,
+          addressCount: 1, usdPrice: 1, valueUsd: 7,
+        },
+      ];
       return jsonResponse({
         asOf: timestamp,
         displayCurrency: 'USD',
-        totalValueUsd: 37500,
+        totalValueUsd: 37512,
         unpricedAssetCount: 0,
         oldestPriceObservedAt: timestamp,
-        assets: [asset],
+        assets: [nativeAsset, ...tokenAssets],
         bySymbol: [{
           assetSymbol: 'ETH', availableBalance: 12.5, lockedBalance: 0,
           totalBalance: 12.5, valueUsd: 37500, chains: ['ETH'],
         }],
-        byChain: [{ chain: 'ETH', valueUsd: 37500, assets: [asset] }],
-        openedChains: [{
-          chain: 'ETH', network: 'sepolia', family: 'evm', nativeSymbol: 'ETH',
-          assetSymbols: ['ETH', 'USDT', 'USDC'],
-          collectionAddressId: '13131313-1313-1313-1313-131313131313',
-          collectionAddress: '0x3333333333333333333333333333333333333333',
-          childIndex: 1, availableBalance: 2.5, lockedBalance: 0,
-          totalBalance: 2.5, lowBalance: false, status: 'ACTIVE',
-        }],
+        byChain: [{ chain: 'ETH', valueUsd: 37505, assets: [nativeAsset, tokenAssets[0]] }],
       });
     }
     if (path.startsWith('/custody/console/v1/chains')) {
@@ -82,6 +86,11 @@ function installConsoleApi() {
         chain: 'TRON', network: 'nile', family: 'tron', nativeSymbol: 'TRX',
         assetSymbols: ['TRX', 'USDT'], status: 'ACTIVE', enabled: true,
         scanEnabled: true, withdrawalEnabled: true, transferEnabled: true,
+        collectionAddress: 'TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE',
+        tokens: [{
+          symbol: 'USDT', standard: 'TRC20', contractAddress: 'TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj',
+          decimals: 6, enabled: true, depositEnabled: true, withdrawalEnabled: true,
+        }],
         capabilities: ['NATIVE_QUOTE'], openedAt: timestamp,
       }]);
     }
@@ -228,7 +237,6 @@ describe('tenant Console routes', () => {
 
   it.each([
     ['/console/overview', 'Asset overview', '12.5 ETH'],
-    ['/console/assets', 'Assets', '12.5 ETH'],
     ['/console/chains', 'Tenant chains', 'TRON'],
     ['/console/addresses', 'Addresses', 'user_10086'],
     ['/console/deposits', 'Deposits', 'user_10086'],
@@ -245,6 +253,18 @@ describe('tenant Console routes', () => {
     expect(await screen.findByRole('heading', { name: heading, level: 1 }))
       .toBeInTheDocument();
     expect((await screen.findAllByText(record)).length).toBeGreaterThan(0);
+  }, 15_000);
+
+  it('lists native assets and expands a multi-chain token balance', async () => {
+    render(<MemoryRouter initialEntries={['/console/overview']}><App /></MemoryRouter>);
+
+    await screen.findByRole('heading', { name: 'Asset overview', level: 1 });
+    const usdt = await screen.findByText('USDT');
+    expect(screen.getByTitle('USDT')).toBeInTheDocument();
+    fireEvent.click(usdt.closest('tr') as HTMLElement);
+    await waitFor(() => expect(screen.getAllByRole('table').length).toBeGreaterThan(3));
+    expect(screen.getAllByText('ETH').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('TRON').length).toBeGreaterThan(0);
   }, 15_000);
 });
 

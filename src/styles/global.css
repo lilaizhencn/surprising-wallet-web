@@ -1789,6 +1789,42 @@ a {
   min-width: 360px;
 }
 
+.tenant-chains-page {
+  width: min(100%, 1680px);
+}
+
+.tenant-chains-panel .ant-table-expanded-row > td {
+  padding: 0 18px 18px !important;
+  background: #f8fafc;
+}
+
+.tenant-token-area {
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.tenant-token-heading {
+  display: flex;
+  min-height: 54px;
+  padding: 10px 14px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #e8edf3;
+}
+
+.tenant-token-heading > div {
+  display: grid;
+  gap: 3px;
+}
+
+.asset-details-panel .ant-table-expanded-row > td {
+  padding: 10px 24px 18px 72px !important;
+  background: #f8fafc;
+}
+
 .address-manager-identity {
   display: grid;
   gap: 7px;

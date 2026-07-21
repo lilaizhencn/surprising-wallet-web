@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Alert, App, Button, Empty, Progress, Space, Table, Tag, Typography } from 'antd';
+import { useEffect } from 'react';
+import { Alert, Empty, Progress, Space, Table, Tag, Typography } from 'antd';
 import {
   ArrowRightOutlined,
   CheckCircleFilled,
@@ -8,11 +8,11 @@ import {
 } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
-import { hasRole, useSession } from '../auth/session';
-import { CopyText } from '../components/CopyText';
+import { useSession } from '../auth/session';
 import { ErrorState } from '../components/ErrorState';
 import { PageHeader } from '../components/PageHeader';
 import { StatusText } from '../components/StatusText';
+import { AssetLogo, ChainLogo } from '../components/Web3Logo';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { formatAmount, formatDate } from '../utils/format';
 import { useI18n } from '../i18n';
@@ -20,6 +20,7 @@ import { useI18n } from '../i18n';
 type AssetRow = {
   chain: string;
   assetSymbol: string;
+  nativeAsset: boolean;
   availableBalance: string | number;
   lockedBalance: string | number;
   totalBalance: string | number;
@@ -30,15 +31,6 @@ type AssetRow = {
   priceObservedAt?: string;
 };
 
-type SymbolAggregate = {
-  assetSymbol: string;
-  availableBalance: string | number;
-  lockedBalance: string | number;
-  totalBalance: string | number;
-  valueUsd?: string | number;
-  chains: string[];
-};
-
 type AssetDashboard = {
   asOf: string;
   displayCurrency: string;
@@ -46,24 +38,20 @@ type AssetDashboard = {
   unpricedAssetCount: number;
   oldestPriceObservedAt?: string;
   assets: AssetRow[];
-  bySymbol: SymbolAggregate[];
-  openedChains: OpenedChain[];
+  bySymbol: Array<unknown>;
 };
 
-type OpenedChain = {
-  chain: string;
-  network: string;
-  family: string;
-  nativeSymbol: string;
-  assetSymbols: string[];
-  collectionAddressId?: string;
-  collectionAddress?: string;
-  memo?: string;
-  availableBalance: string | number;
-  lockedBalance: string | number;
-  totalBalance: string | number;
-  lowBalance: boolean;
-  status: string;
+type AssetSummary = {
+  key: string;
+  assetSymbol: string;
+  kind: 'NATIVE' | 'TOKEN';
+  chains: string[];
+  availableBalance: number;
+  lockedBalance: number;
+  totalBalance: number;
+  valueUsd?: number;
+  addressCount: number;
+  details: AssetRow[];
 };
 
 type WebhookRow = {
@@ -111,7 +99,6 @@ const emptyDashboard: AssetDashboard = {
   unpricedAssetCount: 0,
   assets: [],
   bySymbol: [],
-  openedChains: [],
 };
 
 const onboardingSteps = [
@@ -143,13 +130,13 @@ const onboardingSteps = [
     key: 'gasAccountConfigured' as const,
     title: 'Create a collection address',
     description: 'Generate a dedicated collection address for every enabled chain.',
-    to: '/console/assets',
+    to: '/console/chains',
   },
   {
     key: 'gasAccountFunded' as const,
     title: 'Fund a chain address',
     description: 'Confirmed native coins are automatically available for network fees.',
-    to: '/console/assets',
+    to: '/console/chains',
   },
   {
     key: 'addressCreated' as const,
@@ -159,18 +146,12 @@ const onboardingSteps = [
   },
 ];
 
-export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: boolean }) {
+export default function OverviewPage() {
   const session = useSession();
-  const { message } = App.useApp();
   const { t } = useI18n();
-  const [generatingChain, setGeneratingChain] = useState<string>();
   const query = useApiQuery<OverviewData>(
     async (signal) => {
       if (!session) return { dashboard: emptyDashboard, webhooks: [], recent: [] };
-      if (assetsOnly) {
-        const dashboard = await api.get<AssetDashboard>('/custody/console/v1/dashboard', signal);
-        return { dashboard, webhooks: [], recent: [] };
-      }
       const [dashboard, webhooks, deposits, withdrawals, onboarding] = await Promise.all([
         api.get<AssetDashboard>('/custody/console/v1/dashboard', signal),
         api.get<WebhookRow[]>('/custody/console/v1/webhooks', signal),
@@ -186,7 +167,7 @@ export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: bool
         .slice(0, 8);
       return { dashboard, webhooks, recent, onboarding };
     },
-    [session?.userId, assetsOnly],
+    [session?.userId],
   );
 
   useEffect(() => {
@@ -200,27 +181,49 @@ export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: bool
   const degradedWebhooks = (query.data?.webhooks ?? []).filter(
     (row) => row.status !== 'ACTIVE' || (row.successRate24h ?? 100) < 95,
   );
-  const canGenerateCollectionAddress = hasRole(session, 'TENANT_ADMIN');
-
-  const generateCollectionAddress = async (chain: string) => {
-    setGeneratingChain(chain);
-    try {
-      await api.post('/custody/console/v1/gas-accounts', { chain });
-      query.refetch();
-      void message.success(t('{chain} collection address generated', { chain }));
-    } catch (error) {
-      void message.error(error instanceof Error
-        ? error.message
-        : t('Unable to generate collection address'));
-    } finally {
-      setGeneratingChain(undefined);
-    }
-  };
+  const nativeAssets: AssetSummary[] = assets.filter((row) => row.nativeAsset).map((row) => ({
+    key: `native:${row.chain}:${row.assetSymbol}`,
+    assetSymbol: row.assetSymbol,
+    kind: 'NATIVE',
+    chains: [row.chain],
+    availableBalance: Number(row.availableBalance),
+    lockedBalance: Number(row.lockedBalance),
+    totalBalance: Number(row.totalBalance),
+    valueUsd: row.valueUsd === null || row.valueUsd === undefined ? undefined : Number(row.valueUsd),
+    addressCount: row.addressCount,
+    details: [row],
+  }));
+  const tokenAssets = [...assets.filter((row) => !row.nativeAsset)
+    .reduce((groups, row) => {
+      const current = groups.get(row.assetSymbol) ?? [];
+      current.push(row);
+      groups.set(row.assetSymbol, current);
+      return groups;
+    }, new Map<string, AssetRow[]>())]
+    .map(([assetSymbol, details]): AssetSummary => {
+      const priced = details.filter((row) => row.valueUsd !== null && row.valueUsd !== undefined);
+      return {
+        key: `token:${assetSymbol}`,
+        assetSymbol,
+        kind: 'TOKEN',
+        chains: details.map((row) => row.chain),
+        availableBalance: details.reduce((sum, row) => sum + Number(row.availableBalance), 0),
+        lockedBalance: details.reduce((sum, row) => sum + Number(row.lockedBalance), 0),
+        totalBalance: details.reduce((sum, row) => sum + Number(row.totalBalance), 0),
+        valueUsd: priced.length
+          ? priced.reduce((sum, row) => sum + Number(row.valueUsd), 0)
+          : undefined,
+        addressCount: details.reduce((sum, row) => sum + row.addressCount, 0),
+        details,
+      };
+    });
+  const assetDetails = [...nativeAssets, ...tokenAssets]
+    .toSorted((a, b) => a.assetSymbol.localeCompare(b.assetSymbol));
 
   return (
     <div className="page-stack">
       <PageHeader
-        title={t(assetsOnly ? 'Assets' : 'Asset overview')}
+        title={t('Asset overview')}
         description={t('Consolidated balances and activity across every configured chain.')}
       />
       <ErrorState message={query.error} onRetry={query.refetch} />
@@ -236,7 +239,7 @@ export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: bool
         />
       ) : null}
 
-      {!assetsOnly && query.data?.onboarding ? (
+      {query.data?.onboarding ? (
         <section className="data-panel onboarding-panel">
           <div className="onboarding-heading">
             <div>
@@ -281,8 +284,7 @@ export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: bool
         </section>
       ) : null}
 
-      {!assetsOnly ? (
-        <section className="overview-band" aria-label={t('Tenant asset summary')}>
+      <section className="overview-band" aria-label={t('Tenant asset summary')}>
           <div>
             <span>{t('Total asset value')}</span>
             <strong>${formatAmount(query.data?.dashboard.totalValueUsd ?? 0)}</strong>
@@ -298,184 +300,115 @@ export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: bool
             <strong>{totalAddresses}</strong>
             <small>{t('Distinct custody mappings')}</small>
           </div>
-        </section>
-      ) : null}
+      </section>
 
-      <section className="data-panel">
+      <section className="data-panel asset-details-panel">
         <div className="panel-heading">
           <div>
-            <h2>{t('Enabled chain addresses')}</h2>
-            <p>{t('Every enabled chain is listed even before it has a balance.')}</p>
+            <h2>{t('Asset details')}</h2>
+            <p>{t('Native assets and enabled tokens are listed together. Expand a token to view balances by chain.')}</p>
           </div>
         </div>
-        <Alert
-          showIcon
-          type="info"
-          title={t('Generated addresses can receive deposits and pay network fees')}
-          description={t('Send assets only on the matching chain. Confirmed native-coin deposits to generated addresses are automatically available as gas for on-chain operations.')}
-        />
-        <Table<OpenedChain>
-          rowKey="chain"
+        <Table<AssetSummary>
+          rowKey="key"
           loading={query.loading}
-          dataSource={query.data?.dashboard.openedChains ?? []}
-          pagination={false}
-          locale={{ emptyText: <Empty description={t('No chain has been enabled for this tenant')} /> }}
-          scroll={{ x: 1180 }}
+          dataSource={assetDetails}
+          pagination={{ pageSize: 12, hideOnSinglePage: true }}
+          locale={{ emptyText: <Empty description={t('No tenant assets enabled yet')} /> }}
+          scroll={{ x: 1000 }}
+          expandable={{
+            rowExpandable: (row) => row.kind === 'TOKEN',
+            expandRowByClick: true,
+            expandedRowRender: (row) => (
+              <Table<AssetRow>
+                rowKey={(detail) => `${detail.chain}:${detail.assetSymbol}`}
+                size="small"
+                pagination={false}
+                dataSource={row.details}
+                columns={[
+                  {
+                    title: t('Chain'),
+                    render: (_, detail) => (
+                      <Space><ChainLogo chain={detail.chain} size={22} />{detail.chain}</Space>
+                    ),
+                  },
+                  {
+                    title: t('Total balance'),
+                    align: 'right',
+                    render: (_, detail) => `${formatAmount(detail.totalBalance)} ${detail.assetSymbol}`,
+                  },
+                  {
+                    title: t('Available'),
+                    align: 'right',
+                    render: (_, detail) => `${formatAmount(detail.availableBalance)} ${detail.assetSymbol}`,
+                  },
+                  {
+                    title: t('Locked'),
+                    align: 'right',
+                    render: (_, detail) => `${formatAmount(detail.lockedBalance)} ${detail.assetSymbol}`,
+                  },
+                  {
+                    title: t('USD value'),
+                    dataIndex: 'valueUsd',
+                    align: 'right',
+                    render: (value) => value === null || value === undefined
+                      ? '—' : `$${formatAmount(value)}`,
+                  },
+                ]}
+              />
+            ),
+          }}
           columns={[
             {
-              title: t('Network'),
-              width: 140,
+              title: t('Asset'),
+              width: 220,
               render: (_, row) => (
-                <Space orientation="vertical" size={0}>
-                  <Typography.Text strong>{row.chain}</Typography.Text>
-                  <Typography.Text type="secondary">{row.network}</Typography.Text>
+                <Space>
+                  <AssetLogo symbol={row.assetSymbol} size={30} />
+                  <Typography.Text strong>{row.assetSymbol}</Typography.Text>
+                  <Tag color={row.kind === 'TOKEN' ? 'blue' : 'default'}>
+                    {t(row.kind === 'TOKEN' ? 'Token' : 'Native asset')}
+                  </Tag>
                 </Space>
               ),
             },
             {
-              title: t('Supported assets'),
-              dataIndex: 'assetSymbols',
-              width: 210,
-              render: (symbols: string[]) => (
-                <Space size={[4, 4]} wrap>
-                  {symbols.map((symbol) => <Tag key={symbol}>{symbol}</Tag>)}
-                </Space>
-              ),
-            },
-            {
-              title: t('Collection / gas address'),
-              dataIndex: 'collectionAddress',
-              className: 'collection-address-cell',
-              width: 480,
-              render: (address?: string) => address
-                ? <CopyText value={address} compact={false} />
-                : <Typography.Text type="secondary">{t('Not generated')}</Typography.Text>,
-            },
-            {
-              title: t('Native balance'),
-              align: 'right',
-              width: 160,
-              render: (_, row) => `${formatAmount(row.totalBalance)} ${row.nativeSymbol}`,
-            },
-            {
-              title: t('Status'),
-              width: 140,
-              render: (_, row) => (
-                <StatusText value={row.collectionAddress ? row.status : 'NOT_GENERATED'} />
-              ),
-            },
-            {
-              title: t('Action'),
-              fixed: 'right',
-              width: 140,
-              render: (_, row) => row.collectionAddress ? (
-                <Typography.Text type="secondary">—</Typography.Text>
-              ) : (
-                <Button
-                  type="primary"
-                  disabled={!canGenerateCollectionAddress}
-                  loading={generatingChain === row.chain}
-                  onClick={() => void generateCollectionAddress(row.chain)}
-                >
-                  {t('Generate address')}
-                </Button>
-              ),
-            },
-          ]}
-        />
-      </section>
-
-      <section className="data-panel">
-        <div className="panel-heading"><h2>{t('Assets')}</h2></div>
-        <Table<AssetRow>
-          rowKey={(row) => `${row.chain}:${row.assetSymbol}`}
-          loading={query.loading}
-          dataSource={assets}
-          pagination={{ pageSize: 10, hideOnSinglePage: true }}
-          locale={{ emptyText: <Empty description={t('No funded tenant assets yet')} /> }}
-          scroll={{ x: 860 }}
-          columns={[
-            {
-              title: t('Asset'),
-              dataIndex: 'assetSymbol',
-              render: (value: string) => <Typography.Text strong>{value}</Typography.Text>,
-            },
-            { title: t('Network'), dataIndex: 'chain' },
-            {
-              title: t('Total balance'),
-              dataIndex: 'totalBalance',
-              align: 'right',
-              sorter: (a, b) => Number(a.totalBalance) - Number(b.totalBalance),
-              render: (value, row) => `${formatAmount(value)} ${row.assetSymbol}`,
-            },
-            {
-              title: t('USD value'),
-              dataIndex: 'valueUsd',
-              align: 'right',
-              render: (value) => value === null || value === undefined
-                ? '—' : `$${formatAmount(value)}`,
-            },
-            {
-              title: t('Available'),
-              dataIndex: 'availableBalance',
-              align: 'right',
-              render: (value, row) => `${formatAmount(value)} ${row.assetSymbol}`,
-            },
-            {
-              title: t('Locked'),
-              dataIndex: 'lockedBalance',
-              align: 'right',
-              render: (value, row) => `${formatAmount(value)} ${row.assetSymbol}`,
-            },
-            { title: t('Addresses'), dataIndex: 'addressCount', align: 'right' },
-            {
-              title: t('Status'),
-              render: () => <StatusText value="ACTIVE" />,
-            },
-          ]}
-        />
-      </section>
-
-      <section className="data-panel">
-        <div className="panel-heading">
-          <h2>{t('Cross-chain asset totals')}</h2>
-          <small>{t('USDT, USDC, and every same-symbol asset are aggregated across networks.')}</small>
-        </div>
-        <Table<SymbolAggregate>
-          rowKey="assetSymbol"
-          loading={query.loading}
-          dataSource={query.data?.dashboard.bySymbol ?? []}
-          pagination={{ pageSize: 10, hideOnSinglePage: true }}
-          locale={{ emptyText: <Empty description={t('No cross-chain assets yet')} /> }}
-          columns={[
-            {
-              title: t('Asset'),
-              dataIndex: 'assetSymbol',
-              render: (value: string) => <Typography.Text strong>{value}</Typography.Text>,
-            },
-            {
-              title: t('Networks'),
+              title: t('Chains'),
               dataIndex: 'chains',
-              render: (chains: string[]) => chains.join(', '),
+              render: (chains: string[]) => (
+                <Space size={[4, 4]} wrap>
+                  {chains.map((chain) => <Tag key={chain}>{chain}</Tag>)}
+                </Space>
+              ),
             },
             {
               title: t('Total balance'),
               align: 'right',
+              sorter: (a, b) => a.totalBalance - b.totalBalance,
               render: (_, row) => `${formatAmount(row.totalBalance)} ${row.assetSymbol}`,
             },
             {
               title: t('USD value'),
               dataIndex: 'valueUsd',
               align: 'right',
-              render: (value) => value === null || value === undefined
-                ? '—' : `$${formatAmount(value)}`,
+              render: (value) => value === undefined ? '—' : `$${formatAmount(value)}`,
             },
+            {
+              title: t('Available'),
+              align: 'right',
+              render: (_, row) => `${formatAmount(row.availableBalance)} ${row.assetSymbol}`,
+            },
+            {
+              title: t('Locked'),
+              align: 'right',
+              render: (_, row) => `${formatAmount(row.lockedBalance)} ${row.assetSymbol}`,
+            },
+            { title: t('Addresses'), dataIndex: 'addressCount', align: 'right' },
           ]}
         />
       </section>
 
-      {!assetsOnly ? (
-        <div className="overview-grid">
+      <div className="overview-grid">
           <section className="data-panel">
             <div className="panel-heading">
               <h2>{t('Recent custody activity')}</h2>
@@ -531,8 +464,7 @@ export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: bool
               ]}
             />
           </section>
-        </div>
-      ) : null}
+      </div>
     </div>
   );
 }
