@@ -50,11 +50,18 @@ function installConsoleApi() {
   const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
     const path = String(input);
     if (path.startsWith('/custody/console/v1/dashboard')) {
-      const nativeAsset = {
-        chain: 'ETH', assetSymbol: 'ETH', nativeAsset: true, availableBalance: 12.5,
-        lockedBalance: 0, totalBalance: 12.5, addressCount: 2,
-        usdPrice: 3000, valueUsd: 37500, priceSource: 'TEST', priceObservedAt: timestamp,
-      };
+      const nativeAssets = [
+        {
+          chain: 'ETH', assetSymbol: 'ETH', nativeAsset: true, availableBalance: 12.5,
+          lockedBalance: 0, totalBalance: 12.5, addressCount: 2,
+          usdPrice: 3000, valueUsd: 37500, priceSource: 'TEST', priceObservedAt: timestamp,
+        },
+        {
+          chain: 'ARBITRUM', assetSymbol: 'ETH_ARB', nativeAsset: true,
+          availableBalance: 1.5, lockedBalance: 0, totalBalance: 1.5, addressCount: 1,
+          usdPrice: 3000, valueUsd: 4500, priceSource: 'TEST', priceObservedAt: timestamp,
+        },
+      ];
       const tokenAssets = [
         {
           chain: 'ETH', assetSymbol: 'USDT', nativeAsset: false,
@@ -70,15 +77,15 @@ function installConsoleApi() {
       return jsonResponse({
         asOf: timestamp,
         displayCurrency: 'USD',
-        totalValueUsd: 37512,
+        totalValueUsd: 42012,
         unpricedAssetCount: 0,
         oldestPriceObservedAt: timestamp,
-        assets: [nativeAsset, ...tokenAssets],
+        assets: [...nativeAssets, ...tokenAssets],
         bySymbol: [{
           assetSymbol: 'ETH', availableBalance: 12.5, lockedBalance: 0,
           totalBalance: 12.5, valueUsd: 37500, chains: ['ETH'],
         }],
-        byChain: [{ chain: 'ETH', valueUsd: 37505, assets: [nativeAsset, tokenAssets[0]] }],
+        byChain: [{ chain: 'ETH', valueUsd: 37505, assets: [nativeAssets[0], tokenAssets[0]] }],
       });
     }
     if (path.startsWith('/custody/console/v1/chains')) {
@@ -236,7 +243,7 @@ describe('tenant Console routes', () => {
   afterEach(() => clearSession());
 
   it.each([
-    ['/console/overview', 'Asset overview', '12.5 ETH'],
+    ['/console/overview', 'Asset overview', '14 ETH'],
     ['/console/chains', 'Chains', 'TRON'],
     ['/console/addresses', 'Addresses', 'user_10086'],
     ['/console/deposits', 'Deposits', 'user_10086'],
@@ -255,10 +262,15 @@ describe('tenant Console routes', () => {
     expect((await screen.findAllByText(record)).length).toBeGreaterThan(0);
   }, 15_000);
 
-  it('lists native assets and expands a multi-chain token balance', async () => {
+  it('consolidates native ETH networks and expands multi-chain balances', async () => {
     render(<MemoryRouter initialEntries={['/console/overview']}><App /></MemoryRouter>);
 
     await screen.findByRole('heading', { name: 'Asset overview', level: 1 });
+    const ethBalances = await screen.findAllByText('14 ETH');
+    fireEvent.click(ethBalances[0].closest('tr') as HTMLElement);
+    await waitFor(() => expect(screen.getAllByRole('table').length).toBeGreaterThan(3));
+    expect((await screen.findAllByText('ARBITRUM')).length).toBeGreaterThan(1);
+
     const usdt = await screen.findByText('USDT');
     expect(screen.getByTitle('USDT')).toBeInTheDocument();
     fireEvent.click(usdt.closest('tr') as HTMLElement);

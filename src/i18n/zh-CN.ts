@@ -801,7 +801,7 @@ const messages: Record<string, string> = {
   'Enabled with chain': '已随链开通',
   'Enabled when chain opens': '开通链后启用',
   'Asset details': '资产明细',
-  'Native assets and configured tokens are listed together. Expand a token to view balances by chain.': '原生币与平台已配置 Token 平级展示；展开 Token 可查看每条链的余额汇总。',
+  'Assets are consolidated by currency. Expand an asset to view balances by chain.': '资产按币种合并展示；展开后可查看每条链的余额。',
   'No tenant assets enabled yet': '暂未开通租户资产',
   'Total asset value': '总资产估值',
   'Live ledger, USD snapshot': '实时账本，USD 价格快照',

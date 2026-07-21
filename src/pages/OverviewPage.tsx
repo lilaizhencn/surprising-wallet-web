@@ -101,6 +101,13 @@ const emptyDashboard: AssetDashboard = {
   bySymbol: [],
 };
 
+function displayAssetSymbol(row: AssetRow) {
+  if (!row.nativeAsset) return row.assetSymbol;
+  if (row.assetSymbol === 'AVAX_C') return 'AVAX';
+  if (row.assetSymbol.startsWith('ETH_')) return 'ETH';
+  return row.assetSymbol;
+}
+
 const onboardingSteps = [
   {
     key: 'chainOpened' as const,
@@ -181,32 +188,21 @@ export default function OverviewPage() {
   const degradedWebhooks = (query.data?.webhooks ?? []).filter(
     (row) => row.status !== 'ACTIVE' || (row.successRate24h ?? 100) < 95,
   );
-  const nativeAssets: AssetSummary[] = assets.filter((row) => row.nativeAsset).map((row) => ({
-    key: `native:${row.chain}:${row.assetSymbol}`,
-    assetSymbol: row.assetSymbol,
-    kind: 'NATIVE',
-    chains: [row.chain],
-    availableBalance: Number(row.availableBalance),
-    lockedBalance: Number(row.lockedBalance),
-    totalBalance: Number(row.totalBalance),
-    valueUsd: row.valueUsd === null || row.valueUsd === undefined ? undefined : Number(row.valueUsd),
-    addressCount: row.addressCount,
-    details: [row],
-  }));
-  const tokenAssets = [...assets.filter((row) => !row.nativeAsset)
+  const assetDetails = [...assets
     .reduce((groups, row) => {
-      const current = groups.get(row.assetSymbol) ?? [];
+      const symbol = displayAssetSymbol(row);
+      const current = groups.get(symbol) ?? [];
       current.push(row);
-      groups.set(row.assetSymbol, current);
+      groups.set(symbol, current);
       return groups;
     }, new Map<string, AssetRow[]>())]
     .map(([assetSymbol, details]): AssetSummary => {
       const priced = details.filter((row) => row.valueUsd !== null && row.valueUsd !== undefined);
       return {
-        key: `token:${assetSymbol}`,
+        key: `asset:${assetSymbol}`,
         assetSymbol,
-        kind: 'TOKEN',
-        chains: details.map((row) => row.chain),
+        kind: details.every((row) => row.nativeAsset) ? 'NATIVE' : 'TOKEN',
+        chains: [...new Set(details.map((row) => row.chain))],
         availableBalance: details.reduce((sum, row) => sum + Number(row.availableBalance), 0),
         lockedBalance: details.reduce((sum, row) => sum + Number(row.lockedBalance), 0),
         totalBalance: details.reduce((sum, row) => sum + Number(row.totalBalance), 0),
@@ -216,8 +212,7 @@ export default function OverviewPage() {
         addressCount: details.reduce((sum, row) => sum + row.addressCount, 0),
         details,
       };
-    });
-  const assetDetails = [...nativeAssets, ...tokenAssets]
+    })
     .toSorted((a, b) => a.assetSymbol.localeCompare(b.assetSymbol));
 
   return (
@@ -306,7 +301,7 @@ export default function OverviewPage() {
         <div className="panel-heading">
           <div>
             <h2>{t('Asset details')}</h2>
-            <p>{t('Native assets and configured tokens are listed together. Expand a token to view balances by chain.')}</p>
+            <p>{t('Assets are consolidated by currency. Expand an asset to view balances by chain.')}</p>
           </div>
         </div>
         <Table<AssetSummary>
@@ -317,7 +312,7 @@ export default function OverviewPage() {
           locale={{ emptyText: <Empty description={t('No tenant assets enabled yet')} /> }}
           scroll={{ x: 1000 }}
           expandable={{
-            rowExpandable: (row) => row.kind === 'TOKEN',
+            rowExpandable: (row) => row.kind === 'TOKEN' || row.details.length > 1,
             expandRowByClick: true,
             expandedRowRender: (row) => (
               <Table<AssetRow>
@@ -335,17 +330,17 @@ export default function OverviewPage() {
                   {
                     title: t('Total balance'),
                     align: 'right',
-                    render: (_, detail) => `${formatAmount(detail.totalBalance)} ${detail.assetSymbol}`,
+                    render: (_, detail) => `${formatAmount(detail.totalBalance)} ${row.assetSymbol}`,
                   },
                   {
                     title: t('Available'),
                     align: 'right',
-                    render: (_, detail) => `${formatAmount(detail.availableBalance)} ${detail.assetSymbol}`,
+                    render: (_, detail) => `${formatAmount(detail.availableBalance)} ${row.assetSymbol}`,
                   },
                   {
                     title: t('Locked'),
                     align: 'right',
-                    render: (_, detail) => `${formatAmount(detail.lockedBalance)} ${detail.assetSymbol}`,
+                    render: (_, detail) => `${formatAmount(detail.lockedBalance)} ${row.assetSymbol}`,
                   },
                   {
                     title: t('USD value'),
