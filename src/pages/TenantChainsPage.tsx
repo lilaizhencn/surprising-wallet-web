@@ -16,6 +16,7 @@ type TenantToken = {
   standard: string;
   contractAddress: string;
   decimals: number;
+  platformEnabled: boolean;
   enabled: boolean;
   depositEnabled: boolean;
   withdrawalEnabled: boolean;
@@ -83,6 +84,10 @@ export default function TenantChainsPage() {
   };
 
   const saveToken = async (chain: TenantChain, token: TenantToken, values: TokenSettings) => {
+    if (values.enabled && !token.platformEnabled) {
+      void message.warning(t('This token is not enabled by the platform yet'));
+      return;
+    }
     const key = `token:${chain.chain}:${token.symbol}`;
     setSaving(key);
     try {
@@ -128,6 +133,9 @@ export default function TenantChainsPage() {
                   <Typography.Text strong>{token.symbol}</Typography.Text><br />
                   <Typography.Text type="secondary">{token.standard}</Typography.Text>
                 </span>
+                <Tag color={token.platformEnabled ? 'green' : 'default'}>
+                  {t(token.platformEnabled ? 'Platform enabled' : 'Platform unavailable')}
+                </Tag>
               </Space>
             ),
           },
@@ -155,7 +163,7 @@ export default function TenantChainsPage() {
               <Switch
                 checked={token.depositEnabled}
                 disabled={!canManage || !chain.enabled || !chain.scanEnabled
-                  || !token.enabled || saving !== undefined}
+                  || !token.platformEnabled || !token.enabled || saving !== undefined}
                 onChange={(depositEnabled) => void saveToken(chain, token, {
                   enabled: token.enabled,
                   depositEnabled,
@@ -172,7 +180,8 @@ export default function TenantChainsPage() {
               <Switch
                 checked={token.withdrawalEnabled}
                 disabled={!canManage || !chain.enabled || !chain.withdrawalEnabled
-                  || !chain.transferEnabled || !token.enabled || saving !== undefined}
+                  || !chain.transferEnabled || !token.platformEnabled
+                  || !token.enabled || saving !== undefined}
                 onChange={(withdrawalEnabled) => void saveToken(chain, token, {
                   enabled: token.enabled,
                   depositEnabled: token.depositEnabled,

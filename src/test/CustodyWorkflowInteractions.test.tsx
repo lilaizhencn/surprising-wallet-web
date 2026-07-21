@@ -297,7 +297,12 @@ describe('custody operator workflows', () => {
             capabilities: [],
             tokens: [{
               symbol: 'USDT', standard: 'ERC20', contractAddress: '0x1234', decimals: 6,
+              platformEnabled: true,
               ...tokenSettings,
+            }, {
+              symbol: 'USDC', standard: 'ERC20', contractAddress: '0x5678', decimals: 6,
+              platformEnabled: false, enabled: false,
+              depositEnabled: false, withdrawalEnabled: false,
             }],
           }]);
       }
@@ -316,6 +321,10 @@ describe('custody operator workflows', () => {
     expect(initialRow).not.toBeNull();
     if (!initialRow) throw new Error('Enabled chain row was not rendered');
     expect(within(initialRow).getByText('Not generated')).toBeInTheDocument();
+    expect(screen.getByText('Platform unavailable')).toBeInTheDocument();
+    await user.click(screen.getByRole('switch', { name: 'ETH USDC Enabled' }));
+    await screen.findByText('This token is not enabled by the platform yet');
+    expect(requests.some((item) => item.path.includes('/tokens/USDC'))).toBe(false);
     await user.click(within(initialRow).getByRole('button', { name: /Generate address/ }));
 
     const address = await screen.findByText(gasAccount.address);

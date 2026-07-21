@@ -89,7 +89,8 @@ function installConsoleApi() {
         collectionAddress: 'TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE',
         tokens: [{
           symbol: 'USDT', standard: 'TRC20', contractAddress: 'TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj',
-          decimals: 6, enabled: true, depositEnabled: true, withdrawalEnabled: true,
+          decimals: 6, platformEnabled: true, enabled: true,
+          depositEnabled: true, withdrawalEnabled: true,
         }],
         capabilities: ['NATIVE_QUOTE'], openedAt: timestamp,
       }]);
