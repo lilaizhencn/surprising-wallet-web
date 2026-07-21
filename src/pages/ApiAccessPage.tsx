@@ -8,7 +8,6 @@ import {
   Input,
   Modal,
   Popconfirm,
-  Select,
   Space,
   Switch,
   Table,
@@ -29,7 +28,6 @@ type ApiKeyRow = {
   id: string;
   keyId: string;
   name: string;
-  scopes: string[];
   status: string;
   lastUsedAt?: string;
   lastUsedIp?: string;
@@ -48,21 +46,11 @@ type IpRule = {
 
 type Allowlist = { enabled: boolean; rules: IpRule[] };
 
-const scopeOptions = [
-  'addresses:read',
-  'addresses:write',
-  'assets:read',
-  'chains:read',
-  'deposits:read',
-  'withdrawals:read',
-  'withdrawals:write',
-].map((value) => ({ value, label: value }));
-
 export default function ApiAccessPage() {
   const session = useSession();
   const { message } = App.useApp();
   const { t } = useI18n();
-  const [keyForm] = Form.useForm<{ name: string; scopes: string[] }>();
+  const [keyForm] = Form.useForm<{ name: string }>();
   const [ruleForm] = Form.useForm<{ label: string; cidr: string }>();
   const [keyModal, setKeyModal] = useState(false);
   const [ruleModal, setRuleModal] = useState(false);
@@ -81,7 +69,7 @@ export default function ApiAccessPage() {
     [session?.userId],
   );
 
-  const createKey = async (values: { name: string; scopes: string[] }) => {
+  const createKey = async (values: { name: string }) => {
     if (!session) return;
     setSaving(true);
     try {
@@ -161,7 +149,7 @@ export default function ApiAccessPage() {
         showIcon
         type="info"
         title={t('Server integration flow')}
-        description={t('Create a least-privilege API key, optionally enforce trusted source networks, then add and verify a Webhook endpoint. API-created address events are delivered automatically.')}
+        description={t('Create a full-access API key, optionally enforce trusted source networks, then add and verify a Webhook endpoint. API-created address events are delivered automatically.')}
       />
       <div className="security-grid">
         <section className="data-panel">
@@ -192,7 +180,6 @@ export default function ApiAccessPage() {
                   </Space>
                 ),
               },
-              { title: t('Scopes'), dataIndex: 'scopes', render: (value: string[]) => value.join(', ') },
               { title: t('Last used'), dataIndex: 'lastUsedAt', render: formatDate },
               { title: t('Source IP'), dataIndex: 'lastUsedIp', render: (value) => value || '—' },
               { title: t('Created'), dataIndex: 'createdAt', render: formatDate },
@@ -278,11 +265,14 @@ export default function ApiAccessPage() {
         onCancel={() => setKeyModal(false)}
       >
         <Form form={keyForm} layout="vertical" requiredMark={false} onFinish={createKey}>
+          <Alert
+            showIcon
+            type="warning"
+            title={t('Every API key can call all tenant APIs')}
+            description={t('Store the secret only on your server and enable the IP allowlist in production.')}
+          />
           <Form.Item name="name" label={t('Name')} rules={[{ required: true }]}>
             <Input placeholder={t('Production backend')} />
-          </Form.Item>
-          <Form.Item name="scopes" label={t('Scopes')} rules={[{ required: true }]}>
-            <Select mode="multiple" options={scopeOptions} />
           </Form.Item>
         </Form>
       </Modal>

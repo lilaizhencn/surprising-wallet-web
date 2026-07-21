@@ -150,15 +150,6 @@ const apiKeyColumns: TableColumnsType<TenantApiKey> = [
       </Space>
     ),
   },
-  {
-    title: 'Scopes',
-    dataIndex: 'scopes',
-    render: (scopes: string[]) => (
-      <Space size={[4, 4]} wrap>
-        {scopes.map((scope) => <Tag key={scope}>{scope}</Tag>)}
-      </Space>
-    ),
-  },
   { title: 'Status', dataIndex: 'status', render: (value) => <StatusText value={value} /> },
   { title: 'Last used', dataIndex: 'lastUsedAt', render: formatDate },
   { title: 'Last IP', dataIndex: 'lastUsedIp', render: emptyValue },

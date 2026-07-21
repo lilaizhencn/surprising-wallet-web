@@ -124,7 +124,7 @@ const onboardingSteps = [
   {
     key: 'apiKeyConfigured' as const,
     title: 'Create an API key',
-    description: 'Give your backend only the scopes it needs.',
+    description: 'Store the full-access secret securely on your server.',
     to: '/console/api-access',
   },
   {

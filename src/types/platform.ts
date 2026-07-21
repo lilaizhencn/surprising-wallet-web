@@ -282,7 +282,6 @@ export type TenantApiKey = {
   id: string;
   keyId: string;
   name: string;
-  scopes: string[];
   status: string;
   lastUsedAt?: string | null;
   lastUsedIp?: string | null;

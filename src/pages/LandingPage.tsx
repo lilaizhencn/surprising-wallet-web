@@ -193,7 +193,7 @@ export default function LandingPage() {
             </div>
             {[
               ['Request signature', 'Before routing', 'Enforced'],
-              ['IP allowlist', 'Credential scope', 'Enforced'],
+              ['IP allowlist', 'All API keys', 'Enforced'],
               ['Tenant isolation', 'Every query', 'Enforced'],
               ['Event uniqueness', 'Database constraint', 'Enforced'],
             ].map((row) => (
@@ -229,7 +229,7 @@ X-Custody-Signature: ...
               {t('Tenant identity comes from the credential. Your customer, merchant, order, or account stays an opaque external reference.')}
             </p>
             <ol>
-              <li><span>1</span>{t('Create a tenant credential and explicit scopes.')}</li>
+              <li><span>1</span>{t('Create a full-access tenant credential.')}</li>
               <li><span>2</span>{t('Sign a canonical request and add an idempotency key.')}</li>
               <li><span>3</span>{t('Receive a tenant-isolated address.')}</li>
               <li><span>4</span>{t('Consume signed deposit and withdrawal events.')}</li>

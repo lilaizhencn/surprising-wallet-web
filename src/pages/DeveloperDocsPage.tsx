@@ -241,7 +241,6 @@ type ApiDoc = {
   key: string;
   method: 'GET' | 'POST';
   path: string;
-  scope: string;
   title: string;
   description: string;
   demo: string;
@@ -251,7 +250,7 @@ type ApiDoc = {
 
 const apiDocs: ApiDoc[] = [
   {
-    key: 'chains', method: 'GET', path: '/custody/api/v1/chains', scope: 'chains:read',
+    key: 'chains', method: 'GET', path: '/custody/api/v1/chains',
     title: '查询已开通链',
     description: '只返回平台可执行且当前租户已经开通的链。创建地址和提现前应先调用此接口。',
     demo: `const chains = await custodyRequest('GET', '/custody/api/v1/chains');`,
@@ -270,7 +269,7 @@ const apiDocs: ApiDoc[] = [
     notes: 'chain 是平台链标识，不是 network 名称。enabled=false 的链不会从本接口返回。',
   },
   {
-    key: 'create-address', method: 'POST', path: '/custody/api/v1/addresses', scope: 'addresses:write',
+    key: 'create-address', method: 'POST', path: '/custody/api/v1/addresses',
     title: '生成充值地址',
     description: '获取或生成租户业务主体在指定链的稳定充值地址。链必须已经开通。',
     demo: `const address = await custodyRequest('POST', '/custody/api/v1/addresses', {
@@ -293,7 +292,7 @@ const apiDocs: ApiDoc[] = [
     notes: 'subject 是租户自己的用户/账户稳定标识，addressVersion 省略时为 0。同一租户、链、subject 和版本重复请求返回原地址；同一 subject + 版本在所有 EVM 链返回相同地址。用户需要更换地址时递增版本，旧地址仍继续监听。memo 非空时，入账必须同时匹配 address 和 memo。',
   },
   {
-    key: 'list-addresses', method: 'GET', path: '/custody/api/v1/addresses', scope: 'addresses:read',
+    key: 'list-addresses', method: 'GET', path: '/custody/api/v1/addresses',
     title: '查询充值地址',
     description: '按链、状态或 subject/address 关键字查询本租户地址。',
     demo: `const addresses = await custodyRequest(
@@ -315,7 +314,7 @@ const apiDocs: ApiDoc[] = [
     notes: '签名中的 requestTarget 必须包含完整查询字符串，且顺序、大小写和实际发送的 URL 完全一致。limit 最大 200。',
   },
   {
-    key: 'assets', method: 'GET', path: '/custody/api/v1/assets', scope: 'assets:read',
+    key: 'assets', method: 'GET', path: '/custody/api/v1/assets',
     title: '查询链和 Token 资产',
     description: '返回当前租户按 chain + assetSymbol 聚合的可用、锁定和总余额。',
     demo: `const assets = await custodyRequest('GET', '/custody/api/v1/assets');`,
@@ -332,7 +331,7 @@ const apiDocs: ApiDoc[] = [
     notes: 'assetSymbol 表示 Token/原生币符号。同一个 USDT 在不同 chain 上是独立资产，跨链汇总请按 assetSymbol 再聚合。金额禁止用浮点数参与账务计算。',
   },
   {
-    key: 'deposits', method: 'GET', path: '/custody/api/v1/deposits', scope: 'deposits:read',
+    key: 'deposits', method: 'GET', path: '/custody/api/v1/deposits',
     title: '查询充值记录',
     description: '查询已识别到本租户地址的链上充值和确认状态。',
     demo: `const deposits = await custodyRequest(
@@ -356,7 +355,7 @@ const apiDocs: ApiDoc[] = [
     notes: 'txHash 即常说的 txid。Token 转账必须用 chain + txHash + logIndex 唯一定位，不能只用 txHash 去重。',
   },
   {
-    key: 'create-withdrawal', method: 'POST', path: '/custody/api/v1/withdrawals', scope: 'withdrawals:write',
+    key: 'create-withdrawal', method: 'POST', path: '/custody/api/v1/withdrawals',
     title: '创建提现',
     description: '从指定托管地址发起链上提现。链必须开通，并要求请求级幂等键和显式确认。',
     demo: `const withdrawal = await custodyRequest(
@@ -390,7 +389,7 @@ const apiDocs: ApiDoc[] = [
     notes: 'amount 必须作为十进制字符串提交。相同 Idempotency-Key + 相同参数返回原结果；相同键配不同参数会被拒绝。confirmed 必须为 true。',
   },
   {
-    key: 'withdrawals', method: 'GET', path: '/custody/api/v1/withdrawals', scope: 'withdrawals:read',
+    key: 'withdrawals', method: 'GET', path: '/custody/api/v1/withdrawals',
     title: '查询提现记录',
     description: '查询提现状态、平台订单号、业务关联号和最终链上交易哈希。',
     demo: `const withdrawals = await custodyRequest(
@@ -713,7 +712,6 @@ export default function DeveloperDocsPage() {
         <Tag color={doc.method === 'GET' ? 'blue' : 'green'}>{doc.method}</Tag>
         <Text code>{doc.path}</Text>
         <Text strong>{doc.title}</Text>
-        <Tag>{doc.scope}</Tag>
       </Space>
     ),
     children: (
@@ -819,7 +817,7 @@ export default function DeveloperDocsPage() {
       <section className="data-panel docs-section">
         <Title level={2}>上线检查清单</Title>
         <ul className="developer-checklist">
-          <li>只开通实际使用的链，API Key 只授予必要 scope，生产环境启用 IP 白名单。</li>
+          <li>只开通实际使用的链；API Key 默认可以调用全部租户 API，生产环境应启用 IP 白名单。</li>
           <li>服务端时间保持同步；nonce 永不复用；签名失败时记录 requestTarget 和 request-id，但不记录 secret。</li>
           <li>保存 subject、addressVersion 和返回地址；换址时递增版本；所有 EVM 链对同一 subject + 版本复用同一地址；Memo 链同时保存地址与 memo。</li>
           <li>提现使用唯一 Idempotency-Key，金额使用 Decimal/BigDecimal，并在业务侧保留人工风控。</li>
