@@ -90,7 +90,7 @@ describe('LoginPage', () => {
         }]}>
           <Routes>
             <Route path="/console/login" element={<LoginPage />} />
-            <Route path="/console/chains" element={<h1>Tenant chains</h1>} />
+            <Route path="/console/chains" element={<h1>Chains</h1>} />
           </Routes>
         </MemoryRouter>
       </AntApp>,
@@ -101,6 +101,6 @@ describe('LoginPage', () => {
     await user.type(screen.getByLabelText(/password/i), 'correct horse battery staple');
     await user.click(screen.getByRole('button', { name: /^sign in$/i }));
 
-    expect(await screen.findByRole('heading', { name: /tenant chains/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /^chains$/i })).toBeInTheDocument();
   }, 15_000);
 });

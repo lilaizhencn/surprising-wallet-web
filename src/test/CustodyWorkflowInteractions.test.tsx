@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -265,9 +265,8 @@ describe('custody operator workflows', () => {
     ]);
   }, 60_000);
 
-  it('manages the collection address and token switches from tenant chains', async () => {
+  it('manages the collection address and lists tokens enabled with the chain', async () => {
     let generated = false;
-    let tokenSettings = { enabled: false, depositEnabled: false, withdrawalEnabled: false };
     const requests: Array<{ path: string; init?: RequestInit }> = [];
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const path = String(input);
@@ -275,10 +274,6 @@ describe('custody operator workflows', () => {
       if (path === '/custody/console/v1/gas-accounts' && init?.method === 'POST') {
         generated = true;
         return response({ ...gasAccount, childIndex: 1 }, 201);
-      }
-      if (path === '/custody/console/v1/chains/ETH/tokens/USDT' && init?.method === 'PUT') {
-        tokenSettings = JSON.parse(String(init.body));
-        return response({ symbol: 'USDT', standard: 'ERC20', ...tokenSettings });
       }
       if (path === '/custody/console/v1/chains') {
         return response([{
@@ -298,11 +293,9 @@ describe('custody operator workflows', () => {
             tokens: [{
               symbol: 'USDT', standard: 'ERC20', contractAddress: '0x1234', decimals: 6,
               platformEnabled: true,
-              ...tokenSettings,
             }, {
               symbol: 'USDC', standard: 'ERC20', contractAddress: '0x5678', decimals: 6,
-              platformEnabled: false, enabled: false,
-              depositEnabled: false, withdrawalEnabled: false,
+              platformEnabled: false,
             }],
           }]);
       }
@@ -316,15 +309,14 @@ describe('custody operator workflows', () => {
       </MemoryRouter>,
     );
 
-    await screen.findByRole('heading', { name: 'Tenant chains', level: 1 }, { timeout: 15_000 });
+    await screen.findByRole('heading', { name: 'Chains', level: 1 }, { timeout: 15_000 });
     const initialRow = (await screen.findByText('sepolia')).closest('tr');
     expect(initialRow).not.toBeNull();
     if (!initialRow) throw new Error('Enabled chain row was not rendered');
     expect(within(initialRow).getByText('Not generated')).toBeInTheDocument();
     expect(screen.getByText('Platform unavailable')).toBeInTheDocument();
-    await user.click(screen.getByRole('switch', { name: 'ETH USDC Enabled' }));
-    await screen.findByText('This token is not enabled by the platform yet');
-    expect(requests.some((item) => item.path.includes('/tokens/USDC'))).toBe(false);
+    expect(screen.getByText('Enabled with chain')).toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: /ETH USDT/ })).not.toBeInTheDocument();
     await user.click(within(initialRow).getByRole('button', { name: /Generate address/ }));
 
     const address = await screen.findByText(gasAccount.address);
@@ -339,17 +331,6 @@ describe('custody operator workflows', () => {
       && item.init?.method === 'POST');
     expect(JSON.parse(String(create?.init?.body))).toEqual({ chain: 'ETH' });
 
-    await user.click(screen.getByRole('switch', { name: 'ETH USDT Enabled' }));
-    await waitFor(() => expect(tokenSettings).toEqual({
-      enabled: true,
-      depositEnabled: false,
-      withdrawalEnabled: false,
-    }));
-    await user.click(screen.getByRole('switch', { name: 'ETH USDT Deposits' }));
-    await waitFor(() => expect(tokenSettings).toEqual({
-      enabled: true,
-      depositEnabled: true,
-      withdrawalEnabled: false,
-    }));
+    expect(requests.some((item) => item.path.includes('/tokens/'))).toBe(false);
   }, 60_000);
 });

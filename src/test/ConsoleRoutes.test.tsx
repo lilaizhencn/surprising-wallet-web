@@ -89,8 +89,7 @@ function installConsoleApi() {
         collectionAddress: 'TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE',
         tokens: [{
           symbol: 'USDT', standard: 'TRC20', contractAddress: 'TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj',
-          decimals: 6, platformEnabled: true, enabled: true,
-          depositEnabled: true, withdrawalEnabled: true,
+          decimals: 6, platformEnabled: true,
         }],
         capabilities: ['NATIVE_QUOTE'], openedAt: timestamp,
       }]);
@@ -238,7 +237,7 @@ describe('tenant Console routes', () => {
 
   it.each([
     ['/console/overview', 'Asset overview', '12.5 ETH'],
-    ['/console/chains', 'Tenant chains', 'TRON'],
+    ['/console/chains', 'Chains', 'TRON'],
     ['/console/addresses', 'Addresses', 'user_10086'],
     ['/console/deposits', 'Deposits', 'user_10086'],
     ['/console/withdrawals', 'Withdrawals', 'merchant-order-1'],

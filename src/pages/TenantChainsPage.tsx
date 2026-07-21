@@ -17,9 +17,6 @@ type TenantToken = {
   contractAddress: string;
   decimals: number;
   platformEnabled: boolean;
-  enabled: boolean;
-  depositEnabled: boolean;
-  withdrawalEnabled: boolean;
 };
 
 type TenantChain = {
@@ -40,8 +37,6 @@ type TenantChain = {
   openedAt?: string;
   closedAt?: string;
 };
-
-type TokenSettings = Pick<TenantToken, 'enabled' | 'depositEnabled' | 'withdrawalEnabled'>;
 
 export default function TenantChainsPage() {
   const session = useSession();
@@ -83,34 +78,13 @@ export default function TenantChainsPage() {
     }
   };
 
-  const saveToken = async (chain: TenantChain, token: TenantToken, values: TokenSettings) => {
-    if (values.enabled && !token.platformEnabled) {
-      void message.warning(t('This token is not enabled by the platform yet'));
-      return;
-    }
-    const key = `token:${chain.chain}:${token.symbol}`;
-    setSaving(key);
-    try {
-      await api.put(
-        `/custody/console/v1/chains/${chain.chain}/tokens/${token.symbol}`,
-        values,
-      );
-      query.refetch();
-      void message.success(t('{symbol} settings updated', { symbol: token.symbol }));
-    } catch (error) {
-      void message.error(t(error instanceof Error ? error.message : 'Unable to update token'));
-    } finally {
-      setSaving(undefined);
-    }
-  };
-
   const tokenArea = (chain: TenantChain) => (
     <div className="tenant-token-area">
       <div className="tenant-token-heading">
         <div>
           <Typography.Text strong>{t('Available tokens')}</Typography.Text>
           <Typography.Text type="secondary">
-            {t('Enable only the tokens this tenant accepts on {chain}.', { chain: chain.chain })}
+            {t('Opening {chain} automatically enables every token supported by the platform.', { chain: chain.chain })}
           </Typography.Text>
         </div>
         {!chain.scanEnabled || !chain.withdrawalEnabled ? (
@@ -133,62 +107,18 @@ export default function TenantChainsPage() {
                   <Typography.Text strong>{token.symbol}</Typography.Text><br />
                   <Typography.Text type="secondary">{token.standard}</Typography.Text>
                 </span>
-                <Tag color={token.platformEnabled ? 'green' : 'default'}>
-                  {t(token.platformEnabled ? 'Platform enabled' : 'Platform unavailable')}
-                </Tag>
               </Space>
             ),
           },
           {
-            title: t('Enabled'),
-            width: 130,
+            title: t('Availability'),
+            width: 180,
             render: (_, token) => (
-              <Switch
-                checked={token.enabled}
-                disabled={!canManage || !chain.enabled || saving !== undefined}
-                loading={saving === `token:${chain.chain}:${token.symbol}`}
-                onChange={(enabled) => void saveToken(chain, token, {
-                  enabled,
-                  depositEnabled: enabled ? token.depositEnabled : false,
-                  withdrawalEnabled: enabled ? token.withdrawalEnabled : false,
-                })}
-                aria-label={`${chain.chain} ${token.symbol} ${t('Enabled')}`}
-              />
-            ),
-          },
-          {
-            title: t('Deposits'),
-            width: 130,
-            render: (_, token) => (
-              <Switch
-                checked={token.depositEnabled}
-                disabled={!canManage || !chain.enabled || !chain.scanEnabled
-                  || !token.platformEnabled || !token.enabled || saving !== undefined}
-                onChange={(depositEnabled) => void saveToken(chain, token, {
-                  enabled: token.enabled,
-                  depositEnabled,
-                  withdrawalEnabled: token.withdrawalEnabled,
-                })}
-                aria-label={`${chain.chain} ${token.symbol} ${t('Deposits')}`}
-              />
-            ),
-          },
-          {
-            title: t('Withdrawals'),
-            width: 130,
-            render: (_, token) => (
-              <Switch
-                checked={token.withdrawalEnabled}
-                disabled={!canManage || !chain.enabled || !chain.withdrawalEnabled
-                  || !chain.transferEnabled || !token.platformEnabled
-                  || !token.enabled || saving !== undefined}
-                onChange={(withdrawalEnabled) => void saveToken(chain, token, {
-                  enabled: token.enabled,
-                  depositEnabled: token.depositEnabled,
-                  withdrawalEnabled,
-                })}
-                aria-label={`${chain.chain} ${token.symbol} ${t('Withdrawals')}`}
-              />
+              <Tag color={token.platformEnabled && chain.enabled ? 'green' : 'default'}>
+                {t(token.platformEnabled
+                  ? (chain.enabled ? 'Enabled with chain' : 'Enabled when chain opens')
+                  : 'Platform unavailable')}
+              </Tag>
             ),
           },
         ]}
@@ -199,8 +129,8 @@ export default function TenantChainsPage() {
   return (
     <div className="page-stack tenant-chains-page">
       <PageHeader
-        title={t('Tenant chains')}
-        description={t('Open a chain, generate its collection address, and enable tenant tokens in one place.')}
+        title={t('Chains')}
+        description={t('Open a chain to enable its platform-supported tokens and generate its collection address.')}
       />
       <ErrorState message={query.error} onRetry={query.refetch} />
       <section className="data-panel tenant-chains-panel">

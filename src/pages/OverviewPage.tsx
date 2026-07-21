@@ -306,7 +306,7 @@ export default function OverviewPage() {
         <div className="panel-heading">
           <div>
             <h2>{t('Asset details')}</h2>
-            <p>{t('Native assets and enabled tokens are listed together. Expand a token to view balances by chain.')}</p>
+            <p>{t('Native assets and configured tokens are listed together. Expand a token to view balances by chain.')}</p>
           </div>
         </div>
         <Table<AssetSummary>

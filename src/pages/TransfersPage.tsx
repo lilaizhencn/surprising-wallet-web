@@ -340,7 +340,7 @@ export default function TransfersPage({ type }: { type: TransferType }) {
                 showIcon
                 type="error"
                 title={t('No funded {chain} gas reserve', { chain: selectedChain })}
-                description={t('Generate and fund this chain address from Tenant chains before requesting a withdrawal.')}
+                description={t('Generate and fund this chain address from Chains before requesting a withdrawal.')}
               />
             )
           ) : null}
