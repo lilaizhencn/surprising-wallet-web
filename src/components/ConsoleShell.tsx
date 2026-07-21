@@ -9,7 +9,6 @@ import {
   DatabaseOutlined,
   DownOutlined,
   GlobalOutlined,
-  LinkOutlined,
   KeyOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
@@ -43,8 +42,7 @@ const tenantItemDefinitions: TenantItemDefinition[] = [
   { key: '/console/addresses', icon: <DatabaseOutlined />, label: 'Addresses', scope: 'addresses:read' },
   { key: '/console/deposits', icon: <GlobalOutlined />, label: 'Deposits', scope: 'deposits:read' },
   { key: '/console/withdrawals', icon: <SwapOutlined />, label: 'Withdrawals', scope: 'withdrawals:read' },
-  { key: '/console/webhooks', icon: <LinkOutlined />, label: 'Webhooks', scope: 'webhooks:read' },
-  { key: '/console/api-access', icon: <ApiOutlined />, label: 'API access', role: 'TENANT_ADMIN' },
+  { key: '/console/api-access', icon: <ApiOutlined />, label: 'Developer access', role: 'TENANT_ADMIN' },
   { key: '/console/developer-docs', icon: <ReadOutlined />, label: 'Developer documentation' },
   { key: '/console/audit-log', icon: <AuditOutlined />, label: 'Audit log', scope: 'audit:read' },
 ];

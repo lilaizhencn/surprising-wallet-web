@@ -10,7 +10,6 @@ const LoginPage = lazy(() => import('./pages/LoginPage'));
 const OverviewPage = lazy(() => import('./pages/OverviewPage'));
 const AddressesPage = lazy(() => import('./pages/AddressesPage'));
 const TransfersPage = lazy(() => import('./pages/TransfersPage'));
-const WebhooksPage = lazy(() => import('./pages/WebhooksPage'));
 const ApiAccessPage = lazy(() => import('./pages/ApiAccessPage'));
 const AuditPage = lazy(() => import('./pages/AuditPage'));
 const TenantsPage = lazy(() => import('./pages/TenantsPage'));
@@ -61,9 +60,6 @@ export default function App() {
               </Route>
               <Route element={<ProtectedRoute accountType="tenant" requiredScope="withdrawals:read" />}>
                 <Route path="withdrawals" element={<TransfersPage type="withdrawals" />} />
-              </Route>
-              <Route element={<ProtectedRoute accountType="tenant" requiredScope="webhooks:read" />}>
-                <Route path="webhooks" element={<WebhooksPage />} />
               </Route>
               <Route element={<ProtectedRoute accountType="tenant" requiredScope="audit:read" />}>
                 <Route path="audit-log" element={<AuditPage />} />

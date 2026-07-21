@@ -217,7 +217,8 @@ X-Custody-Signature: ...
 
 {
   "chainId": "ETH",
-  "subject": "customer-8421"
+  "subject": "customer-8421",
+  "addressVersion": 0
 }`}</code>
             </pre>
           </div>

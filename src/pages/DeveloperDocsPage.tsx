@@ -272,10 +272,11 @@ const apiDocs: ApiDoc[] = [
   {
     key: 'create-address', method: 'POST', path: '/custody/api/v1/addresses', scope: 'addresses:write',
     title: '生成充值地址',
-    description: '为租户业务主体生成指定链的充值地址。链必须已经开通。',
+    description: '获取或生成租户业务主体在指定链的稳定充值地址。链必须已经开通。',
     demo: `const address = await custodyRequest('POST', '/custody/api/v1/addresses', {
   chainId: 'ARBITRUM',
-  subject: 'user_10086'
+  subject: 'user_10086',
+  addressVersion: 0
 });`,
     response: `{
   "id": "8eca3ed7-55f0-49d7-a5ef-c2fd7e9e34ef",
@@ -284,12 +285,12 @@ const apiDocs: ApiDoc[] = [
   "address": "0x1234...abcd",
   "memo": null,
   "subject": "user_10086",
-  "childIndex": 0,
+  "addressVersion": 0,
   "source": "API",
   "status": "ACTIVE",
   "createdAt": "2026-07-21T08:00:00Z"
 }`,
-    notes: 'subject 是租户自己的用户/账户标识，1–160 位，建议稳定且不可复用。memo 非空时，入账必须同时匹配 address 和 memo。',
+    notes: 'subject 是租户自己的用户/账户稳定标识，addressVersion 省略时为 0。同一租户、链、subject 和版本重复请求返回原地址；同一 subject + 版本在所有 EVM 链返回相同地址。用户需要更换地址时递增版本，旧地址仍继续监听。memo 非空时，入账必须同时匹配 address 和 memo。',
   },
   {
     key: 'list-addresses', method: 'GET', path: '/custody/api/v1/addresses', scope: 'addresses:read',
@@ -307,6 +308,7 @@ const apiDocs: ApiDoc[] = [
     "address": "0x1234...abcd",
     "memo": null,
     "subject": "user_10086",
+    "addressVersion": 0,
     "status": "ACTIVE"
   }
 ]`,
@@ -425,16 +427,18 @@ const endpointDemos: Record<string, CodeSamples> = {
   'create-address': {
     javascript: apiDocs[1].demo,
     java: `String address = CustodyClient.request("POST", "/custody/api/v1/addresses",
-    Map.of("chainId", "ARBITRUM", "subject", "user_10086"), Map.of());`,
+    Map.of("chainId", "ARBITRUM", "subject", "user_10086", "addressVersion", 0), Map.of());`,
     go: `address, err := custodyRequest("POST", "/custody/api/v1/addresses",
-  map[string]any{"chainId": "ARBITRUM", "subject": "user_10086"}, nil)`,
+  map[string]any{"chainId": "ARBITRUM", "subject": "user_10086", "addressVersion": 0}, nil)`,
     python: `address = custody_request("POST", "/custody/api/v1/addresses", {
     "chainId": "ARBITRUM",
     "subject": "user_10086",
+    "addressVersion": 0,
 })`,
     php: `$address = (new CustodyClient())->request('POST', '/custody/api/v1/addresses', [
     'chainId' => 'ARBITRUM',
     'subject' => 'user_10086',
+    'addressVersion' => 0,
 ]);`,
   },
   'list-addresses': {
@@ -691,6 +695,7 @@ const fieldRows = [
   { field: 'txHash', meaning: '链上交易标识，也就是常说的 txid。不同链格式不同，按原字符串保存。' },
   { field: 'logIndex', meaning: '交易内事件序号；Token 充值使用 chain + txHash + logIndex 做唯一键。' },
   { field: 'subject', meaning: '租户业务系统中的用户/账户稳定标识，用来关联充值地址和到账用户。' },
+  { field: 'addressVersion', meaning: '地址业务版本，默认 0；需要给同一 subject 更换地址时递增。旧版本地址仍继续监听和入账。' },
   { field: 'custodyAddressId', meaning: '平台生成的托管地址 UUID，提现时用于指定资金来源。' },
   { field: 'externalReference', meaning: '租户自己的订单号/业务流水号，便于双方对账。' },
   { field: 'orderNo', meaning: '平台提现订单号；排障、查询和对账时应同时保留 orderNo 与 externalReference。' },
@@ -740,8 +745,8 @@ export default function DeveloperDocsPage() {
         title="推荐接入顺序"
         description={(
           <span>
-            先在 <Link to="/console/chains">租户链</Link> 开通链，再到 <Link to="/console/api-access">API 访问</Link>
-            创建最小权限密钥，最后在 <Link to="/console/webhooks">Webhooks</Link> 配置并验证回调地址。
+            先在 <Link to="/console/chains">租户链</Link> 开通链，再到 <Link to="/console/api-access">开发者接入</Link>
+            创建最小权限密钥并配置、验证回调地址。Webhook 不需要选择订阅事件。
           </span>
         )}
       />
@@ -816,7 +821,7 @@ export default function DeveloperDocsPage() {
         <ul className="developer-checklist">
           <li>只开通实际使用的链，API Key 只授予必要 scope，生产环境启用 IP 白名单。</li>
           <li>服务端时间保持同步；nonce 永不复用；签名失败时记录 requestTarget 和 request-id，但不记录 secret。</li>
-          <li>地址与用户 subject 建立不可变映射；Memo 链同时保存地址与 memo。</li>
+          <li>保存 subject、addressVersion 和返回地址；换址时递增版本；所有 EVM 链对同一 subject + 版本复用同一地址；Memo 链同时保存地址与 memo。</li>
           <li>提现使用唯一 Idempotency-Key，金额使用 Decimal/BigDecimal，并在业务侧保留人工风控。</li>
           <li>Webhook 原始体验签、event.id 幂等、快速返回 2xx；定期检查失败投递和对账差异。</li>
           <li>充值以 CONFIRMED 为入账依据；提现区分创建、广播、未知、确认和失败状态。</li>

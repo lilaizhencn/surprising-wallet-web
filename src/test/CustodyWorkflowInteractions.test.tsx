@@ -35,7 +35,8 @@ const customerAddress = {
   chain: 'ETH',
   network: 'sepolia',
   address: '0x1111111111111111111111111111111111111111',
-  externalReference: 'customer-42',
+  subject: 'customer-42',
+  addressVersion: 0,
   label: 'Customer 42',
   metadata: {},
   source: 'API',
@@ -120,6 +121,54 @@ describe('custody operator workflows', () => {
     });
   }, 60_000);
 
+  it('creates a rotated customer address with the tenant-managed version', async () => {
+    const requests: Array<{ path: string; init?: RequestInit }> = [];
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const path = String(input);
+      requests.push({ path, init });
+      if (path === '/custody/console/v1/addresses' && init?.method === 'POST') {
+        return response({
+          ...customerAddress,
+          id: 'dddddddd-dddd-dddd-dddd-dddddddddddd',
+          addressVersion: 2,
+        });
+      }
+      if (path.startsWith('/custody/console/v1/addresses')) return response([]);
+      throw new Error(`Unhandled request: ${path}`);
+    }));
+
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/console/addresses']}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    await screen.findByRole('heading', { name: 'Addresses' }, { timeout: 15_000 });
+    await user.click(screen.getByRole('button', { name: /Create address/ }));
+    const drawerTitle = await screen.findByText('Create address', {
+      selector: '.ant-drawer-title',
+    });
+    const drawer = drawerTitle.closest<HTMLElement>('.ant-drawer');
+    expect(drawer).not.toBeNull();
+    if (!drawer) throw new Error('Create address drawer was not rendered');
+    await user.type(within(drawer).getByRole('combobox', { name: 'Network' }), 'ETH');
+    await user.type(within(drawer).getByRole('textbox', { name: 'Subject' }), 'customer-42');
+    const version = within(drawer).getByRole('spinbutton', { name: 'Address version' });
+    await user.clear(version);
+    await user.type(version, '2');
+    await user.click(within(drawer).getByRole('button', { name: 'Create deposit address' }));
+
+    await screen.findByText('Deposit address created');
+    const create = requests.find((item) => item.path === '/custody/console/v1/addresses'
+      && item.init?.method === 'POST');
+    expect(JSON.parse(String(create?.init?.body))).toMatchObject({
+      chain: 'ETH',
+      subject: 'customer-42',
+      addressVersion: 2,
+    });
+  }, 60_000);
+
   it('filters failed webhooks and supports single and batch manual retry', async () => {
     const retryRequests: string[] = [];
     const deliveryQueries: string[] = [];
@@ -130,10 +179,13 @@ describe('custody operator workflows', () => {
           id: 'endpoint-1',
           name: 'Production events',
           url: 'https://example.test/hooks',
-          events: ['DEPOSIT.CONFIRMED'],
           status: 'ACTIVE',
           successRate24h: 80,
         }]);
+      }
+      if (path === '/custody/console/v1/api-keys') return response([]);
+      if (path === '/custody/console/v1/ip-allowlist') {
+        return response({ enabled: false, rules: [] });
       }
       if (path.startsWith('/custody/console/v1/webhook-deliveries/delivery-1/attempts')) {
         return response([{
@@ -176,12 +228,15 @@ describe('custody operator workflows', () => {
     }));
 
     render(
-      <MemoryRouter initialEntries={['/console/webhooks']}>
+      <MemoryRouter initialEntries={['/console/api-access']}>
         <App />
       </MemoryRouter>,
     );
 
-    await screen.findByRole('heading', { name: 'Webhooks' }, { timeout: 15_000 });
+    await screen.findByRole('heading', { name: 'Developer access' }, { timeout: 15_000 });
+    fireEvent.click(screen.getByRole('button', { name: /Add endpoint/ }));
+    expect(screen.queryByText('Subscribed events')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     fireEvent.click(screen.getByRole('button', { name: 'Deliveries' }));
     const user = userEvent.setup();
     await user.click(await screen.findByRole('combobox', { name: 'Delivery status' }));

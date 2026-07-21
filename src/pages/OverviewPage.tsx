@@ -137,7 +137,7 @@ const onboardingSteps = [
     key: 'webhookConfigured' as const,
     title: 'Verify a Webhook',
     description: 'Complete the signed challenge-response check.',
-    to: '/console/webhooks',
+    to: '/console/api-access',
   },
   {
     key: 'gasAccountConfigured' as const,
@@ -503,7 +503,7 @@ export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: bool
           <section className="data-panel">
             <div className="panel-heading">
               <h2>{t('Webhook health')}</h2>
-              <Link to="/console/webhooks"><LinkOutlined /> {t('Manage webhooks')}</Link>
+              <Link to="/console/api-access"><LinkOutlined /> {t('Manage developer access')}</Link>
             </div>
             {degradedWebhooks.length ? (
               <Alert

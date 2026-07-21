@@ -7,6 +7,7 @@ import {
   Empty,
   Form,
   Input,
+  InputNumber,
   Select,
   Space,
   Table,
@@ -34,7 +35,8 @@ type AddressRow = {
   network: string;
   address: string;
   memo?: string;
-  externalReference?: string;
+  subject: string;
+  addressVersion: number;
   label?: string;
   metadata: Record<string, unknown>;
   source: 'API' | 'CONSOLE';
@@ -44,7 +46,8 @@ type AddressRow = {
 
 type CreateAddressValues = {
   chain: string;
-  externalReference?: string;
+  subject: string;
+  addressVersion?: number;
   label?: string;
   metadata?: string;
 };
@@ -92,7 +95,8 @@ export default function AddressesPage() {
       }
       await api.post('/custody/console/v1/addresses', {
         chain: values.chain,
-        externalReference: values.externalReference,
+        subject: values.subject,
+        addressVersion: values.addressVersion ?? 0,
         label: values.label,
         metadata,
       });
@@ -199,7 +203,7 @@ export default function AddressesPage() {
           <Input.Search
             allowClear
             prefix={<SearchOutlined />}
-            placeholder={t('Search address or external reference')}
+            placeholder={t('Search address or subject')}
             style={{ width: 330 }}
             onSearch={(search) => setFilters((current) => ({ ...current, search }))}
           />
@@ -227,10 +231,10 @@ export default function AddressesPage() {
             { title: t('Network'), dataIndex: 'chain', width: 110 },
             { title: t('Environment'), dataIndex: 'network', width: 120 },
             {
-              title: t('External reference'),
-              dataIndex: 'externalReference',
-              render: (value?: string) => value || '—',
+              title: t('Subject'),
+              dataIndex: 'subject',
             },
+            { title: t('Address version'), dataIndex: 'addressVersion', width: 130 },
             { title: t('Label'), dataIndex: 'label', render: (value?: string) => value || '—' },
             { title: t('Source'), dataIndex: 'source', width: 100, render: (value: string) => t(value === 'CONSOLE' ? 'Console' : value) },
             { title: t('Created'), dataIndex: 'createdAt', width: 180, render: formatDate },
@@ -270,6 +274,7 @@ export default function AddressesPage() {
           form={form}
           layout="vertical"
           requiredMark={false}
+          initialValues={{ addressVersion: 0 }}
           onFinish={createAddress}
         >
           <Form.Item
@@ -281,11 +286,20 @@ export default function AddressesPage() {
             <AutoComplete options={commonChainOptions} placeholder="ETH" filterOption />
           </Form.Item>
           <Form.Item
-            name="externalReference"
-            label={t('Address allocation reference (optional)')}
-            extra={t('For one network, the same reference always returns the same address. Leave blank to allocate a new address every time.')}
+            name="subject"
+            label={t('Subject')}
+            rules={[{ required: true, message: t('Enter a stable subject') }]}
+            extra={t('The same subject and address version always return the same address across EVM chains.')}
           >
-            <Input maxLength={160} placeholder="customer-8421:primary-deposit" />
+            <Input maxLength={160} placeholder="user_10086" />
+          </Form.Item>
+          <Form.Item
+            name="addressVersion"
+            label={t('Address version')}
+            rules={[{ required: true, message: t('Enter an address version') }]}
+            extra={t('Keep 0 for the first address. Increase the version when this subject needs a new address; older addresses remain monitored.')}
+          >
+            <InputNumber min={0} max={2147483647} precision={0} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="label" label={t('Label (optional)')}>
             <Input maxLength={160} placeholder={t('Primary deposit address')} />
@@ -332,11 +346,8 @@ export default function AddressesPage() {
             <div className="address-manager-identity">
               <span>{editingAddress.chain} · {editingAddress.network}</span>
               <CopyText value={editingAddress.address} />
-              {editingAddress.externalReference ? (
-                <small>{t('Allocation reference')}: {editingAddress.externalReference}</small>
-              ) : (
-                <small>{t('Console-managed address without an allocation reference')}</small>
-              )}
+              <small>{t('Subject')}: {editingAddress.subject}</small>
+              <small>{t('Address version')}: {editingAddress.addressVersion}</small>
             </div>
             <Form<UpdateAddressValues>
               form={editForm}

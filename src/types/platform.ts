@@ -254,7 +254,8 @@ export type TenantAddress = {
   network: string;
   address: string;
   memo?: string | null;
-  externalReference?: string | null;
+  subject: string;
+  addressVersion: number;
   label?: string | null;
   source: string;
   status: string;
@@ -303,7 +304,6 @@ export type TenantWebhook = {
   id: string;
   name: string;
   url: string;
-  events: string[];
   status: string;
   verifiedAt?: string | null;
   lastDeliveryAt?: string | null;
@@ -331,7 +331,7 @@ export type TenantWebhookDelivery = {
 
 export type TenantDeposit = {
   id: string;
-  externalReference?: string | null;
+  subject: string;
   chain: string;
   assetSymbol: string;
   txHash: string;

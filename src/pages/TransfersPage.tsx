@@ -30,7 +30,7 @@ type TransferType = 'deposits' | 'withdrawals';
 type DepositRow = {
   id: string;
   custodyAddressId: string;
-  externalReference?: string;
+  subject: string;
   chain: string;
   assetSymbol: string;
   txHash: string;
@@ -62,7 +62,7 @@ type AddressOption = {
   chain: string;
   address: string;
   label?: string;
-  externalReference?: string;
+  subject: string;
   metadata?: Record<string, unknown>;
 };
 
@@ -123,7 +123,7 @@ export default function TransfersPage({ type }: { type: TransferType }) {
       .filter((row) => row.metadata?.systemPurpose !== 'GAS_FUNDING')
       .map((row) => ({
       value: row.id,
-      label: `${row.label || row.externalReference || row.chain} — ${row.address.slice(0, 10)}…`,
+      label: `${row.label || row.subject || row.chain} — ${row.address.slice(0, 10)}…`,
       row,
     })),
     [addressQuery.data],
@@ -170,8 +170,8 @@ export default function TransfersPage({ type }: { type: TransferType }) {
         `${formatAmount(row.amount)} ${row.assetSymbol}`,
     },
     {
-      title: t('External reference'),
-      dataIndex: 'externalReference',
+      title: t('Subject'),
+      dataIndex: 'subject',
       render: (value?: string) => value || '—',
     },
     { title: t('Status'), dataIndex: 'status', render: (value: string) => <StatusText value={value} /> },

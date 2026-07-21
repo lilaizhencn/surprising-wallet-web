@@ -96,7 +96,8 @@ const addressColumns: TableColumnsType<TenantAddress> = [
     ),
   },
   { title: 'Chain', dataIndex: 'chain' },
-  { title: 'Customer reference', dataIndex: 'externalReference', render: emptyValue },
+  { title: 'Subject', dataIndex: 'subject', render: emptyValue },
+  { title: 'Address version', dataIndex: 'addressVersion' },
   { title: 'Label', dataIndex: 'label', render: emptyValue },
   { title: 'Status', dataIndex: 'status', render: (value) => <StatusText value={value} /> },
   { title: 'Created', dataIndex: 'createdAt', render: formatDate },
@@ -217,7 +218,7 @@ const depositColumns: TableColumnsType<TenantDeposit> = [
     title: 'Deposit',
     render: (_, row) => (
       <Space orientation="vertical" size={0}>
-        <Typography.Text strong>{row.externalReference || '—'}</Typography.Text>
+        <Typography.Text strong>{row.subject || '—'}</Typography.Text>
         <Typography.Text className="mono-cell" copyable={{ text: row.txHash }} ellipsis>
           {row.txHash}
         </Typography.Text>

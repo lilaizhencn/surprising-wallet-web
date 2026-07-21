@@ -123,7 +123,8 @@ function installConsoleApi() {
         chain: 'ETH',
         network: 'sepolia',
         address: '0x1111111111111111111111111111111111111111',
-        externalReference: 'user_10086',
+        subject: 'user_10086',
+        addressVersion: 0,
         label: 'Primary deposit',
         metadata: {},
         source: 'API',
@@ -135,7 +136,7 @@ function installConsoleApi() {
       return jsonResponse([{
         id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
         custodyAddressId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-        externalReference: 'user_10086',
+        subject: 'user_10086',
         chain: 'ETH',
         assetSymbol: 'ETH',
         txHash: '0xdeposit',
@@ -170,7 +171,6 @@ function installConsoleApi() {
         id: 'dddddddd-dddd-dddd-dddd-dddddddddddd',
         name: 'Production events',
         url: 'https://example.test/custody-events',
-        events: ['DEPOSIT.CONFIRMED'],
         status: 'ACTIVE',
         successRate24h: 100,
         lastDeliveryAt: timestamp,
@@ -233,8 +233,7 @@ describe('tenant Console routes', () => {
     ['/console/addresses', 'Addresses', 'user_10086'],
     ['/console/deposits', 'Deposits', 'user_10086'],
     ['/console/withdrawals', 'Withdrawals', 'merchant-order-1'],
-    ['/console/webhooks', 'Webhooks', 'Production events'],
-    ['/console/api-access', 'API access', 'Backend service'],
+    ['/console/api-access', 'Developer access', 'Production events'],
     ['/console/audit-log', 'Audit log', 'ADDRESS.CREATE'],
   ])('renders %s with live API-shaped data', async (route, heading, record) => {
     render(

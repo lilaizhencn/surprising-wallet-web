@@ -27,7 +27,6 @@ import { api } from '../api/client';
 import { hasRole, useSession } from '../auth/session';
 import { CopyText } from '../components/CopyText';
 import { ErrorState } from '../components/ErrorState';
-import { PageHeader } from '../components/PageHeader';
 import { StatusText } from '../components/StatusText';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { useI18n } from '../i18n';
@@ -37,7 +36,6 @@ type Endpoint = {
   id: string;
   name: string;
   url: string;
-  events: string[];
   status: string;
   verifiedAt?: string;
   lastDeliveryAt?: string;
@@ -76,19 +74,10 @@ type DeliveryAttempt = {
 };
 
 type CreatedEndpoint = Endpoint & { signingSecret: string };
-type EndpointForm = { name: string; url: string; events: string[] };
+type EndpointForm = { name: string; url: string };
 type DeliveryStatus = '' | 'PENDING' | 'DELIVERING' | 'DELIVERED' | 'RETRY' | 'FAILED';
 
-const eventOptions = [
-  'DEPOSIT.CONFIRMED',
-  'WITHDRAWAL.CREATED',
-  'WITHDRAWAL.BROADCAST',
-  'WITHDRAWAL.BROADCAST_UNKNOWN',
-  'WITHDRAWAL.CONFIRMED',
-  'WITHDRAWAL.FAILED',
-].map((value) => ({ value, label: value }));
-
-export default function WebhooksPage() {
+export default function WebhookAccessSection() {
   const session = useSession();
   const canManage = hasRole(session, 'TENANT_ADMIN');
   const { message } = App.useApp();
@@ -211,22 +200,29 @@ export default function WebhooksPage() {
   };
 
   return (
-    <div className="page-stack">
-      <PageHeader
-        title={t('Webhooks')}
-        description={t('Verify endpoints, subscribe to custody events, and inspect every delivery attempt.')}
-        actions={canManage ? (
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
-            {t('Add endpoint')}
-          </Button>
-        ) : undefined}
-      />
-      <ErrorState message={endpoints.error} onRetry={endpoints.refetch} />
+    <>
       <section className="data-panel">
         <div className="panel-heading">
-          <h2>{t('Endpoints')}</h2>
-          <Button icon={<ReloadOutlined />} onClick={endpoints.refetch}>{t('Reload')}</Button>
+          <div>
+            <h2>{t('Webhook endpoints')}</h2>
+            <p>{t('API-created address events are delivered automatically to every active endpoint.')}</p>
+          </div>
+          <Space>
+            <Button icon={<ReloadOutlined />} onClick={endpoints.refetch}>{t('Reload')}</Button>
+            {canManage ? (
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
+                {t('Add endpoint')}
+              </Button>
+            ) : null}
+          </Space>
         </div>
+        <Alert
+          showIcon
+          type="info"
+          title={t('No event subscription is required')}
+          description={t('Confirmed deposits and every withdrawal state event for addresses created through the API are sent automatically. Console-created address events are not sent to tenant business systems.')}
+        />
+        <ErrorState message={endpoints.error} onRetry={endpoints.refetch} />
         <Table<Endpoint>
           rowKey="id"
           loading={endpoints.loading}
@@ -242,11 +238,6 @@ export default function WebhooksPage() {
                   <Typography.Text type="secondary">{row.url}</Typography.Text>
                 </Space>
               ),
-            },
-            {
-              title: t('Events'),
-              dataIndex: 'events',
-              render: (values: string[]) => t('{count} subscribed', { count: values.length }),
             },
             { title: t('Status'), dataIndex: 'status', render: (value) => <StatusText value={value} /> },
             {
@@ -307,9 +298,6 @@ export default function WebhooksPage() {
             ]}
           >
             <Input placeholder="https://api.example.com/webhooks/custody" />
-          </Form.Item>
-          <Form.Item name="events" label={t('Subscribed events')} rules={[{ required: true }]}>
-            <Select mode="multiple" options={eventOptions} />
           </Form.Item>
         </Form>
       </Modal>
@@ -525,6 +513,6 @@ export default function WebhooksPage() {
           </div>
         ) : null}
       </Modal>
-    </div>
+    </>
   );
 }

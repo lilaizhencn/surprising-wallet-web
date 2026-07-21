@@ -23,6 +23,7 @@ import { StatusText } from '../components/StatusText';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { useI18n } from '../i18n';
 import { formatDate } from '../utils/format';
+import WebhookAccessSection from './WebhooksPage';
 
 type ApiKeyRow = {
   id: string;
@@ -152,10 +153,16 @@ export default function ApiAccessPage() {
   return (
     <div className="page-stack">
       <PageHeader
-        title={t('API access')}
-        description={t('Manage service credentials, request scopes, and source-network enforcement.')}
+        title={t('Developer access')}
+        description={t('Manage API credentials, trusted networks, callback endpoints, and delivery failures in one place.')}
       />
       <ErrorState message={query.error} onRetry={query.refetch} />
+      <Alert
+        showIcon
+        type="info"
+        title={t('Server integration flow')}
+        description={t('Create a least-privilege API key, optionally enforce trusted source networks, then add and verify a Webhook endpoint. API-created address events are delivered automatically.')}
+      />
       <div className="security-grid">
         <section className="data-panel">
           <div className="panel-heading">
@@ -259,6 +266,8 @@ export default function ApiAccessPage() {
           />
         </section>
       </div>
+
+      <WebhookAccessSection />
 
       <Modal
         title={t('Create API key')}
