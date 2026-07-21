@@ -59,7 +59,6 @@ type OpenedChain = {
   collectionAddressId?: string;
   collectionAddress?: string;
   memo?: string;
-  childIndex?: number;
   availableBalance: string | number;
   lockedBalance: string | number;
   totalBalance: string | number;
@@ -143,7 +142,7 @@ const onboardingSteps = [
   {
     key: 'gasAccountConfigured' as const,
     title: 'Create a collection address',
-    description: 'Generate the fixed childIndex 1 address for every enabled chain.',
+    description: 'Generate a dedicated collection address for every enabled chain.',
     to: '/console/assets',
   },
   {
@@ -325,6 +324,7 @@ export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: bool
           columns={[
             {
               title: t('Network'),
+              width: 140,
               render: (_, row) => (
                 <Space orientation="vertical" size={0}>
                   <Typography.Text strong>{row.chain}</Typography.Text>
@@ -335,6 +335,7 @@ export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: bool
             {
               title: t('Supported assets'),
               dataIndex: 'assetSymbols',
+              width: 210,
               render: (symbols: string[]) => (
                 <Space size={[4, 4]} wrap>
                   {symbols.map((symbol) => <Tag key={symbol}>{symbol}</Tag>)}
@@ -344,23 +345,21 @@ export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: bool
             {
               title: t('Collection / gas address'),
               dataIndex: 'collectionAddress',
+              className: 'collection-address-cell',
+              width: 480,
               render: (address?: string) => address
                 ? <CopyText value={address} compact={false} />
                 : <Typography.Text type="secondary">{t('Not generated')}</Typography.Text>,
             },
             {
-              title: t('Child index'),
-              dataIndex: 'childIndex',
-              align: 'center',
-              render: (value?: number) => value ?? '—',
-            },
-            {
               title: t('Native balance'),
               align: 'right',
+              width: 160,
               render: (_, row) => `${formatAmount(row.totalBalance)} ${row.nativeSymbol}`,
             },
             {
               title: t('Status'),
+              width: 140,
               render: (_, row) => (
                 <StatusText value={row.collectionAddress ? row.status : 'NOT_GENERATED'} />
               ),
@@ -368,6 +367,7 @@ export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: bool
             {
               title: t('Action'),
               fixed: 'right',
+              width: 140,
               render: (_, row) => row.collectionAddress ? (
                 <Typography.Text type="secondary">—</Typography.Text>
               ) : (

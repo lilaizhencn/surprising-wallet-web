@@ -10,8 +10,8 @@ export function CopyText({ value, compact = true }: { value?: string | null; com
     ? `${value.slice(0, 8)}…${value.slice(-6)}`
     : value;
   return (
-    <span className="copy-text">
-      <span title={value}>{shortened}</span>
+    <span className={`copy-text${compact ? '' : ' copy-text--full'}`}>
+      <span title={compact ? value : undefined}>{shortened}</span>
       <Tooltip title={t('Copy')}>
         <Button
           type="text"

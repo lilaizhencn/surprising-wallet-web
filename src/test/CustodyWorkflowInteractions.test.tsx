@@ -210,7 +210,7 @@ describe('custody operator workflows', () => {
     ]);
   }, 60_000);
 
-  it('lists an enabled zero-balance chain and generates its childIndex 1 address', async () => {
+  it('lists an enabled zero-balance chain and generates its collection address', async () => {
     let generated = false;
     const requests: Array<{ path: string; init?: RequestInit }> = [];
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -267,7 +267,10 @@ describe('custody operator workflows', () => {
     const generatedRow = address.closest('tr');
     expect(generatedRow).not.toBeNull();
     if (!generatedRow) throw new Error('Generated chain row was not rendered');
-    expect(within(generatedRow).getByText('1')).toBeInTheDocument();
+    expect(within(generatedRow).getByRole('button', {
+      name: `Copy ${gasAccount.address}`,
+    })).toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: 'Child index' })).not.toBeInTheDocument();
     const create = requests.find((item) => item.path === '/custody/console/v1/gas-accounts'
       && item.init?.method === 'POST');
     expect(JSON.parse(String(create?.init?.body))).toEqual({ chain: 'ETH' });

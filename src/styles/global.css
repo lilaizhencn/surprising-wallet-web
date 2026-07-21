@@ -1754,14 +1754,39 @@ a {
 
 .copy-text {
   display: inline-flex;
+  max-width: 100%;
+  min-width: 0;
   align-items: center;
   gap: 2px;
   font-family: "SFMono-Regular", Consolas, monospace;
   font-size: 12px;
 }
 
+.copy-text > span:first-child {
+  min-width: 0;
+}
+
+.copy-text--full {
+  width: 100%;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.copy-text--full > span:first-child {
+  overflow-wrap: anywhere;
+  line-height: 1.55;
+  white-space: normal;
+  word-break: break-all;
+}
+
 .copy-text .ant-btn {
+  z-index: 1;
+  flex: 0 0 auto;
   color: #708098;
+}
+
+.collection-address-cell {
+  min-width: 360px;
 }
 
 .address-manager-identity {
