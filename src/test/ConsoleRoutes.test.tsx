@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -227,7 +227,7 @@ describe('platform Console route', () => {
     clearSession();
     window.localStorage.removeItem('surprising-wallet-locale');
     platformSession();
-    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const path = String(input);
       if (path === '/custody/platform/v1/wallet-config/keyset') {
         return jsonResponse({
@@ -407,6 +407,10 @@ describe('platform Console route', () => {
           production: false,
           environment: 'test2',
         });
+      }
+      if (path === '/custody/platform/v1/wallet-config/chains/1/rpc-nodes/3'
+          && init?.method === 'PATCH') {
+        return jsonResponse({});
       }
       if (path.startsWith('/custody/platform/v1/wallet-config/audit-log')) {
         return jsonResponse([{
@@ -618,6 +622,21 @@ describe('platform Console route', () => {
     await user.click(await screen.findByRole('button', { name: /Edit network profile/ }));
     expect(await screen.findByRole('spinbutton', { name: 'EVM Chain ID' })).toHaveDisplayValue('31337');
   }, 15_000);
+
+  it('toggles an RPC node directly from the RPC list', async () => {
+    render(<MemoryRouter initialEntries={['/platform/wallet-config/chains/1']}><App /></MemoryRouter>);
+
+    const heading = await screen.findByRole('heading', { name: 'RPC nodes', level: 2 });
+    const section = heading.closest('section');
+    expect(section).not.toBeNull();
+    fireEvent.click(within(section as HTMLElement).getByRole('button', { name: 'Disable' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'OK' }));
+
+    await waitFor(() => expect(globalThis.fetch).toHaveBeenCalledWith(
+      '/custody/platform/v1/wallet-config/chains/1/rpc-nodes/3',
+      expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ enabled: false }) }),
+    ));
+  }, 30_000);
 
   it.each([
     ['/platform/wallet-config/chains', 'Chains & Tokens', 'devnet'],

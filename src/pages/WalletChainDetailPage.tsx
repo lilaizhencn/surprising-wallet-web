@@ -34,6 +34,7 @@ import { ErrorState } from '../components/ErrorState';
 import { useApiQuery } from '../hooks/useApiQuery';
 import type { WalletChain, WalletChainDetail, WalletRpcNode, WalletToken } from '../types/platform';
 import { formatDate } from '../utils/format';
+import { translateWalletConfigMessage } from '../utils/walletConfigMessage';
 import { useI18n } from '../i18n';
 
 type RpcFormValues = {
@@ -85,6 +86,7 @@ export default function WalletChainDetailPage() {
   const [tokenOpen, setTokenOpen] = useState(false);
   const [editingToken, setEditingToken] = useState<WalletToken>();
   const [saving, setSaving] = useState(false);
+  const [togglingRpcId, setTogglingRpcId] = useState<number>();
   const [chainForm] = Form.useForm<WalletChainFormValues>();
   const [switchForm] = Form.useForm();
   const [rpcForm] = Form.useForm<RpcFormValues>();
@@ -236,6 +238,21 @@ export default function WalletChainDetailPage() {
       query.refetch();
     } catch (error) {
       void message.error(t(error instanceof Error ? error.message : 'Unable to test RPC node'));
+    }
+  };
+
+  const toggleRpc = async (node: WalletRpcNode) => {
+    if (!session) return;
+    setTogglingRpcId(node.id);
+    try {
+      await api.patch(`${endpoint}/rpc-nodes/${node.id}`, session.token, { enabled: !node.enabled });
+      await message.success(t(node.enabled ? 'RPC node disabled' : 'RPC node enabled'));
+      refetchAll();
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : 'Unable to update RPC node status';
+      void message.error(translateWalletConfigMessage(detail, t));
+    } finally {
+      setTogglingRpcId(undefined);
     }
   };
 
@@ -458,7 +475,7 @@ export default function WalletChainDetailPage() {
               dataSource={data.rpcNodes}
               pagination={false}
               locale={{ emptyText: <Empty description={t('No RPC nodes configured')} /> }}
-              scroll={{ x: 1380 }}
+              scroll={{ x: 1480 }}
               columns={[
                 {
                   title: t('Node'),
@@ -515,11 +532,23 @@ export default function WalletChainDetailPage() {
                 {
                   title: t('Actions'),
                   fixed: 'right',
-                  width: 250,
+                  width: 340,
                   render: (_, row) => (
                     <Space>
                       <Button size="small" icon={<ExperimentOutlined />} onClick={() => testRpc(row)}>{t('Test')}</Button>
                       <Button size="small" icon={<EditOutlined />} onClick={() => openRpc(row)}>{t('Edit')}</Button>
+                      <Popconfirm
+                        title={t(row.enabled ? 'Disable this RPC node?' : 'Enable this RPC node?')}
+                        onConfirm={() => toggleRpc(row)}
+                      >
+                        <Button
+                          size="small"
+                          danger={row.enabled}
+                          loading={togglingRpcId === row.id}
+                        >
+                          {t(row.enabled ? 'Disable' : 'Enable')}
+                        </Button>
+                      </Popconfirm>
                       <Popconfirm title={t('Delete this disabled RPC node?')} onConfirm={() => deleteRpc(row)}>
                         <Button size="small" danger icon={<DeleteOutlined />} disabled={row.enabled}>{t('Delete')}</Button>
                       </Popconfirm>

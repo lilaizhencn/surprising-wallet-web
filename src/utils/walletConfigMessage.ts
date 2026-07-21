@@ -21,6 +21,11 @@ const dynamicMessages: Array<{
     valueKey: 'networks',
   },
   {
+    pattern: /^an enabled chain must retain an enabled RPC node for required purpose (.+)$/,
+    template: 'An enabled chain must retain an enabled RPC node for required purpose {purpose}.',
+    valueKey: 'purpose',
+  },
+  {
     pattern: /^(.+) does not declare its network\.$/,
     template: '{symbol} does not declare its network.',
     valueKey: 'symbol',
