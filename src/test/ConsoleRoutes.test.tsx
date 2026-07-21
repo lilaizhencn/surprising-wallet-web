@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../App';
 import { clearSession, saveSession } from '../auth/session';
+import { I18nProvider } from '../i18n';
 
 function jsonResponse(body: unknown, status = 200): Response {
   return {
@@ -224,6 +225,7 @@ describe('tenant Console routes', () => {
 describe('platform Console route', () => {
   beforeEach(() => {
     clearSession();
+    window.localStorage.removeItem('surprising-wallet-locale');
     platformSession();
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
       const path = String(input);
@@ -281,6 +283,28 @@ describe('platform Console route', () => {
             enabledRpcNodeCount: 1,
             status: 'BLOCKED',
             blockers: ['Global collection switch is off.'],
+          }, {
+            profileId: 2,
+            chain: 'ETH',
+            network: 'mainnet',
+            family: 'evm',
+            configuredEnabled: false,
+            configuredTasks: {
+              scanEnabled: false,
+              withdrawEnabled: false,
+              collectionEnabled: false,
+              transferEnabled: false,
+            },
+            effectiveTasks: {
+              scanEnabled: false,
+              withdrawEnabled: false,
+              collectionEnabled: false,
+              transferEnabled: false,
+            },
+            enabledTokenCount: 0,
+            enabledRpcNodeCount: 1,
+            status: 'DISABLED',
+            blockers: ['Chain profile is disabled.'],
           }],
           anomalies: [{
             code: 'TOKEN_NETWORK_MISSING',
@@ -481,7 +505,10 @@ describe('platform Console route', () => {
       });
     }));
   });
-  afterEach(() => clearSession());
+  afterEach(() => {
+    clearSession();
+    window.localStorage.removeItem('surprising-wallet-locale');
+  });
 
   it('renders tenant management with platform-scoped data', async () => {
     render(
@@ -545,8 +572,28 @@ describe('platform Console route', () => {
       .toBeInTheDocument();
     expect(await screen.findByText('test2 environment')).toBeInTheDocument();
     expect((await screen.findAllByText('ETH')).length).toBeGreaterThan(0);
+    const chainTable = screen.getAllByRole('table')[0];
+    expect(within(chainTable).getAllByRole('row')).toHaveLength(2);
+    expect(within(chainTable).getByText('devnet').closest('.ant-tag')).toHaveClass('ant-tag-green');
+    expect(within(chainTable).getByText('mainnet').closest('.ant-tag')).not.toHaveClass('ant-tag-green');
+    expect(within(chainTable).queryByText('Chain profile is disabled.')).not.toBeInTheDocument();
+    expect(within(chainTable).getByText('Global collection switch is off.')).toBeInTheDocument();
     expect(await screen.findByText('USDC does not declare its network.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Save switches/ })).toBeDisabled();
+  }, 15_000);
+
+  it('translates wallet configuration blockers and dynamic issues into Chinese', async () => {
+    window.localStorage.setItem('surprising-wallet-locale', 'zh-CN');
+    render(
+      <I18nProvider>
+        <MemoryRouter initialEntries={['/platform/wallet-config']}>
+          <App />
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+
+    expect(await screen.findByText('全局归集开关已关闭。')).toBeInTheDocument();
+    expect(await screen.findByText('USDC 未声明所属网络。')).toBeInTheDocument();
   }, 15_000);
 
   it('groups network profiles into one chain row with token logos and symbols', async () => {

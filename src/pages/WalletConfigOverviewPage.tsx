@@ -26,6 +26,7 @@ import type {
   WalletTaskSwitches,
 } from '../types/platform';
 import { useI18n } from '../i18n';
+import { translateWalletConfigMessage } from '../utils/walletConfigMessage';
 
 const endpoint = '/custody/platform/v1/wallet-config/summary';
 
@@ -68,6 +69,61 @@ function statusColor(status: WalletChainStatus['status']) {
   return 'default';
 }
 
+type WalletChainStatusGroup = {
+  chain: string;
+  family: string;
+  profiles: WalletChainStatus[];
+  representative: WalletChainStatus;
+  enabledTokenCount: number;
+  enabledRpcNodeCount: number;
+  status: WalletChainStatus['status'];
+  blockers: string[];
+};
+
+const statusPriority: Record<WalletChainStatus['status'], number> = {
+  BLOCKED: 4,
+  INACTIVE: 3,
+  ACTIVE: 2,
+  DISABLED: 1,
+};
+
+function groupChainStatuses(statuses: WalletChainStatus[]): WalletChainStatusGroup[] {
+  const grouped = new Map<string, WalletChainStatus[]>();
+  statuses.forEach((status) => {
+    const current = grouped.get(status.chain) ?? [];
+    current.push(status);
+    grouped.set(status.chain, current);
+  });
+
+  return [...grouped.entries()].map(([chain, profiles]) => {
+    const sorted = profiles.toSorted((left, right) => {
+      if (left.configuredEnabled !== right.configuredEnabled) return left.configuredEnabled ? -1 : 1;
+      if (left.network === 'mainnet') return -1;
+      if (right.network === 'mainnet') return 1;
+      return left.network.localeCompare(right.network);
+    });
+    const enabledProfiles = sorted.filter((profile) => profile.configuredEnabled);
+    const relevantProfiles = enabledProfiles.length ? enabledProfiles : [sorted[0]];
+    const representative = relevantProfiles[0];
+    const status = enabledProfiles.length
+      ? relevantProfiles.reduce((current, profile) => (
+        statusPriority[profile.status] > statusPriority[current] ? profile.status : current
+      ), representative.status)
+      : 'DISABLED';
+
+    return {
+      chain,
+      family: sorted[0].family,
+      profiles: sorted,
+      representative,
+      enabledTokenCount: sorted.reduce((total, profile) => total + profile.enabledTokenCount, 0),
+      enabledRpcNodeCount: sorted.reduce((total, profile) => total + profile.enabledRpcNodeCount, 0),
+      status,
+      blockers: [...new Set(relevantProfiles.flatMap((profile) => profile.blockers))],
+    };
+  }).toSorted((left, right) => left.chain.localeCompare(right.chain));
+}
+
 export default function WalletConfigOverviewPage() {
   const session = useSession();
   const { message } = App.useApp();
@@ -91,6 +147,8 @@ export default function WalletConfigOverviewPage() {
     [query.data, switches],
   );
 
+  const chainGroups = useMemo(() => groupChainStatuses(query.data?.chains ?? []), [query.data?.chains]);
+
   const saveSwitches = async () => {
     if (!session || !switches) return;
     setSaving(true);
@@ -111,13 +169,27 @@ export default function WalletConfigOverviewPage() {
 
   const chainColumns = [
     {
-      title: t('Chain / network'),
+      title: t('Chain'),
       key: 'chain',
-      render: (_: unknown, row: WalletChainStatus) => (
+      render: (_: unknown, row: WalletChainStatusGroup) => (
         <div>
           <Typography.Text strong>{row.chain}</Typography.Text>
           <br />
-          <Typography.Text type="secondary">{row.network} · {row.family}</Typography.Text>
+          <Typography.Text type="secondary">{row.family}</Typography.Text>
+        </div>
+      ),
+    },
+    {
+      title: t('Networks'),
+      key: 'networks',
+      render: (_: unknown, row: WalletChainStatusGroup) => (
+        <div className="chain-network-list">
+          {row.profiles.map((profile) => (
+            <Tag key={profile.profileId} color={profile.configuredEnabled ? 'green' : 'default'}>
+              {profile.configuredEnabled ? <i aria-hidden /> : null}
+              {profile.network}
+            </Tag>
+          ))}
         </div>
       ),
     },
@@ -128,13 +200,13 @@ export default function WalletConfigOverviewPage() {
     },
     {
       title: t('Configured tasks'),
-      dataIndex: 'configuredTasks',
-      render: (tasks: WalletTaskSwitches) => <TaskTags tasks={tasks} />,
+      key: 'configuredTasks',
+      render: (_: unknown, row: WalletChainStatusGroup) => <TaskTags tasks={row.representative.configuredTasks} />,
     },
     {
       title: t('Effective tasks'),
-      dataIndex: 'effectiveTasks',
-      render: (tasks: WalletTaskSwitches) => <TaskTags tasks={tasks} />,
+      key: 'effectiveTasks',
+      render: (_: unknown, row: WalletChainStatusGroup) => <TaskTags tasks={row.representative.effectiveTasks} />,
     },
     { title: t('Tokens'), dataIndex: 'enabledTokenCount', width: 84 },
     { title: 'RPC', dataIndex: 'enabledRpcNodeCount', width: 72 },
@@ -142,7 +214,7 @@ export default function WalletConfigOverviewPage() {
       title: t('Blocking reason'),
       dataIndex: 'blockers',
       render: (blockers: string[]) => blockers.length
-        ? <Typography.Text type="secondary">{blockers.map((item) => t(item)).join(' ')}</Typography.Text>
+        ? <Typography.Text type="secondary">{blockers.map((item) => translateWalletConfigMessage(item, t)).join(' ')}</Typography.Text>
         : <Typography.Text type="success">{t('Ready')}</Typography.Text>,
     },
   ];
@@ -164,7 +236,11 @@ export default function WalletConfigOverviewPage() {
         [row.chain, row.network].filter(Boolean).join(' / ') || t('Global')
       ),
     },
-    { title: t('Issue'), dataIndex: 'message', render: (value: string) => t(value) },
+    {
+      title: t('Issue'),
+      dataIndex: 'message',
+      render: (value: string) => translateWalletConfigMessage(value, t),
+    },
   ];
 
   const data = query.data;
@@ -246,10 +322,10 @@ export default function WalletConfigOverviewPage() {
                 <Typography.Text type="secondary">{t('Configured values and effective task state are shown separately.')}</Typography.Text>
               </div>
             </div>
-            <Table<WalletChainStatus>
-              rowKey="profileId"
+            <Table<WalletChainStatusGroup>
+              rowKey="chain"
               columns={chainColumns}
-              dataSource={data.chains}
+              dataSource={chainGroups}
               pagination={{ pageSize: 20, showSizeChanger: false }}
               scroll={{ x: 1100 }}
             />
