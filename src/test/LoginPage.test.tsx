@@ -69,7 +69,7 @@ describe('LoginPage', () => {
     });
   }, 15_000);
 
-  it('returns a tenant to the requested developer guide after sign-in', async () => {
+  it('returns a tenant to the requested Console page after sign-in', async () => {
     const user = userEvent.setup();
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({
       expiresAt: '2099-01-01T00:00:00Z',
@@ -86,11 +86,11 @@ describe('LoginPage', () => {
       <AntApp>
         <MemoryRouter initialEntries={[{
           pathname: '/console/login',
-          state: { from: '/console/developer-docs', accountType: 'tenant' },
+          state: { from: '/console/chains', accountType: 'tenant' },
         }]}>
           <Routes>
             <Route path="/console/login" element={<LoginPage />} />
-            <Route path="/console/developer-docs" element={<h1>Developer documentation</h1>} />
+            <Route path="/console/chains" element={<h1>Tenant chains</h1>} />
           </Routes>
         </MemoryRouter>
       </AntApp>,
@@ -101,6 +101,6 @@ describe('LoginPage', () => {
     await user.type(screen.getByLabelText(/password/i), 'correct horse battery staple');
     await user.click(screen.getByRole('button', { name: /^sign in$/i }));
 
-    expect(await screen.findByRole('heading', { name: /developer documentation/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /tenant chains/i })).toBeInTheDocument();
   }, 15_000);
 });

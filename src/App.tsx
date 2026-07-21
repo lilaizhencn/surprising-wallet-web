@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { App as AntApp, Spin } from 'antd';
 import { ConsoleShell } from './components/ConsoleShell';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { PublicDocsShell } from './components/PublicDocsShell';
 
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
@@ -37,6 +38,9 @@ export default function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/console/login" element={<LoginPage />} />
+          <Route element={<PublicDocsShell />}>
+            <Route path="/console/developer-docs" element={<DeveloperDocsPage />} />
+          </Route>
           <Route element={<ProtectedRoute accountType="tenant" />}>
             <Route path="/console" element={<ConsoleShell accountType="tenant" />}>
               <Route index element={<Navigate to="overview" replace />} />
@@ -63,7 +67,6 @@ export default function App() {
               <Route element={<ProtectedRoute accountType="tenant" requiredScope="webhooks:read" />}>
                 <Route path="webhooks" element={<WebhooksPage />} />
               </Route>
-              <Route path="developer-docs" element={<DeveloperDocsPage />} />
               <Route element={<ProtectedRoute accountType="tenant" requiredScope="audit:read" />}>
                 <Route path="audit-log" element={<AuditPage />} />
               </Route>

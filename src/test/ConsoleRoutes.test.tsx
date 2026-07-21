@@ -228,7 +228,6 @@ describe('tenant Console routes', () => {
     ['/console/withdrawals', 'Withdrawals', 'merchant-order-1'],
     ['/console/webhooks', 'Webhooks', 'Production events'],
     ['/console/api-access', 'API access', 'Backend service'],
-    ['/console/developer-docs', 'Developer documentation', 'API 鉴权与签名'],
     ['/console/audit-log', 'Audit log', 'ADDRESS.CREATE'],
   ])('renders %s with live API-shaped data', async (route, heading, record) => {
     render(
@@ -240,6 +239,24 @@ describe('tenant Console routes', () => {
     expect(await screen.findByRole('heading', { name: heading, level: 1 }))
       .toBeInTheDocument();
     expect((await screen.findAllByText(record)).length).toBeGreaterThan(0);
+  }, 15_000);
+});
+
+describe('public developer documentation route', () => {
+  beforeEach(() => clearSession());
+  afterEach(() => clearSession());
+
+  it('renders the API guide without a Console session', async () => {
+    render(
+      <MemoryRouter initialEntries={['/console/developer-docs']}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Developer documentation', level: 1 }))
+      .toBeInTheDocument();
+    expect(screen.getAllByText('API 鉴权与签名').length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: 'Open Console' })).toBeInTheDocument();
   }, 15_000);
 });
 

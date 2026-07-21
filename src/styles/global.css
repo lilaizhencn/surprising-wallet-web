@@ -727,6 +727,15 @@ a {
   background: #ffffff;
 }
 
+.public-docs-page {
+  min-height: 100vh;
+  background: #ffffff;
+}
+
+.public-docs-content {
+  padding: 36px 32px 64px;
+}
+
 .page-stack {
   display: grid;
   gap: 18px;
