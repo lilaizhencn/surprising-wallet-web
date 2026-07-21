@@ -20,6 +20,7 @@ const WalletConfigOverviewPage = lazy(() => import('./pages/WalletConfigOverview
 const WalletChainsPage = lazy(() => import('./pages/WalletChainsPage'));
 const WalletChainDetailPage = lazy(() => import('./pages/WalletChainDetailPage'));
 const TenantChainsPage = lazy(() => import('./pages/TenantChainsPage'));
+const DeveloperDocsPage = lazy(() => import('./pages/DeveloperDocsPage'));
 
 function RouteFallback() {
   return (
@@ -62,6 +63,7 @@ export default function App() {
               <Route element={<ProtectedRoute accountType="tenant" requiredScope="webhooks:read" />}>
                 <Route path="webhooks" element={<WebhooksPage />} />
               </Route>
+              <Route path="developer-docs" element={<DeveloperDocsPage />} />
               <Route element={<ProtectedRoute accountType="tenant" requiredScope="audit:read" />}>
                 <Route path="audit-log" element={<AuditPage />} />
               </Route>

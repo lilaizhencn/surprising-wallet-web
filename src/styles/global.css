@@ -2408,6 +2408,84 @@ a {
   flex: none;
 }
 
+.developer-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.developer-overview-grid .ant-card-body > .anticon {
+  color: #1677ff;
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.developer-overview-grid .ant-typography {
+  margin-top: 0;
+}
+
+.docs-section > .ant-typography:first-child {
+  margin-top: 0;
+}
+
+.developer-code {
+  position: relative;
+  margin: 12px 0 18px;
+  border: 1px solid #25344a;
+  border-radius: 8px;
+  background: #101827;
+  overflow: auto;
+}
+
+.developer-code .ant-typography {
+  margin: 0;
+}
+
+.developer-code .ant-typography-copy {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  color: #a8c7fa;
+}
+
+.developer-code pre {
+  margin: 0;
+  padding: 18px 48px 18px 18px;
+  color: #dbeafe;
+  font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  white-space: pre;
+}
+
+.api-doc-detail {
+  padding: 4px 0 8px;
+}
+
+.developer-code-tabs .ant-tabs-nav {
+  margin-bottom: 0;
+}
+
+.developer-code-tabs .developer-code {
+  margin-top: 0;
+}
+
+.developer-checklist {
+  margin: 0;
+  padding-left: 22px;
+  line-height: 2;
+}
+
+@media (max-width: 1200px) {
+  .developer-overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .developer-overview-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .login-brand-row,
 .marketing-header-actions {
   display: flex;

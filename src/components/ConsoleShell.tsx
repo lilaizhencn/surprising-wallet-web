@@ -15,6 +15,7 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   SafetyCertificateOutlined,
+  ReadOutlined,
   SwapOutlined,
   TeamOutlined,
   ThunderboltOutlined,
@@ -46,6 +47,7 @@ const tenantItemDefinitions: TenantItemDefinition[] = [
   { key: '/console/withdrawals', icon: <SwapOutlined />, label: 'Withdrawals', scope: 'withdrawals:read' },
   { key: '/console/webhooks', icon: <LinkOutlined />, label: 'Webhooks', scope: 'webhooks:read' },
   { key: '/console/api-access', icon: <ApiOutlined />, label: 'API access', role: 'TENANT_ADMIN' },
+  { key: '/console/developer-docs', icon: <ReadOutlined />, label: 'Developer documentation' },
   { key: '/console/audit-log', icon: <AuditOutlined />, label: 'Audit log', scope: 'audit:read' },
 ];
 

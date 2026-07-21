@@ -228,6 +228,7 @@ describe('tenant Console routes', () => {
     ['/console/withdrawals', 'Withdrawals', 'merchant-order-1'],
     ['/console/webhooks', 'Webhooks', 'Production events'],
     ['/console/api-access', 'API access', 'Backend service'],
+    ['/console/developer-docs', 'Developer documentation', 'API 鉴权与签名'],
     ['/console/audit-log', 'Audit log', 'ADDRESS.CREATE'],
   ])('renders %s with live API-shaped data', async (route, heading, record) => {
     render(

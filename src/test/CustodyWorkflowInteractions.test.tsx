@@ -120,8 +120,9 @@ describe('custody operator workflows', () => {
     });
   }, 60_000);
 
-  it('shows immutable webhook attempts and manually queues a new retry cycle', async () => {
+  it('filters failed webhooks and supports single and batch manual retry', async () => {
     const retryRequests: string[] = [];
+    const deliveryQueries: string[] = [];
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const path = String(input);
       if (path === '/custody/console/v1/webhooks') {
@@ -152,7 +153,12 @@ describe('custody operator workflows', () => {
         retryRequests.push(path);
         return response({ ok: true });
       }
+      if (path.includes('/webhook-deliveries/retry-failed') && init?.method === 'POST') {
+        retryRequests.push(path);
+        return response({ queued: 1 });
+      }
       if (path.startsWith('/custody/console/v1/webhook-deliveries')) {
+        deliveryQueries.push(path);
         return response([{
           id: 'delivery-1',
           eventId: 'event-1',
@@ -177,6 +183,10 @@ describe('custody operator workflows', () => {
 
     await screen.findByRole('heading', { name: 'Webhooks' }, { timeout: 15_000 });
     fireEvent.click(screen.getByRole('button', { name: 'Deliveries' }));
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('combobox', { name: 'Delivery status' }));
+    await user.click(await screen.findByText('Failed'));
+    await vi.waitFor(() => expect(deliveryQueries.some((path) => path.includes('status=FAILED'))).toBe(true));
     fireEvent.click(await screen.findByRole('button', { name: 'Details' }, { timeout: 10_000 }));
     const detailsTitle = await screen.findByText('Webhook delivery details');
     const details = detailsTitle.closest<HTMLElement>('.ant-modal');
@@ -190,8 +200,13 @@ describe('custody operator workflows', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'OK' }));
 
     await screen.findByText('Delivery queued for retry');
+    fireEvent.click(screen.getByRole('button', { name: /Retry all failed/ }));
+    const confirmations = await screen.findAllByRole('button', { name: 'OK' });
+    fireEvent.click(confirmations[confirmations.length - 1]);
+    await screen.findByText('1 deliveries queued for retry');
     expect(retryRequests).toEqual([
       '/custody/console/v1/webhook-deliveries/delivery-1/retry',
+      '/custody/console/v1/webhook-deliveries/retry-failed?endpointId=endpoint-1',
     ]);
   }, 60_000);
 

@@ -77,6 +77,7 @@ type DeliveryAttempt = {
 
 type CreatedEndpoint = Endpoint & { signingSecret: string };
 type EndpointForm = { name: string; url: string; events: string[] };
+type DeliveryStatus = '' | 'PENDING' | 'DELIVERING' | 'DELIVERED' | 'RETRY' | 'FAILED';
 
 const eventOptions = [
   'DEPOSIT.CONFIRMED',
@@ -99,6 +100,8 @@ export default function WebhooksPage() {
   const [deliveryEndpoint, setDeliveryEndpoint] = useState<Endpoint>();
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery>();
   const [retryingId, setRetryingId] = useState<string>();
+  const [deliveryStatus, setDeliveryStatus] = useState<DeliveryStatus>('');
+  const [retryingFailed, setRetryingFailed] = useState(false);
 
   const endpoints = useApiQuery<Endpoint[]>(
     (signal) => session
@@ -111,12 +114,13 @@ export default function WebhooksPage() {
       ? api.get(
           `/custody/console/v1/webhook-deliveries${queryString({
             endpointId: deliveryEndpoint.id,
+            status: deliveryStatus,
             limit: 100,
           })}`,
           signal,
         )
       : Promise.resolve([]),
-    [session?.userId, deliveryEndpoint?.id],
+    [session?.userId, deliveryEndpoint?.id, deliveryStatus],
   );
   const attempts = useApiQuery<DeliveryAttempt[]>(
     (signal) => session && selectedDelivery
@@ -187,6 +191,25 @@ export default function WebhooksPage() {
     }
   };
 
+  const retryAllFailed = async () => {
+    if (!session || !deliveryEndpoint) return;
+    setRetryingFailed(true);
+    try {
+      const result = await api.post<{ queued: number }>(
+        `/custody/console/v1/webhook-deliveries/retry-failed${queryString({
+          endpointId: deliveryEndpoint.id,
+        })}`,
+      );
+      await message.success(t('{count} deliveries queued for retry', { count: result.queued }));
+      deliveries.refetch();
+      attempts.refetch();
+    } catch (error) {
+      void message.error(error instanceof Error ? error.message : t('Unable to retry failed deliveries'));
+    } finally {
+      setRetryingFailed(false);
+    }
+  };
+
   return (
     <div className="page-stack">
       <PageHeader
@@ -252,7 +275,10 @@ export default function WebhooksPage() {
                       {t('Verify')}
                     </Button>
                   ) : null}
-                  <Button onClick={() => setDeliveryEndpoint(row)}>{t('Deliveries')}</Button>
+                  <Button onClick={() => {
+                    setDeliveryStatus('');
+                    setDeliveryEndpoint(row);
+                  }}>{t('Deliveries')}</Button>
                 </Space>
               ),
             },
@@ -326,7 +352,10 @@ export default function WebhooksPage() {
         title={deliveryEndpoint ? t('{name} deliveries', { name: deliveryEndpoint.name }) : t('Deliveries')}
         size={760}
         open={Boolean(deliveryEndpoint)}
-        onClose={() => setDeliveryEndpoint(undefined)}
+        onClose={() => {
+          setDeliveryEndpoint(undefined);
+          setDeliveryStatus('');
+        }}
       >
         <Alert
           showIcon
@@ -336,7 +365,34 @@ export default function WebhooksPage() {
         />
         <ErrorState message={deliveries.error} onRetry={deliveries.refetch} />
         <div className="drawer-toolbar">
-          <Button icon={<ReloadOutlined />} onClick={deliveries.refetch}>{t('Reload deliveries')}</Button>
+          <Space wrap>
+            <Select<DeliveryStatus>
+              aria-label={t('Delivery status')}
+              value={deliveryStatus}
+              style={{ width: 190 }}
+              onChange={setDeliveryStatus}
+              options={[
+                { value: '', label: t('All delivery statuses') },
+                { value: 'FAILED', label: t('Failed') },
+                { value: 'RETRY', label: t('Retry scheduled') },
+                { value: 'PENDING', label: t('Pending') },
+                { value: 'DELIVERING', label: t('Delivering') },
+                { value: 'DELIVERED', label: t('Delivered') },
+              ]}
+            />
+            <Button icon={<ReloadOutlined />} onClick={deliveries.refetch}>{t('Reload deliveries')}</Button>
+            {canManage ? (
+              <Popconfirm
+                title={t('Retry all failed deliveries for this endpoint?')}
+                description={t('Every FAILED or RETRY delivery will start a new manual retry cycle. Successful deliveries are never replayed.')}
+                onConfirm={() => void retryAllFailed()}
+              >
+                <Button danger icon={<RetweetOutlined />} loading={retryingFailed}>
+                  {t('Retry all failed')}
+                </Button>
+              </Popconfirm>
+            ) : null}
+          </Space>
         </div>
         <Table<Delivery>
           rowKey="id"
