@@ -266,6 +266,7 @@ describe('tenant Console routes', () => {
     render(<MemoryRouter initialEntries={['/console/overview']}><App /></MemoryRouter>);
 
     await screen.findByRole('heading', { name: 'Asset overview', level: 1 });
+    expect(screen.queryByText('Developer documentation')).not.toBeInTheDocument();
     const ethBalances = await screen.findAllByText('14 ETH');
     fireEvent.click(ethBalances[0].closest('tr') as HTMLElement);
     await waitFor(() => expect(screen.getAllByRole('table').length).toBeGreaterThan(3));

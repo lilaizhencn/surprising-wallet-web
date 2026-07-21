@@ -20,7 +20,6 @@ type LoginResponse = {
 };
 
 type LoginValues = {
-  tenantSlug?: string;
   email: string;
   password: string;
 };
@@ -40,9 +39,7 @@ export default function LoginPage() {
       const path = accountType === 'platform'
         ? '/custody/platform/v1/auth/login'
         : '/custody/console/v1/auth/login';
-      const body = accountType === 'platform'
-        ? { email: values.email, password: values.password }
-        : values;
+      const body = { email: values.email, password: values.password };
       const result = await apiRequest<LoginResponse>(path, { method: 'POST', body });
       const session: Session = { version: 2, accountType, ...result };
       saveSession(session);
@@ -90,15 +87,6 @@ export default function LoginPage() {
             onChange={setAccountType}
           />
           <Form<LoginValues> layout="vertical" requiredMark={false} onFinish={submit}>
-            {accountType === 'tenant' ? (
-              <Form.Item
-                name="tenantSlug"
-                label={t('Tenant slug')}
-                rules={[{ required: true, message: t('Enter your tenant slug') }]}
-              >
-                <Input autoComplete="organization" placeholder="acme-pay" />
-              </Form.Item>
-            ) : null}
             <Form.Item
               name="email"
               label={t('Email')}

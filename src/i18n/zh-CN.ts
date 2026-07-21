@@ -181,7 +181,6 @@ const messages: Record<string, string> = {
   'Back to tenants': '返回租户列表',
   'Welcome back': '欢迎回来',
   'Use the credentials created for your Console account.': '使用为控制台账号创建的登录凭据。',
-  'Enter your tenant slug': '请输入租户标识',
   'Enter your email': '请输入邮箱',
   'Enter your password': '请输入密码',
   'Platform session is required': '需要平台管理员会话',

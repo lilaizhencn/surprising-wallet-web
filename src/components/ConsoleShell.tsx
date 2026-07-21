@@ -13,7 +13,6 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   SafetyCertificateOutlined,
-  ReadOutlined,
   SwapOutlined,
   TeamOutlined,
 } from '@ant-design/icons';
@@ -41,7 +40,6 @@ const tenantItemDefinitions: TenantItemDefinition[] = [
   { key: '/console/deposits', icon: <GlobalOutlined />, label: 'Deposits', scope: 'deposits:read' },
   { key: '/console/withdrawals', icon: <SwapOutlined />, label: 'Withdrawals', scope: 'withdrawals:read' },
   { key: '/console/api-access', icon: <ApiOutlined />, label: 'Developer access', role: 'TENANT_ADMIN' },
-  { key: '/console/developer-docs', icon: <ReadOutlined />, label: 'Developer documentation' },
   { key: '/console/audit-log', icon: <AuditOutlined />, label: 'Audit log', scope: 'audit:read' },
 ];
 

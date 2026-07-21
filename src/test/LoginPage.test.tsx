@@ -45,7 +45,7 @@ describe('LoginPage', () => {
       </AntApp>,
     );
 
-    await user.type(screen.getByLabelText(/tenant slug/i), 'acme-pay');
+    expect(screen.queryByLabelText(/tenant slug/i)).not.toBeInTheDocument();
     await user.type(screen.getByLabelText(/email/i), 'admin@acme.test');
     await user.type(screen.getByLabelText(/password/i), 'correct horse battery staple');
     await user.click(screen.getByRole('button', { name: /^sign in$/i }));
@@ -54,7 +54,6 @@ describe('LoginPage', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][0]).toBe('/custody/console/v1/auth/login');
     expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({
-      tenantSlug: 'acme-pay',
       email: 'admin@acme.test',
       password: 'correct horse battery staple',
     });
@@ -96,7 +95,6 @@ describe('LoginPage', () => {
       </AntApp>,
     );
 
-    await user.type(screen.getByLabelText(/tenant slug/i), 'acme-pay');
     await user.type(screen.getByLabelText(/email/i), 'admin@acme.test');
     await user.type(screen.getByLabelText(/password/i), 'correct horse battery staple');
     await user.click(screen.getByRole('button', { name: /^sign in$/i }));
