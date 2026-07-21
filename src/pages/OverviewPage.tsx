@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Alert, Button, Empty, Progress, Table, Typography } from 'antd';
 import {
   ArrowRightOutlined,
@@ -22,6 +23,29 @@ type AssetRow = {
   lockedBalance: string | number;
   totalBalance: string | number;
   addressCount: number;
+  usdPrice?: string | number;
+  valueUsd?: string | number;
+  priceSource?: string;
+  priceObservedAt?: string;
+};
+
+type SymbolAggregate = {
+  assetSymbol: string;
+  availableBalance: string | number;
+  lockedBalance: string | number;
+  totalBalance: string | number;
+  valueUsd?: string | number;
+  chains: string[];
+};
+
+type AssetDashboard = {
+  asOf: string;
+  displayCurrency: string;
+  totalValueUsd: string | number;
+  unpricedAssetCount: number;
+  oldestPriceObservedAt?: string;
+  assets: AssetRow[];
+  bySymbol: SymbolAggregate[];
 };
 
 type WebhookRow = {
@@ -43,13 +67,14 @@ type TransferRow = {
 };
 
 type OverviewData = {
-  assets: AssetRow[];
+  dashboard: AssetDashboard;
   webhooks: WebhookRow[];
   recent: Array<TransferRow & { kind: 'Deposit' | 'Withdrawal' }>;
   onboarding?: OnboardingStatus;
 };
 
 type OnboardingStatus = {
+  chainOpened: boolean;
   apiKeyConfigured: boolean;
   webhookConfigured: boolean;
   ipAllowlistConfigured: boolean;
@@ -61,7 +86,22 @@ type OnboardingStatus = {
   ready: boolean;
 };
 
+const emptyDashboard: AssetDashboard = {
+  asOf: '',
+  displayCurrency: 'USD',
+  totalValueUsd: 0,
+  unpricedAssetCount: 0,
+  assets: [],
+  bySymbol: [],
+};
+
 const onboardingSteps = [
+  {
+    key: 'chainOpened' as const,
+    title: 'Open a chain',
+    description: 'Enable each network before using its APIs.',
+    to: '/console/chains',
+  },
   {
     key: 'apiKeyConfigured' as const,
     title: 'Create an API key',
@@ -105,17 +145,17 @@ export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: bool
   const { t } = useI18n();
   const query = useApiQuery<OverviewData>(
     async (signal) => {
-      if (!session) return { assets: [], webhooks: [], recent: [] };
+      if (!session) return { dashboard: emptyDashboard, webhooks: [], recent: [] };
       if (assetsOnly) {
-        const assets = await api.get<AssetRow[]>('/custody/console/v1/assets', session.token, signal);
-        return { assets, webhooks: [], recent: [] };
+        const dashboard = await api.get<AssetDashboard>('/custody/console/v1/dashboard', signal);
+        return { dashboard, webhooks: [], recent: [] };
       }
-      const [assets, webhooks, deposits, withdrawals, onboarding] = await Promise.all([
-        api.get<AssetRow[]>('/custody/console/v1/assets', session.token, signal),
-        api.get<WebhookRow[]>('/custody/console/v1/webhooks', session.token, signal),
-        api.get<TransferRow[]>('/custody/console/v1/deposits?limit=5', session.token, signal),
-        api.get<TransferRow[]>('/custody/console/v1/withdrawals?limit=5', session.token, signal),
-        api.get<OnboardingStatus>('/custody/console/v1/onboarding', session.token, signal),
+      const [dashboard, webhooks, deposits, withdrawals, onboarding] = await Promise.all([
+        api.get<AssetDashboard>('/custody/console/v1/dashboard', signal),
+        api.get<WebhookRow[]>('/custody/console/v1/webhooks', signal),
+        api.get<TransferRow[]>('/custody/console/v1/deposits?limit=5', signal),
+        api.get<TransferRow[]>('/custody/console/v1/withdrawals?limit=5', signal),
+        api.get<OnboardingStatus>('/custody/console/v1/onboarding', signal),
       ]);
       const recent = [
         ...deposits.map((row) => ({ ...row, kind: 'Deposit' as const })),
@@ -123,12 +163,17 @@ export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: bool
       ]
         .toSorted((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
         .slice(0, 8);
-      return { assets, webhooks, recent, onboarding };
+      return { dashboard, webhooks, recent, onboarding };
     },
-    [session?.token, assetsOnly],
+    [session?.userId, assetsOnly],
   );
 
-  const assets = query.data?.assets ?? [];
+  useEffect(() => {
+    const timer = window.setInterval(query.refetch, 15_000);
+    return () => window.clearInterval(timer);
+  }, [query.refetch]);
+
+  const assets = query.data?.dashboard.assets ?? [];
   const totalAddresses = assets.reduce((sum, row) => sum + row.addressCount, 0);
   const activeAssets = assets.filter((row) => Number(row.totalBalance) !== 0).length;
   const degradedWebhooks = (query.data?.webhooks ?? []).filter(
@@ -142,6 +187,17 @@ export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: bool
         description={t('Consolidated balances and activity across every configured chain.')}
       />
       <ErrorState message={query.error} onRetry={query.refetch} />
+
+      {query.data?.dashboard.unpricedAssetCount ? (
+        <Alert
+          showIcon
+          type="info"
+          title={t('{count} funded assets do not have a USD price snapshot', {
+            count: query.data.dashboard.unpricedAssetCount,
+          })}
+          description={t('The portfolio total includes only priced assets; token quantities remain complete.')}
+        />
+      ) : null}
 
       {!assetsOnly && query.data?.onboarding ? (
         <section className="data-panel onboarding-panel">
@@ -191,9 +247,9 @@ export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: bool
       {!assetsOnly ? (
         <section className="overview-band" aria-label={t('Tenant asset summary')}>
           <div>
-            <span>{t('Tracked assets')}</span>
-            <strong>{assets.length}</strong>
-            <small>{t('Tenant total')}</small>
+            <span>{t('Total asset value')}</span>
+            <strong>${formatAmount(query.data?.dashboard.totalValueUsd ?? 0)}</strong>
+            <small>{t('Live ledger, USD snapshot')}</small>
           </div>
           <div>
             <span>{t('Assets with balance')}</span>
@@ -232,6 +288,13 @@ export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: bool
               render: (value, row) => `${formatAmount(value)} ${row.assetSymbol}`,
             },
             {
+              title: t('USD value'),
+              dataIndex: 'valueUsd',
+              align: 'right',
+              render: (value) => value === null || value === undefined
+                ? '—' : `$${formatAmount(value)}`,
+            },
+            {
               title: t('Available'),
               dataIndex: 'availableBalance',
               align: 'right',
@@ -247,6 +310,44 @@ export default function OverviewPage({ assetsOnly = false }: { assetsOnly?: bool
             {
               title: t('Status'),
               render: () => <StatusText value="ACTIVE" />,
+            },
+          ]}
+        />
+      </section>
+
+      <section className="data-panel">
+        <div className="panel-heading">
+          <h2>{t('Cross-chain asset totals')}</h2>
+          <small>{t('USDT, USDC, and every same-symbol asset are aggregated across networks.')}</small>
+        </div>
+        <Table<SymbolAggregate>
+          rowKey="assetSymbol"
+          loading={query.loading}
+          dataSource={query.data?.dashboard.bySymbol ?? []}
+          pagination={{ pageSize: 10, hideOnSinglePage: true }}
+          locale={{ emptyText: <Empty description={t('No cross-chain assets yet')} /> }}
+          columns={[
+            {
+              title: t('Asset'),
+              dataIndex: 'assetSymbol',
+              render: (value: string) => <Typography.Text strong>{value}</Typography.Text>,
+            },
+            {
+              title: t('Networks'),
+              dataIndex: 'chains',
+              render: (chains: string[]) => chains.join(', '),
+            },
+            {
+              title: t('Total balance'),
+              align: 'right',
+              render: (_, row) => `${formatAmount(row.totalBalance)} ${row.assetSymbol}`,
+            },
+            {
+              title: t('USD value'),
+              dataIndex: 'valueUsd',
+              align: 'right',
+              render: (value) => value === null || value === undefined
+                ? '—' : `$${formatAmount(value)}`,
             },
           ]}
         />

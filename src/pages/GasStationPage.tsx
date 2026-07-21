@@ -99,29 +99,27 @@ export default function GasStationPage() {
 
   const accounts = useApiQuery<GasAccount[]>(
     (signal) => session
-      ? api.get('/custody/console/v1/gas-accounts', session.token, signal)
+      ? api.get('/custody/console/v1/gas-accounts', signal)
       : Promise.resolve([]),
-    [session?.token],
+    [session?.userId],
   );
   const topups = useApiQuery<GasTopup[]>(
     (signal) => session && selected
       ? api.get(
           `/custody/console/v1/gas-accounts/${selected.id}/topups?limit=100`,
-          session.token,
           signal,
         )
       : Promise.resolve([]),
-    [session?.token, selected?.id],
+    [session?.userId, selected?.id],
   );
   const usage = useApiQuery<GasUsage[]>(
     (signal) => session && selected
       ? api.get(
           `/custody/console/v1/gas-accounts/${selected.id}/usage?limit=100`,
-          session.token,
           signal,
         )
       : Promise.resolve([]),
-    [session?.token, selected?.id],
+    [session?.userId, selected?.id],
   );
 
   const createAccount = async (values: CreateGasValues) => {
@@ -130,7 +128,6 @@ export default function GasStationPage() {
     try {
       const created = await api.post<GasAccount>(
         '/custody/console/v1/gas-accounts',
-        session.token,
         {
           chain: values.chain,
           lowBalanceThreshold: String(values.lowBalanceThreshold),
@@ -160,7 +157,6 @@ export default function GasStationPage() {
     try {
       const updated = await api.patch<GasAccount>(
         `/custody/console/v1/gas-accounts/${selected.id}`,
-        session.token,
         {
           lowBalanceThreshold: String(values.lowBalanceThreshold),
           status,

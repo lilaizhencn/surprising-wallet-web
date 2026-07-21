@@ -760,6 +760,23 @@ const messages: Record<string, string> = {
   'No RPC nodes configured': '尚未配置 RPC 节点',
   'Tokens are scoped to the selected chain and network profile.': 'Token 归属于当前选择的链和网络配置。',
   'No tokens configured for this network': '当前网络尚未配置 Token',
+  'Tenant chains': '租户链管理',
+  'Open only the chains this tenant will use. Closing a chain blocks new API operations while preserving balances and history.': '仅开通租户需要使用的链。关闭后将阻止新的 API 操作，但保留余额和历史记录。',
+  'Chain opened': '链已开通',
+  'Chain closed': '链已关闭',
+  'No executable platform chains are available': '平台暂无可执行的链',
+  'Platform operations': '平台能力',
+  'Open for tenant': '为租户开通',
+  'Total asset value': '总资产估值',
+  'Live ledger, USD snapshot': '实时账本，USD 价格快照',
+  'USD value': 'USD 估值',
+  'Cross-chain asset totals': '跨链资产汇总',
+  'USDT, USDC, and every same-symbol asset are aggregated across networks.': 'USDT、USDC 以及所有同名资产均按多个网络聚合。',
+  'No cross-chain assets yet': '暂无跨链资产',
+  '{count} funded assets do not have a USD price snapshot': '{count} 个有余额资产暂无 USD 价格快照',
+  'The portfolio total includes only priced assets; token quantities remain complete.': '总资产估值仅包含已有价格的资产，Token 数量仍完整展示。',
+  'Open a chain': '开通一条链',
+  'Enable each network before using its APIs.': '使用 API 前需要逐条开通网络。',
 };
 
 export default messages;

@@ -64,11 +64,10 @@ export default function TenantsPage() {
           limit: PAGE_SIZE,
           offset: (page - 1) * PAGE_SIZE,
         })}`,
-        session.token,
         signal,
       )
       : Promise.resolve({ items: [], total: 0, limit: PAGE_SIZE, offset: 0 }),
-    [session?.token, search, status, page],
+    [session?.userId, search, status, page],
   );
 
   const create = async (values: TenantForm) => {
@@ -77,7 +76,6 @@ export default function TenantsPage() {
     try {
       const tenant = await api.post<TenantSummary>(
         '/custody/platform/v1/tenants',
-        session.token,
         values,
       );
       await message.success(t('Tenant created'));

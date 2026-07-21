@@ -3,9 +3,8 @@ import { useSyncExternalStore } from 'react';
 export type AccountType = 'tenant' | 'platform';
 
 export type Session = {
-  version: 1;
+  version: 2;
   accountType: AccountType;
-  token: string;
   expiresAt: string;
   userId: string;
   tenantId?: string;
@@ -13,9 +12,10 @@ export type Session = {
   email: string;
   displayName: string;
   role: string;
+  scopes: string[];
 };
 
-const STORAGE_KEY = 'surprising-wallet.session.v1';
+const STORAGE_KEY = 'surprising-wallet.session.v2';
 const listeners = new Set<() => void>();
 let snapshot = readSession();
 
@@ -25,9 +25,9 @@ function readSession(): Session | null {
     if (!raw) return null;
     const value = JSON.parse(raw) as Session;
     if (
-      value.version !== 1 ||
-      !value.token ||
+      value.version !== 2 ||
       !value.expiresAt ||
+      !Array.isArray(value.scopes) ||
       new Date(value.expiresAt).getTime() <= Date.now()
     ) {
       sessionStorage.removeItem(STORAGE_KEY);
@@ -68,4 +68,12 @@ export function useSession() {
     () => snapshot,
     () => null,
   );
+}
+
+export function hasScope(session: Session | null, scope: string) {
+  return Boolean(session?.scopes.includes('*') || session?.scopes.includes(scope));
+}
+
+export function hasRole(session: Session | null, role: string) {
+  return session?.role === role;
 }

@@ -1,7 +1,13 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { useSession, type AccountType } from '../auth/session';
+import { hasRole, hasScope, useSession, type AccountType } from '../auth/session';
 
-export function ProtectedRoute({ accountType }: { accountType: AccountType }) {
+type ProtectedRouteProps = {
+  accountType: AccountType;
+  requiredScope?: string;
+  requiredRole?: string;
+};
+
+export function ProtectedRoute({ accountType, requiredScope, requiredRole }: ProtectedRouteProps) {
   const session = useSession();
   const location = useLocation();
 
@@ -13,6 +19,10 @@ export function ProtectedRoute({ accountType }: { accountType: AccountType }) {
         state={{ from: location.pathname, accountType }}
       />
     );
+  }
+  if ((requiredScope && !hasScope(session, requiredScope))
+    || (requiredRole && !hasRole(session, requiredRole))) {
+    return <Navigate to={accountType === 'platform' ? '/platform' : '/console/overview'} replace />;
   }
   return <Outlet />;
 }

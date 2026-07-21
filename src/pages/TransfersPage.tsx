@@ -16,7 +16,7 @@ import {
 } from 'antd';
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import { api } from '../api/client';
-import { useSession } from '../auth/session';
+import { hasScope, useSession } from '../auth/session';
 import { CopyText } from '../components/CopyText';
 import { ErrorState } from '../components/ErrorState';
 import { PageHeader } from '../components/PageHeader';
@@ -85,6 +85,7 @@ type WithdrawalValues = {
 
 export default function TransfersPage({ type }: { type: TransferType }) {
   const session = useSession();
+  const canCreateWithdrawal = hasScope(session, 'withdrawals:write');
   const { message } = App.useApp();
   const { t } = useI18n();
   const [status, setStatus] = useState('');
@@ -98,24 +99,23 @@ export default function TransfersPage({ type }: { type: TransferType }) {
     (signal) => session
       ? api.get(
           `/custody/console/v1/${type}${queryString({ status, limit: 100 })}`,
-          session.token,
           signal,
         )
       : Promise.resolve([]),
-    [session?.token, type, status],
+    [session?.userId, type, status],
   );
 
   const addressQuery = useApiQuery<AddressOption[]>(
     (signal) => session && type === 'withdrawals'
-      ? api.get('/custody/console/v1/addresses?status=ACTIVE&limit=200', session.token, signal)
+      ? api.get('/custody/console/v1/addresses?status=ACTIVE&limit=200', signal)
       : Promise.resolve([]),
-    [session?.token, type],
+    [session?.userId, type],
   );
   const gasQuery = useApiQuery<GasAccount[]>(
     (signal) => session && type === 'withdrawals'
-      ? api.get('/custody/console/v1/gas-accounts', session.token, signal)
+      ? api.get('/custody/console/v1/gas-accounts', signal)
       : Promise.resolve([]),
-    [session?.token, type],
+    [session?.userId, type],
   );
 
   const addressOptions = useMemo(
@@ -139,7 +139,7 @@ export default function TransfersPage({ type }: { type: TransferType }) {
     if (!session) return;
     setCreating(true);
     try {
-      await api.post('/custody/console/v1/withdrawals', session.token, {
+      await api.post('/custody/console/v1/withdrawals', {
         ...values,
         amount: String(values.amount),
         confirmed: true,
@@ -217,7 +217,7 @@ export default function TransfersPage({ type }: { type: TransferType }) {
             ? t('Confirmed on-chain deposits attributed to this tenant.')
             : t('Tenant withdrawals and their signing, broadcast, and confirmation state.')
         }
-        actions={type === 'withdrawals' ? (
+        actions={type === 'withdrawals' && canCreateWithdrawal ? (
           <Button type="primary" icon={<PlusOutlined />} onClick={() => setDrawerOpen(true)}>
             {t('Create withdrawal')}
           </Button>

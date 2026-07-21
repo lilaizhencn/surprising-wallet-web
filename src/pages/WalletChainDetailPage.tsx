@@ -94,11 +94,11 @@ export default function WalletChainDetailPage() {
   const endpoint = `/custody/platform/v1/wallet-config/chains/${chainId}`;
 
   const profilesQuery = useApiQuery<WalletChain[]>((signal) => session
-    ? api.get('/custody/platform/v1/wallet-config/chains', session.token, signal)
-    : Promise.resolve([]), [session?.token]);
+    ? api.get('/custody/platform/v1/wallet-config/chains', signal)
+    : Promise.resolve([]), [session?.userId]);
   const query = useApiQuery<WalletChainDetail>((signal) => session
-    ? api.get(endpoint, session.token, signal)
-    : Promise.reject(new Error(t('Platform session is required'))), [session?.token, chainId, t]);
+    ? api.get(endpoint, signal)
+    : Promise.reject(new Error(t('Platform session is required'))), [session?.userId, chainId, t]);
 
   const networkProfiles = useMemo(() => {
     if (!query.data) return [];
@@ -140,7 +140,7 @@ export default function WalletChainDetailPage() {
     const values = await chainForm.validateFields();
     setSaving(true);
     try {
-      await api.patch(endpoint, session.token, values);
+      await api.patch(endpoint, values);
       await message.success(t('Chain profile updated'));
       setEditChain(false);
       refetchAll();
@@ -158,7 +158,7 @@ export default function WalletChainDetailPage() {
     ]);
     setSaving(true);
     try {
-      await api.patch(`${endpoint}/switches`, session.token, values);
+      await api.patch(`${endpoint}/switches`, values);
       await message.success(t('Chain switches updated'));
       refetchAll();
     } catch (error) {
@@ -201,9 +201,9 @@ export default function WalletChainDetailPage() {
     setSaving(true);
     try {
       if (editingRpc) {
-        await api.patch(`${endpoint}/rpc-nodes/${editingRpc.id}`, session.token, values);
+        await api.patch(`${endpoint}/rpc-nodes/${editingRpc.id}`, values);
       } else {
-        await api.post(`${endpoint}/rpc-nodes`, session.token, values);
+        await api.post(`${endpoint}/rpc-nodes`, values);
       }
       await message.success(t(editingRpc ? 'RPC node updated' : 'RPC node created'));
       setRpcOpen(false);
@@ -224,7 +224,7 @@ export default function WalletChainDetailPage() {
         statusCode?: number;
         latencyMs: number;
         error?: string;
-      }>(`${endpoint}/rpc-nodes/${node.id}/test`, session.token);
+      }>(`${endpoint}/rpc-nodes/${node.id}/test`);
       if (result.success) {
         void message.success(t('RPC healthy · {latency} ms{status}', {
           latency: result.latencyMs,
@@ -245,7 +245,7 @@ export default function WalletChainDetailPage() {
     if (!session) return;
     setTogglingRpcId(node.id);
     try {
-      await api.patch(`${endpoint}/rpc-nodes/${node.id}`, session.token, { enabled: !node.enabled });
+      await api.patch(`${endpoint}/rpc-nodes/${node.id}`, { enabled: !node.enabled });
       await message.success(t(node.enabled ? 'RPC node disabled' : 'RPC node enabled'));
       refetchAll();
     } catch (error) {
@@ -259,7 +259,7 @@ export default function WalletChainDetailPage() {
   const deleteRpc = async (node: WalletRpcNode) => {
     if (!session) return;
     try {
-      await api.delete(`${endpoint}/rpc-nodes/${node.id}`, session.token);
+      await api.delete(`${endpoint}/rpc-nodes/${node.id}`);
       await message.success(t('RPC node deleted'));
       refetchAll();
     } catch (error) {
@@ -303,9 +303,9 @@ export default function WalletChainDetailPage() {
     setSaving(true);
     try {
       if (editingToken) {
-        await api.patch(`/custody/platform/v1/wallet-config/tokens/${editingToken.id}`, session.token, values);
+        await api.patch(`/custody/platform/v1/wallet-config/tokens/${editingToken.id}`, values);
       } else {
-        await api.post('/custody/platform/v1/wallet-config/tokens', session.token, values);
+        await api.post('/custody/platform/v1/wallet-config/tokens', values);
       }
       await message.success(t(editingToken ? 'Token updated' : 'Token created'));
       setTokenOpen(false);
@@ -321,7 +321,7 @@ export default function WalletChainDetailPage() {
   const toggleToken = async (token: WalletToken) => {
     if (!session) return;
     try {
-      await api.patch(`/custody/platform/v1/wallet-config/tokens/${token.id}/status`, session.token, {
+      await api.patch(`/custody/platform/v1/wallet-config/tokens/${token.id}/status`, {
         enabled: !token.enabled,
       });
       await message.success(t(token.enabled ? 'Token disabled' : 'Token enabled'));

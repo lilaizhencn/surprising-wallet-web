@@ -23,7 +23,6 @@ describe('LoginPage', () => {
   it('authenticates a tenant and stores only the returned Console session', async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({
-      token: 'cs_test-session-token-with-safe-length',
       expiresAt: '2099-01-01T00:00:00Z',
       userId: '11111111-1111-1111-1111-111111111111',
       tenantId: '22222222-2222-2222-2222-222222222222',
@@ -31,6 +30,7 @@ describe('LoginPage', () => {
       email: 'admin@acme.test',
       displayName: 'Acme Admin',
       role: 'TENANT_ADMIN',
+      scopes: ['*'],
     }));
     vi.stubGlobal('fetch', fetchMock);
 
@@ -63,7 +63,9 @@ describe('LoginPage', () => {
         accountType: 'tenant',
         tenantSlug: 'acme-pay',
         role: 'TENANT_ADMIN',
+        scopes: ['*'],
       });
+      expect(getSession()).not.toHaveProperty('token');
     });
   }, 15_000);
 });

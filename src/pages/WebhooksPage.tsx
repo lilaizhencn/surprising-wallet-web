@@ -24,7 +24,7 @@ import {
   RetweetOutlined,
 } from '@ant-design/icons';
 import { api } from '../api/client';
-import { useSession } from '../auth/session';
+import { hasRole, useSession } from '../auth/session';
 import { CopyText } from '../components/CopyText';
 import { ErrorState } from '../components/ErrorState';
 import { PageHeader } from '../components/PageHeader';
@@ -89,6 +89,7 @@ const eventOptions = [
 
 export default function WebhooksPage() {
   const session = useSession();
+  const canManage = hasRole(session, 'TENANT_ADMIN');
   const { message } = App.useApp();
   const { t } = useI18n();
   const [form] = Form.useForm<EndpointForm>();
@@ -101,9 +102,9 @@ export default function WebhooksPage() {
 
   const endpoints = useApiQuery<Endpoint[]>(
     (signal) => session
-      ? api.get('/custody/console/v1/webhooks', session.token, signal)
+      ? api.get('/custody/console/v1/webhooks', signal)
       : Promise.resolve([]),
-    [session?.token],
+    [session?.userId],
   );
   const deliveries = useApiQuery<Delivery[]>(
     (signal) => session && deliveryEndpoint
@@ -112,21 +113,19 @@ export default function WebhooksPage() {
             endpointId: deliveryEndpoint.id,
             limit: 100,
           })}`,
-          session.token,
           signal,
         )
       : Promise.resolve([]),
-    [session?.token, deliveryEndpoint?.id],
+    [session?.userId, deliveryEndpoint?.id],
   );
   const attempts = useApiQuery<DeliveryAttempt[]>(
     (signal) => session && selectedDelivery
       ? api.get(
           `/custody/console/v1/webhook-deliveries/${selectedDelivery.id}/attempts?limit=100`,
-          session.token,
           signal,
         )
       : Promise.resolve([]),
-    [session?.token, selectedDelivery?.id],
+    [session?.userId, selectedDelivery?.id],
   );
 
   const create = async (values: EndpointForm) => {
@@ -135,7 +134,6 @@ export default function WebhooksPage() {
     try {
       const result = await api.post<CreatedEndpoint>(
         '/custody/console/v1/webhooks',
-        session.token,
         values,
       );
       setCreateOpen(false);
@@ -152,7 +150,7 @@ export default function WebhooksPage() {
   const verify = async (endpoint: Endpoint) => {
     if (!session) return;
     try {
-      await api.post(`/custody/console/v1/webhooks/${endpoint.id}/verify`, session.token);
+      await api.post(`/custody/console/v1/webhooks/${endpoint.id}/verify`);
       await message.success(t('Endpoint verified and activated'));
       endpoints.refetch();
     } catch (error) {
@@ -163,7 +161,7 @@ export default function WebhooksPage() {
   const setEnabled = async (endpoint: Endpoint, enabled: boolean) => {
     if (!session) return;
     try {
-      await api.patch(`/custody/console/v1/webhooks/${endpoint.id}/status`, session.token, {
+      await api.patch(`/custody/console/v1/webhooks/${endpoint.id}/status`, {
         enabled,
       });
       endpoints.refetch();
@@ -178,7 +176,6 @@ export default function WebhooksPage() {
     try {
       await api.post(
         `/custody/console/v1/webhook-deliveries/${delivery.id}/retry`,
-        session.token,
       );
       await message.success(t('Delivery queued for retry'));
       deliveries.refetch();
@@ -195,11 +192,11 @@ export default function WebhooksPage() {
       <PageHeader
         title={t('Webhooks')}
         description={t('Verify endpoints, subscribe to custody events, and inspect every delivery attempt.')}
-        actions={
+        actions={canManage ? (
           <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
             {t('Add endpoint')}
           </Button>
-        }
+        ) : undefined}
       />
       <ErrorState message={endpoints.error} onRetry={endpoints.refetch} />
       <section className="data-panel">
@@ -240,7 +237,7 @@ export default function WebhooksPage() {
               render: (_, row) => (
                 <Switch
                   checked={row.status === 'ACTIVE'}
-                  disabled={row.status === 'PENDING_VERIFICATION'}
+                  disabled={!canManage || row.status === 'PENDING_VERIFICATION'}
                   onChange={(checked) => void setEnabled(row, checked)}
                 />
               ),
@@ -250,7 +247,7 @@ export default function WebhooksPage() {
               fixed: 'right',
               render: (_, row) => (
                 <Space>
-                  {row.status === 'PENDING_VERIFICATION' ? (
+                  {canManage && row.status === 'PENDING_VERIFICATION' ? (
                     <Button icon={<CheckCircleOutlined />} onClick={() => void verify(row)}>
                       {t('Verify')}
                     </Button>
@@ -374,7 +371,7 @@ export default function WebhooksPage() {
                   <Button type="link" onClick={() => setSelectedDelivery(row)}>
                     {t('Details')}
                   </Button>
-                  {row.status === 'FAILED' || row.status === 'RETRY' ? (
+                  {canManage && (row.status === 'FAILED' || row.status === 'RETRY') ? (
                     <Popconfirm
                       title={t('Queue this delivery now?')}
                       description={t('This starts a new manual retry cycle and keeps all previous attempts.')}

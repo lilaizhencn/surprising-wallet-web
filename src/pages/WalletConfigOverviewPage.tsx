@@ -132,9 +132,9 @@ export default function WalletConfigOverviewPage() {
   const [saving, setSaving] = useState(false);
   const query = useApiQuery<WalletConfigSummary>(
     (signal) => session
-      ? api.get(endpoint, session.token, signal)
+      ? api.get(endpoint, signal)
       : Promise.reject(new Error(t('Platform session is required'))),
-    [session?.token, t],
+    [session?.userId, t],
   );
 
   useEffect(() => {
@@ -155,7 +155,6 @@ export default function WalletConfigOverviewPage() {
     try {
       await api.patch<WalletConfigSummary>(
         '/custody/platform/v1/wallet-config/global-switches',
-        session.token,
         switches,
       );
       await message.success(t('Global wallet switches updated'));

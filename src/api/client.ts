@@ -14,7 +14,6 @@ export class ApiError extends Error {
 
 export type RequestOptions = Omit<RequestInit, 'body'> & {
   body?: unknown;
-  token?: string;
 };
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -22,13 +21,10 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   if (options.body !== undefined) {
     headers.set('Content-Type', 'application/json');
   }
-  if (options.token) {
-    headers.set('Authorization', `Bearer ${options.token}`);
-  }
-
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers,
+    credentials: 'include',
     body: options.body === undefined ? undefined : JSON.stringify(options.body),
   });
   const contentType = response.headers.get('content-type') ?? '';
@@ -48,19 +44,19 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 }
 
 export const api = {
-  get<T>(path: string, token: string, signal?: AbortSignal) {
-    return apiRequest<T>(path, { token, signal });
+  get<T>(path: string, signal?: AbortSignal) {
+    return apiRequest<T>(path, { signal });
   },
-  post<T>(path: string, token: string, body?: unknown, headers?: HeadersInit) {
-    return apiRequest<T>(path, { method: 'POST', token, body, headers });
+  post<T>(path: string, body?: unknown, headers?: HeadersInit) {
+    return apiRequest<T>(path, { method: 'POST', body, headers });
   },
-  put<T>(path: string, token: string, body?: unknown) {
-    return apiRequest<T>(path, { method: 'PUT', token, body });
+  put<T>(path: string, body?: unknown) {
+    return apiRequest<T>(path, { method: 'PUT', body });
   },
-  patch<T>(path: string, token: string, body?: unknown) {
-    return apiRequest<T>(path, { method: 'PATCH', token, body });
+  patch<T>(path: string, body?: unknown) {
+    return apiRequest<T>(path, { method: 'PATCH', body });
   },
-  delete<T>(path: string, token: string) {
-    return apiRequest<T>(path, { method: 'DELETE', token });
+  delete<T>(path: string) {
+    return apiRequest<T>(path, { method: 'DELETE' });
   },
 };

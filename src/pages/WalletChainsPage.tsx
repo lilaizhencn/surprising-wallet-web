@@ -72,8 +72,8 @@ export default function WalletChainsPage() {
   const [saving, setSaving] = useState(false);
   const [form] = Form.useForm<WalletChainFormValues>();
   const query = useApiQuery<WalletChain[]>((signal) => session
-    ? api.get('/custody/platform/v1/wallet-config/chains', session.token, signal)
-    : Promise.resolve([]), [session?.token]);
+    ? api.get('/custody/platform/v1/wallet-config/chains', signal)
+    : Promise.resolve([]), [session?.userId]);
 
   const groups = useMemo(() => groupProfiles(query.data ?? []), [query.data]);
   const rows = groups.filter((row) => {
@@ -94,7 +94,7 @@ export default function WalletChainsPage() {
     setSaving(true);
     try {
       const result = await api.post<WalletChainDetail>(
-        '/custody/platform/v1/wallet-config/chains', session.token, values,
+        '/custody/platform/v1/wallet-config/chains', values,
       );
       await message.success(t('Chain profile created'));
       setOpen(false);

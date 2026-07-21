@@ -19,6 +19,7 @@ const WalletKeysPage = lazy(() => import('./pages/WalletKeysPage'));
 const WalletConfigOverviewPage = lazy(() => import('./pages/WalletConfigOverviewPage'));
 const WalletChainsPage = lazy(() => import('./pages/WalletChainsPage'));
 const WalletChainDetailPage = lazy(() => import('./pages/WalletChainDetailPage'));
+const TenantChainsPage = lazy(() => import('./pages/TenantChainsPage'));
 
 function RouteFallback() {
   return (
@@ -38,15 +39,32 @@ export default function App() {
           <Route element={<ProtectedRoute accountType="tenant" />}>
             <Route path="/console" element={<ConsoleShell accountType="tenant" />}>
               <Route index element={<Navigate to="overview" replace />} />
-              <Route path="overview" element={<OverviewPage />} />
-              <Route path="assets" element={<OverviewPage assetsOnly />} />
-              <Route path="gas-station" element={<GasStationPage />} />
-              <Route path="addresses" element={<AddressesPage />} />
-              <Route path="deposits" element={<TransfersPage type="deposits" />} />
-              <Route path="withdrawals" element={<TransfersPage type="withdrawals" />} />
-              <Route path="webhooks" element={<WebhooksPage />} />
-              <Route path="api-access" element={<ApiAccessPage />} />
-              <Route path="audit-log" element={<AuditPage />} />
+              <Route element={<ProtectedRoute accountType="tenant" requiredScope="assets:read" />}>
+                <Route path="overview" element={<OverviewPage />} />
+                <Route path="assets" element={<OverviewPage assetsOnly />} />
+              </Route>
+              <Route element={<ProtectedRoute accountType="tenant" requiredScope="chains:read" />}>
+                <Route path="chains" element={<TenantChainsPage />} />
+              </Route>
+              <Route element={<ProtectedRoute accountType="tenant" requiredRole="TENANT_ADMIN" />}>
+                <Route path="gas-station" element={<GasStationPage />} />
+                <Route path="api-access" element={<ApiAccessPage />} />
+              </Route>
+              <Route element={<ProtectedRoute accountType="tenant" requiredScope="addresses:read" />}>
+                <Route path="addresses" element={<AddressesPage />} />
+              </Route>
+              <Route element={<ProtectedRoute accountType="tenant" requiredScope="deposits:read" />}>
+                <Route path="deposits" element={<TransfersPage type="deposits" />} />
+              </Route>
+              <Route element={<ProtectedRoute accountType="tenant" requiredScope="withdrawals:read" />}>
+                <Route path="withdrawals" element={<TransfersPage type="withdrawals" />} />
+              </Route>
+              <Route element={<ProtectedRoute accountType="tenant" requiredScope="webhooks:read" />}>
+                <Route path="webhooks" element={<WebhooksPage />} />
+              </Route>
+              <Route element={<ProtectedRoute accountType="tenant" requiredScope="audit:read" />}>
+                <Route path="audit-log" element={<AuditPage />} />
+              </Route>
             </Route>
           </Route>
           <Route element={<ProtectedRoute accountType="platform" />}>

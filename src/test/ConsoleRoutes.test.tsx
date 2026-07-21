@@ -18,9 +18,8 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 function tenantSession() {
   saveSession({
-    version: 1,
+    version: 2,
     accountType: 'tenant',
-    token: 'cs_console-route-test-session-token',
     expiresAt: '2099-01-01T00:00:00Z',
     userId: '11111111-1111-1111-1111-111111111111',
     tenantId: '22222222-2222-2222-2222-222222222222',
@@ -28,19 +27,20 @@ function tenantSession() {
     email: 'admin@acme.test',
     displayName: 'Acme Admin',
     role: 'TENANT_ADMIN',
+    scopes: ['*'],
   });
 }
 
 function platformSession() {
   saveSession({
-    version: 1,
+    version: 2,
     accountType: 'platform',
-    token: 'cs_platform-route-test-session-token',
     expiresAt: '2099-01-01T00:00:00Z',
     userId: '33333333-3333-3333-3333-333333333333',
     email: 'platform@custody.test',
     displayName: 'Platform Admin',
     role: 'PLATFORM_ADMIN',
+    scopes: ['*'],
   });
 }
 
@@ -49,26 +49,45 @@ const timestamp = '2026-07-20T00:00:00Z';
 function installConsoleApi() {
   const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
     const path = String(input);
-    if (path.startsWith('/custody/console/v1/assets')) {
+    if (path.startsWith('/custody/console/v1/dashboard')) {
+      const asset = {
+        chain: 'ETH', assetSymbol: 'ETH', availableBalance: 12.5,
+        lockedBalance: 0, totalBalance: 12.5, addressCount: 2,
+        usdPrice: 3000, valueUsd: 37500, priceSource: 'TEST', priceObservedAt: timestamp,
+      };
+      return jsonResponse({
+        asOf: timestamp,
+        displayCurrency: 'USD',
+        totalValueUsd: 37500,
+        unpricedAssetCount: 0,
+        oldestPriceObservedAt: timestamp,
+        assets: [asset],
+        bySymbol: [{
+          assetSymbol: 'ETH', availableBalance: 12.5, lockedBalance: 0,
+          totalBalance: 12.5, valueUsd: 37500, chains: ['ETH'],
+        }],
+        byChain: [{ chain: 'ETH', valueUsd: 37500, assets: [asset] }],
+      });
+    }
+    if (path.startsWith('/custody/console/v1/chains')) {
       return jsonResponse([{
-        chain: 'ETH',
-        assetSymbol: 'ETH',
-        availableBalance: 12.5,
-        lockedBalance: 0,
-        totalBalance: 12.5,
-        addressCount: 2,
+        chain: 'TRON', network: 'nile', family: 'tron', nativeSymbol: 'TRX',
+        assetSymbols: ['TRX', 'USDT'], status: 'ACTIVE', enabled: true,
+        scanEnabled: true, withdrawalEnabled: true, transferEnabled: true,
+        capabilities: ['NATIVE_QUOTE'], openedAt: timestamp,
       }]);
     }
     if (path.startsWith('/custody/console/v1/onboarding')) {
       return jsonResponse({
+        chainOpened: true,
         apiKeyConfigured: true,
         webhookConfigured: true,
         ipAllowlistConfigured: true,
         addressCreated: true,
         gasAccountConfigured: true,
         gasAccountFunded: true,
-        completedSteps: 6,
-        totalSteps: 6,
+        completedSteps: 7,
+        totalSteps: 7,
         ready: true,
       });
     }
@@ -202,6 +221,7 @@ describe('tenant Console routes', () => {
   it.each([
     ['/console/overview', 'Asset overview', '12.5 ETH'],
     ['/console/assets', 'Assets', '12.5 ETH'],
+    ['/console/chains', 'Tenant chains', 'TRON'],
     ['/console/gas-station', 'Gas station', '2.5 ETH'],
     ['/console/addresses', 'Addresses', 'user_10086'],
     ['/console/deposits', 'Deposits', 'user_10086'],

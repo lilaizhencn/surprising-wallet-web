@@ -9,7 +9,6 @@ import { LanguageSwitch } from '../components/LanguageSwitch';
 import { useI18n } from '../i18n';
 
 type LoginResponse = {
-  token: string;
   expiresAt: string;
   userId: string;
   tenantId?: string;
@@ -17,6 +16,7 @@ type LoginResponse = {
   email: string;
   displayName: string;
   role: string;
+  scopes: string[];
 };
 
 type LoginValues = {
@@ -44,7 +44,7 @@ export default function LoginPage() {
         ? { email: values.email, password: values.password }
         : values;
       const result = await apiRequest<LoginResponse>(path, { method: 'POST', body });
-      const session: Session = { version: 1, accountType, ...result };
+      const session: Session = { version: 2, accountType, ...result };
       saveSession(session);
       void message.success(t('Welcome back'));
       navigate(accountType === 'platform' ? '/platform/tenants' : '/console/overview', {

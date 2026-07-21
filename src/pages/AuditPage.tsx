@@ -28,9 +28,9 @@ export default function AuditPage({ platform = false }: { platform?: boolean }) 
     (signal) => session
       ? api.get(platform
         ? '/custody/platform/v1/wallet-config/audit-log?limit=200'
-        : '/custody/console/v1/audit-log?limit=200', session.token, signal)
+        : '/custody/console/v1/audit-log?limit=200', signal)
       : Promise.resolve([]),
-    [session?.token],
+    [session?.userId],
   );
 
   return (

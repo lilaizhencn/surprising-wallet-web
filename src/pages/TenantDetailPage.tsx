@@ -323,9 +323,9 @@ export default function TenantDetailPage() {
 
   const query = useApiQuery<TenantDetail>(
     (signal) => session && tenantId
-      ? api.get(`/custody/platform/v1/tenants/${tenantId}`, session.token, signal)
+      ? api.get(`/custody/platform/v1/tenants/${tenantId}`, signal)
       : Promise.reject(new Error(t('Tenant identifier is missing'))),
-    [session?.token, tenantId, t],
+    [session?.userId, tenantId, t],
   );
 
   useEffect(() => {
@@ -343,7 +343,6 @@ export default function TenantDetailPage() {
     try {
       await api.post(
         `/custody/platform/v1/tenants/${tenantId}/administrators/${administrator.id}/unlock`,
-        session.token,
       );
       await message.success(t('Tenant administrator unlocked'));
       query.refetch();
@@ -418,7 +417,7 @@ export default function TenantDetailPage() {
     }
     setSaving(true);
     try {
-      await api.patch(`/custody/platform/v1/tenants/${tenantId}`, session.token, values);
+      await api.patch(`/custody/platform/v1/tenants/${tenantId}`, values);
       await message.success(t('Tenant details updated'));
       query.refetch();
     } catch (error) {
@@ -436,7 +435,6 @@ export default function TenantDetailPage() {
     try {
       await api.patch(
         `/custody/platform/v1/tenants/${tenantId}/status`,
-        session.token,
         { status },
       );
       await message.success(t(status === 'ACTIVE' ? 'Tenant activated' : 'Tenant suspended'));

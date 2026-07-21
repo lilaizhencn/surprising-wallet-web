@@ -18,7 +18,7 @@ import {
   SearchOutlined,
 } from '@ant-design/icons';
 import { api } from '../api/client';
-import { useSession } from '../auth/session';
+import { hasScope, useSession } from '../auth/session';
 import { CopyText } from '../components/CopyText';
 import { ErrorState } from '../components/ErrorState';
 import { PageHeader } from '../components/PageHeader';
@@ -57,6 +57,7 @@ type UpdateAddressValues = {
 
 export default function AddressesPage() {
   const session = useSession();
+  const canWrite = hasScope(session, 'addresses:write');
   const { message } = App.useApp();
   const { t } = useI18n();
   const [form] = Form.useForm<CreateAddressValues>();
@@ -71,11 +72,10 @@ export default function AddressesPage() {
     (signal) => session
       ? api.get(
           `/custody/console/v1/addresses${queryString({ ...filters, limit: 100 })}`,
-          session.token,
           signal,
         )
       : Promise.resolve([]),
-    [session?.token, filters.chain, filters.source, filters.status, filters.search],
+    [session?.userId, filters.chain, filters.source, filters.status, filters.search],
   );
 
   const createAddress = async (values: CreateAddressValues) => {
@@ -90,7 +90,7 @@ export default function AddressesPage() {
         }
         metadata = parsed as Record<string, unknown>;
       }
-      await api.post('/custody/console/v1/addresses', session.token, {
+      await api.post('/custody/console/v1/addresses', {
         chain: values.chain,
         externalReference: values.externalReference,
         label: values.label,
@@ -132,7 +132,6 @@ export default function AddressesPage() {
       }
       await api.patch(
         `/custody/console/v1/addresses/${editingAddress.id}`,
-        session.token,
         {
           label: values.label ?? '',
           status: values.status,
@@ -161,11 +160,11 @@ export default function AddressesPage() {
       <PageHeader
         title={t('Addresses')}
         description={t('Tenant-owned deposit addresses created through the API or Console.')}
-        actions={
+        actions={canWrite ? (
           <Button type="primary" icon={<PlusOutlined />} onClick={() => setDrawerOpen(true)}>
             {t('Create address')}
           </Button>
-        }
+        ) : undefined}
       />
       <ErrorState message={query.error} onRetry={query.refetch} />
       <section className="data-panel">
@@ -245,7 +244,7 @@ export default function AddressesPage() {
               title: '',
               fixed: 'right',
               width: 110,
-              render: (_, row) => (
+              render: (_, row) => canWrite ? (
                 <Button
                   type="text"
                   icon={<EditOutlined />}
@@ -253,7 +252,7 @@ export default function AddressesPage() {
                 >
                   {t('Manage')}
                 </Button>
-              ),
+              ) : null,
             },
           ]}
         />

@@ -51,6 +51,7 @@ const scopeOptions = [
   'addresses:read',
   'addresses:write',
   'assets:read',
+  'chains:read',
   'deposits:read',
   'withdrawals:read',
   'withdrawals:write',
@@ -71,12 +72,12 @@ export default function ApiAccessPage() {
     async (signal) => {
       if (!session) return { keys: [], allowlist: { enabled: false, rules: [] } };
       const [keys, allowlist] = await Promise.all([
-        api.get<ApiKeyRow[]>('/custody/console/v1/api-keys', session.token, signal),
-        api.get<Allowlist>('/custody/console/v1/ip-allowlist', session.token, signal),
+        api.get<ApiKeyRow[]>('/custody/console/v1/api-keys', signal),
+        api.get<Allowlist>('/custody/console/v1/ip-allowlist', signal),
       ]);
       return { keys, allowlist };
     },
-    [session?.token],
+    [session?.userId],
   );
 
   const createKey = async (values: { name: string; scopes: string[] }) => {
@@ -85,7 +86,6 @@ export default function ApiAccessPage() {
     try {
       const result = await api.post<CreatedApiKey>(
         '/custody/console/v1/api-keys',
-        session.token,
         values,
       );
       setKeyModal(false);
@@ -102,7 +102,7 @@ export default function ApiAccessPage() {
   const revokeKey = async (row: ApiKeyRow) => {
     if (!session) return;
     try {
-      await api.delete(`/custody/console/v1/api-keys/${row.id}`, session.token);
+      await api.delete(`/custody/console/v1/api-keys/${row.id}`);
       await message.success(t('API key revoked'));
       query.refetch();
     } catch (error) {
@@ -113,7 +113,7 @@ export default function ApiAccessPage() {
   const toggleAllowlist = async (enabled: boolean) => {
     if (!session) return;
     try {
-      await api.put('/custody/console/v1/ip-allowlist/enforcement', session.token, { enabled });
+      await api.put('/custody/console/v1/ip-allowlist/enforcement', { enabled });
       await message.success(enabled ? t('IP allowlist enforced') : t('IP allowlist disabled'));
       query.refetch();
     } catch (error) {
@@ -125,7 +125,7 @@ export default function ApiAccessPage() {
     if (!session) return;
     setSaving(true);
     try {
-      await api.post('/custody/console/v1/ip-allowlist/rules', session.token, values);
+      await api.post('/custody/console/v1/ip-allowlist/rules', values);
       setRuleModal(false);
       ruleForm.resetFields();
       await message.success(t('IP rule added'));
@@ -140,7 +140,7 @@ export default function ApiAccessPage() {
   const deleteRule = async (row: IpRule) => {
     if (!session) return;
     try {
-      await api.delete(`/custody/console/v1/ip-allowlist/rules/${row.id}`, session.token);
+      await api.delete(`/custody/console/v1/ip-allowlist/rules/${row.id}`);
       query.refetch();
     } catch (error) {
       void message.error(error instanceof Error ? error.message : t('Unable to delete IP rule'));

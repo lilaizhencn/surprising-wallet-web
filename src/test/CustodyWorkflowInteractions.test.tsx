@@ -17,9 +17,8 @@ function response(body: unknown, status = 200): Response {
 
 function signIn() {
   saveSession({
-    version: 1,
+    version: 2,
     accountType: 'tenant',
-    token: 'cs_workflow-test-session',
     expiresAt: '2099-01-01T00:00:00Z',
     userId: '11111111-1111-1111-1111-111111111111',
     tenantId: '22222222-2222-2222-2222-222222222222',
@@ -27,6 +26,7 @@ function signIn() {
     email: 'admin@workflow.test',
     displayName: 'Workflow Admin',
     role: 'TENANT_ADMIN',
+    scopes: ['*'],
   });
 }
 

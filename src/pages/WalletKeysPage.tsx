@@ -38,9 +38,9 @@ export default function WalletKeysPage() {
   const [saving, setSaving] = useState(false);
   const query = useApiQuery<WalletKeyset>(
     (signal) => session
-      ? api.get(endpoint, session.token, signal)
+      ? api.get(endpoint, signal)
       : Promise.resolve({ configured: false, locked: false }),
-    [session?.token],
+    [session?.userId],
   );
 
   useEffect(() => {
@@ -57,7 +57,7 @@ export default function WalletKeysPage() {
     if (!session) return;
     setSaving(true);
     try {
-      await api.put<WalletKeyset>(endpoint, session.token, values);
+      await api.put<WalletKeyset>(endpoint, values);
       await message.success(t('Wallet keyset saved'));
       query.refetch();
     } catch (error) {
