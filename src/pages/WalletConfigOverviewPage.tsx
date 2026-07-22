@@ -72,6 +72,7 @@ function statusColor(status: WalletChainStatus['status']) {
 type WalletChainStatusGroup = {
   chain: string;
   family: string;
+  configuredEnabled: boolean;
   profiles: WalletChainStatus[];
   representative: WalletChainStatus;
   enabledTokenCount: number;
@@ -114,6 +115,7 @@ function groupChainStatuses(statuses: WalletChainStatus[]): WalletChainStatusGro
     return {
       chain,
       family: sorted[0].family,
+      configuredEnabled: enabledProfiles.length > 0,
       profiles: sorted,
       representative,
       enabledTokenCount: sorted.reduce((total, profile) => total + profile.enabledTokenCount, 0),
@@ -121,7 +123,12 @@ function groupChainStatuses(statuses: WalletChainStatus[]): WalletChainStatusGro
       status,
       blockers: [...new Set(relevantProfiles.flatMap((profile) => profile.blockers))],
     };
-  }).toSorted((left, right) => left.chain.localeCompare(right.chain));
+  }).toSorted((left, right) => {
+    if (left.configuredEnabled !== right.configuredEnabled) {
+      return left.configuredEnabled ? -1 : 1;
+    }
+    return left.chain.localeCompare(right.chain);
+  });
 }
 
 export default function WalletConfigOverviewPage() {

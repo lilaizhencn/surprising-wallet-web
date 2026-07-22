@@ -331,14 +331,36 @@ describe('platform Console route', () => {
             transferEnabled: true,
           },
           statistics: {
-            configuredChainProfileCount: 2,
+            configuredChainProfileCount: 3,
             enabledChainCount: 1,
-            enabledNetworkCount: 2,
+            enabledNetworkCount: 1,
             enabledTokenCount: 2,
             enabledRpcNodeCount: 2,
             anomalyCount: 1,
           },
           chains: [{
+            profileId: 3,
+            chain: 'BTC',
+            network: 'testnet',
+            family: 'bitcoin-like',
+            configuredEnabled: false,
+            configuredTasks: {
+              scanEnabled: false,
+              withdrawEnabled: false,
+              collectionEnabled: false,
+              transferEnabled: false,
+            },
+            effectiveTasks: {
+              scanEnabled: false,
+              withdrawEnabled: false,
+              collectionEnabled: false,
+              transferEnabled: false,
+            },
+            enabledTokenCount: 0,
+            enabledRpcNodeCount: 0,
+            status: 'DISABLED',
+            blockers: ['Chain profile is disabled.'],
+          }, {
             profileId: 1,
             chain: 'ETH',
             network: 'devnet',
@@ -654,10 +676,14 @@ describe('platform Console route', () => {
     expect(await screen.findByText('test2 environment')).toBeInTheDocument();
     expect((await screen.findAllByText('ETH')).length).toBeGreaterThan(0);
     const chainTable = screen.getAllByRole('table')[0];
-    expect(within(chainTable).getAllByRole('row')).toHaveLength(2);
+    const chainRows = within(chainTable).getAllByRole('row');
+    expect(chainRows).toHaveLength(3);
+    expect(within(chainRows[1]).getByText('ETH')).toBeInTheDocument();
+    expect(within(chainRows[2]).getByText('BTC')).toBeInTheDocument();
     expect(within(chainTable).getByText('devnet').closest('.ant-tag')).toHaveClass('ant-tag-green');
     expect(within(chainTable).getByText('mainnet').closest('.ant-tag')).not.toHaveClass('ant-tag-green');
-    expect(within(chainTable).queryByText('Chain profile is disabled.')).not.toBeInTheDocument();
+    expect(within(chainRows[1]).queryByText('Chain profile is disabled.')).not.toBeInTheDocument();
+    expect(within(chainRows[2]).getByText('Chain profile is disabled.')).toBeInTheDocument();
     expect(within(chainTable).getByText('Global collection switch is off.')).toBeInTheDocument();
     expect(await screen.findByText('USDC does not declare its network.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Save switches/ })).toBeDisabled();
