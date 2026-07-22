@@ -1,35 +1,39 @@
 import { Button } from 'antd';
 import {
   ApiOutlined,
+  ApartmentOutlined,
   ArrowRightOutlined,
   AuditOutlined,
   CheckCircleFilled,
+  CloudServerOutlined,
   CodeOutlined,
+  CustomerServiceOutlined,
   DatabaseOutlined,
+  DeploymentUnitOutlined,
   GlobalOutlined,
   KeyOutlined,
   LinkOutlined,
+  MailOutlined,
+  MessageOutlined,
   SafetyCertificateOutlined,
   SendOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import { Brand } from '../components/Brand';
 import { LanguageSwitch } from '../components/LanguageSwitch';
+import { AssetLogo, ChainLogo } from '../components/Web3Logo';
 import { useI18n } from '../i18n';
 
 const chains = [
-  'Ethereum',
-  'Bitcoin',
-  'Solana',
-  'Polygon',
-  'Arbitrum',
-  'Base',
-  'Optimism',
-  'Avalanche',
-  'Tron',
-  'TON',
-  'Aptos',
-  'Sui',
+  ['BTC', 'Bitcoin'], ['LTC', 'Litecoin'], ['DOGE', 'Dogecoin'], ['BCH', 'Bitcoin Cash'],
+  ['ETH', 'Ethereum'], ['BNB', 'BNB Smart Chain'], ['POLYGON', 'Polygon'],
+  ['ARBITRUM', 'Arbitrum'], ['OPTIMISM', 'Optimism'], ['BASE', 'Base'],
+  ['AVAX_C', 'Avalanche C-Chain'], ['HYPEREVM', 'HyperEVM'], ['MANTLE', 'Mantle'],
+  ['LINEA', 'Linea'], ['SCROLL', 'Scroll'], ['UNICHAIN', 'Unichain'],
+  ['HYPERCORE', 'HyperCore'], ['TRON', 'TRON'], ['XRP', 'XRP Ledger'],
+  ['SOLANA', 'Solana'], ['TON', 'TON'], ['APTOS', 'Aptos'], ['SUI', 'Sui'],
+  ['ADA', 'Cardano'], ['DOT', 'Polkadot'], ['NEAR', 'NEAR'], ['XMR', 'Monero'],
 ];
 
 const workflow = [
@@ -55,6 +59,27 @@ const workflow = [
   },
 ];
 
+const advantages = [
+  {
+    icon: <SafetyCertificateOutlined />,
+    kicker: 'BITCOIN',
+    title: 'Native SegWit multisig',
+    body: 'Use native SegWit multisignature custody to reduce transaction weight and network fees while preserving independent authorization controls.',
+  },
+  {
+    icon: <ThunderboltOutlined />,
+    kicker: 'EVM · EIP-7702',
+    title: 'Batch collection and sponsored gas',
+    body: 'On supported EVM networks, EIP-7702 enables sponsored gas and multi-address batch collection without first funding every deposit address with native gas.',
+  },
+  {
+    icon: <ApartmentOutlined />,
+    kicker: 'ONE INFRASTRUCTURE',
+    title: 'One system for every business line',
+    body: 'Serve multiple products from one digital-asset foundation with explicit tenant, account, key, asset, permission, and audit boundaries.',
+  },
+];
+
 export default function LandingPage() {
   const { t } = useI18n();
   return (
@@ -65,6 +90,7 @@ export default function LandingPage() {
           <a href="#product">{t('Product')}</a>
           <a href="#chains">{t('Chains')}</a>
           <a href="#security">{t('Security')}</a>
+          <a href="#deployment">{t('Deployment')}</a>
           <Link to="/console/developer-docs">{t('Developers')}</Link>
         </nav>
         <div className="marketing-header-actions">
@@ -78,6 +104,7 @@ export default function LandingPage() {
       <main>
         <section className="hero-section" id="product">
           <div className="hero-copy">
+            <span className="hero-eyebrow">{t('SaaS and private deployment')}</span>
             <h1>{t('Blockchain infrastructure for every product you build')}</h1>
             <p>
               {t('Create deposit addresses, orchestrate secure withdrawals, and operate tenant assets from one custody platform.')}
@@ -91,6 +118,11 @@ export default function LandingPage() {
               <Link to="/console/developer-docs">
                 <Button size="large">{t('Read API docs')} <CodeOutlined /></Button>
               </Link>
+            </div>
+            <div className="hero-proof">
+              <span><CheckCircleFilled /> {t('Multi-tenant by design')}</span>
+              <span><CheckCircleFilled /> {t('Chain-native security')}</span>
+              <span><CheckCircleFilled /> {t('Technical support included')}</span>
             </div>
           </div>
           <div className="hero-console" aria-label={t('Custody address workflow preview')}>
@@ -163,10 +195,46 @@ export default function LandingPage() {
           </div>
         </section>
 
+        <section className="advantages-section" aria-labelledby="advantages-title">
+          <div className="advantages-heading">
+            <span>{t('Built into the wallet layer')}</span>
+            <h2 id="advantages-title">{t('Chain-native efficiency. Enterprise-ready control.')}</h2>
+            <p>{t('We optimize custody around how each network actually works, then expose it through one tenant-isolated operating model.')}</p>
+          </div>
+          <div className="advantages-grid">
+            {advantages.map((item) => (
+              <article key={item.title}>
+                <div className="advantage-icon">{item.icon}</div>
+                <small>{t(item.kicker)}</small>
+                <h3>{t(item.title)}</h3>
+                <p>{t(item.body)}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
         <section className="chains-section" id="chains">
-          <h2>{t('Built for multi-chain operations')}</h2>
-          <div className="chain-rail">
-            {chains.map((chain) => <span key={chain}>{chain}</span>)}
+          <div className="chains-heading">
+            <span>{t('Multi-chain from day one')}</span>
+            <h2>{t('All supported networks, one operating model')}</h2>
+            <p>{t('Operate native assets and leading stablecoins through the same tenant-isolated API, Console, ledger, and audit path.')}</p>
+          </div>
+          <div className="chain-logo-grid">
+            {chains.map(([chain, label]) => (
+              <div className="chain-logo-item" key={chain}>
+                <ChainLogo chain={chain} size={32} />
+                <span><strong>{label}</strong><small>{chain}</small></span>
+              </div>
+            ))}
+          </div>
+          <div className="stablecoin-row">
+            <span className="stablecoin-label">{t('Supported stablecoins')}</span>
+            {['USDT', 'USDC'].map((symbol) => (
+              <div key={symbol}>
+                <AssetLogo symbol={symbol} size={34} />
+                <span><strong>{symbol}</strong><small>{t('Multi-network token')}</small></span>
+              </div>
+            ))}
           </div>
         </section>
 
@@ -237,14 +305,54 @@ X-Custody-Signature: ...
           </div>
         </section>
 
+        <section className="deployment-section" id="deployment">
+          <div className="deployment-heading">
+            <span>{t('Choose how you operate')}</span>
+            <h2>{t('Launch with SaaS. Own the stack with private deployment.')}</h2>
+            <p>{t('Start quickly with a hosted tenant account, or deploy a dedicated wallet platform inside your own infrastructure.')}</p>
+          </div>
+          <div className="deployment-grid">
+            <article className="deployment-card deployment-card--saas">
+              <CloudServerOutlined />
+              <small>SAAS</small>
+              <h3>{t('Managed SaaS account')}</h3>
+              <p>{t('Open an account and integrate through the Console and API without operating wallet infrastructure yourself.')}</p>
+              <ul>
+                <li><CheckCircleFilled /> {t('Fast onboarding and managed upgrades')}</li>
+                <li><CheckCircleFilled /> {t('Tenant-isolated operations')}</li>
+                <li><CheckCircleFilled /> {t('API, webhooks, audit, and reconciliation')}</li>
+              </ul>
+              <Link to="/console/login"><Button type="primary">{t('Open Console')}</Button></Link>
+            </article>
+            <article className="deployment-card deployment-card--private">
+              <DeploymentUnitOutlined />
+              <small>{t('PRIVATE DEPLOYMENT')}</small>
+              <h3>{t('A shared foundation for all your product lines')}</h3>
+              <p>{t('Run one dedicated system for multiple business lines while keeping their tenants, accounts, keys, assets, permissions, and audit trails clearly isolated.')}</p>
+              <ul>
+                <li><CheckCircleFilled /> {t('Deploy inside your controlled environment')}</li>
+                <li><CheckCircleFilled /> {t('Avoid rebuilding wallets for every product')}</li>
+                <li><CustomerServiceOutlined /> {t('Deployment and ongoing technical support included')}</li>
+              </ul>
+              <a href="mailto:business@tokdou.com"><Button>{t('Discuss private deployment')}</Button></a>
+            </article>
+          </div>
+          <aside className="sales-contact" aria-label={t('Business contact')}>
+            <div>
+              <span>{t('Talk to our team')}</span>
+              <strong>{t('Architecture, deployment, and integration support')}</strong>
+            </div>
+            <a href="mailto:business@tokdou.com"><MailOutlined /><span><small>{t('Business email')}</small>business@tokdou.com</span></a>
+            <div className="sales-wechat"><MessageOutlined /><span><small>{t('WeChat')}</small>surprising_app</span></div>
+          </aside>
+        </section>
+
         <section className="final-cta">
-          <h2>{t('Ready to streamline your custody operations?')}</h2>
-          <p>{t('Start building with Surprising Wallet today.')}</p>
+          <h2>{t('One wallet foundation. Every product line.')}</h2>
+          <p>{t('Choose SaaS for a fast start or contact us for a supported private deployment.')}</p>
           <div>
             <Link to="/console/login"><Button type="primary" size="large">{t('Open Console')}</Button></Link>
-            <Link to="/console/developer-docs">
-              <Button size="large">{t('Read API docs')}</Button>
-            </Link>
+            <a href="mailto:business@tokdou.com"><Button size="large">{t('Contact sales')}</Button></a>
           </div>
         </section>
       </main>
@@ -252,6 +360,10 @@ X-Custody-Signature: ...
       <footer className="marketing-footer">
         <Brand />
         <p>{t('Multi-tenant blockchain custody infrastructure.')}</p>
+        <div className="footer-contact">
+          <a href="mailto:business@tokdou.com">business@tokdou.com</a>
+          <span>{t('WeChat')}: surprising_app</span>
+        </div>
         <span>© 2026 Surprising Wallet</span>
       </footer>
     </div>

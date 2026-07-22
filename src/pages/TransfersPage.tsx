@@ -14,13 +14,14 @@ import {
   Space,
   Table,
 } from 'antd';
-import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
+import { PlusOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 import { api } from '../api/client';
 import { hasScope, useSession } from '../auth/session';
 import { CopyText } from '../components/CopyText';
 import { ErrorState } from '../components/ErrorState';
 import { PageHeader } from '../components/PageHeader';
 import { StatusText } from '../components/StatusText';
+import { commonChainOptions } from '../constants/chains';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { useI18n } from '../i18n';
 import { formatAmount, formatDate, queryString } from '../utils/format';
@@ -30,6 +31,7 @@ type TransferType = 'deposits' | 'withdrawals';
 type DepositRow = {
   id: string;
   custodyAddressId: string;
+  address: string;
   subject: string;
   chain: string;
   assetSymbol: string;
@@ -44,6 +46,8 @@ type DepositRow = {
 type WithdrawalRow = {
   id: string;
   custodyAddressId: string;
+  sourceAddress: string;
+  subject: string;
   orderNo: string;
   externalReference?: string;
   chain: string;
@@ -83,12 +87,27 @@ type WithdrawalValues = {
   externalReference?: string;
 };
 
+type TransferFilters = {
+  chain: string;
+  assetSymbol: string;
+  status: string;
+  search: string;
+};
+
+const EMPTY_FILTERS: TransferFilters = {
+  chain: '',
+  assetSymbol: '',
+  status: '',
+  search: '',
+};
+
 export default function TransfersPage({ type }: { type: TransferType }) {
   const session = useSession();
   const canCreateWithdrawal = hasScope(session, 'withdrawals:write');
   const { message } = App.useApp();
   const { t } = useI18n();
-  const [status, setStatus] = useState('');
+  const [filters, setFilters] = useState<TransferFilters>(EMPTY_FILTERS);
+  const [draftFilters, setDraftFilters] = useState<TransferFilters>(EMPTY_FILTERS);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [pendingWithdrawal, setPendingWithdrawal] = useState<WithdrawalValues>();
@@ -98,11 +117,11 @@ export default function TransfersPage({ type }: { type: TransferType }) {
   const query = useApiQuery<Array<DepositRow | WithdrawalRow>>(
     (signal) => session
       ? api.get(
-          `/custody/console/v1/${type}${queryString({ status, limit: 100 })}`,
+          `/custody/console/v1/${type}${queryString({ ...filters, limit: 100 })}`,
           signal,
         )
       : Promise.resolve([]),
-    [session?.userId, type, status],
+    [session?.userId, type, filters.chain, filters.assetSymbol, filters.status, filters.search],
   );
 
   const addressQuery = useApiQuery<AddressOption[]>(
@@ -122,10 +141,10 @@ export default function TransfersPage({ type }: { type: TransferType }) {
     () => (addressQuery.data ?? [])
       .filter((row) => row.metadata?.systemPurpose !== 'GAS_FUNDING')
       .map((row) => ({
-      value: row.id,
-      label: `${row.label || row.subject || row.chain} — ${row.address.slice(0, 10)}…`,
-      row,
-    })),
+        value: row.id,
+        label: `${row.label || row.subject || row.chain} — ${row.address}`,
+        row,
+      })),
     [addressQuery.data],
   );
   const selectedGas = (gasQuery.data ?? []).find(
@@ -134,6 +153,26 @@ export default function TransfersPage({ type }: { type: TransferType }) {
   const gasReady = Boolean(
     selectedGas && Number(selectedGas.availableBalance) > 0,
   );
+
+  const statusOptions = (type === 'deposits'
+    ? ['DETECTED', 'CONFIRMING', 'CONFIRMED', 'REORGED', 'FAILED']
+    : [
+        'CREATED', 'PENDING_REVIEW', 'FROZEN', 'SIGNING', 'SENT',
+        'BROADCAST_UNKNOWN', 'CONFIRMED', 'FAILED', 'REJECTED',
+      ]).map((value) => ({ value, label: t(value.replaceAll('_', ' ')) }));
+
+  const applyFilters = () => {
+    setFilters({
+      ...draftFilters,
+      assetSymbol: draftFilters.assetSymbol.trim().toUpperCase(),
+      search: draftFilters.search.trim(),
+    });
+  };
+
+  const resetFilters = () => {
+    setDraftFilters(EMPTY_FILTERS);
+    setFilters(EMPTY_FILTERS);
+  };
 
   const createWithdrawal = async (values: WithdrawalValues) => {
     if (!session) return;
@@ -162,6 +201,12 @@ export default function TransfersPage({ type }: { type: TransferType }) {
       dataIndex: 'txHash',
       render: (value: string) => <CopyText value={value} />,
     },
+    {
+      title: t('Address'),
+      dataIndex: 'address',
+      width: 360,
+      render: (value: string) => <CopyText value={value} compact={false} />,
+    },
     { title: t('Network'), dataIndex: 'chain' },
     { title: t('Asset'), dataIndex: 'assetSymbol' },
     {
@@ -184,6 +229,12 @@ export default function TransfersPage({ type }: { type: TransferType }) {
       dataIndex: 'orderNo',
       render: (value: string) => <CopyText value={value} />,
     },
+    {
+      title: t('Source address'),
+      dataIndex: 'sourceAddress',
+      width: 360,
+      render: (value: string) => <CopyText value={value} compact={false} />,
+    },
     { title: t('Network'), dataIndex: 'chain' },
     { title: t('Asset'), dataIndex: 'assetSymbol' },
     {
@@ -201,7 +252,12 @@ export default function TransfersPage({ type }: { type: TransferType }) {
       dataIndex: 'externalReference',
       render: (value?: string) => value || '—',
     },
-    { title: t('Destination'), dataIndex: 'toAddress', render: (value: string) => <CopyText value={value} /> },
+    {
+      title: t('Destination'),
+      dataIndex: 'toAddress',
+      width: 360,
+      render: (value: string) => <CopyText value={value} compact={false} />,
+    },
     { title: t('Transaction'), dataIndex: 'txHash', render: (value?: string) => <CopyText value={value} /> },
     { title: t('Status'), dataIndex: 'status', render: (value: string) => <StatusText value={value} /> },
     { title: t('Created'), dataIndex: 'createdAt', render: formatDate },
@@ -228,14 +284,51 @@ export default function TransfersPage({ type }: { type: TransferType }) {
         <div className="table-toolbar">
           <Select
             allowClear
+            aria-label={t('Network')}
+            showSearch
+            optionFilterProp="label"
+            placeholder={t('Network')}
+            style={{ minWidth: 150 }}
+            options={commonChainOptions}
+            value={draftFilters.chain || undefined}
+            onChange={(chain = '') => setDraftFilters((current) => ({ ...current, chain }))}
+          />
+          <Input
+            allowClear
+            aria-label={t('Asset')}
+            placeholder={t('Asset')}
+            style={{ width: 130 }}
+            value={draftFilters.assetSymbol}
+            onChange={(event) => setDraftFilters((current) => ({
+              ...current,
+              assetSymbol: event.target.value,
+            }))}
+            onPressEnter={applyFilters}
+          />
+          <Select
+            allowClear
+            aria-label={t('Status')}
             placeholder={t('Status')}
             style={{ minWidth: 190 }}
-            options={[
-              'CONFIRMED', 'CREATED', 'PENDING_REVIEW', 'FROZEN', 'SIGNING',
-              'SENT', 'BROADCAST_UNKNOWN', 'FAILED', 'REJECTED',
-            ].map((value) => ({ value, label: t(value.replaceAll('_', ' ')) }))}
-            onChange={(value = '') => setStatus(value)}
+            options={statusOptions}
+            value={draftFilters.status || undefined}
+            onChange={(status = '') => setDraftFilters((current) => ({ ...current, status }))}
           />
+          <Input
+            allowClear
+            aria-label={t(type === 'deposits' ? 'Search deposits' : 'Search withdrawals')}
+            prefix={<SearchOutlined />}
+            placeholder={t(type === 'deposits' ? 'Search deposits' : 'Search withdrawals')}
+            style={{ width: 300 }}
+            value={draftFilters.search}
+            onChange={(event) => setDraftFilters((current) => ({
+              ...current,
+              search: event.target.value,
+            }))}
+            onPressEnter={applyFilters}
+          />
+          <Button type="primary" icon={<SearchOutlined />} onClick={applyFilters}>{t('Search')}</Button>
+          <Button onClick={resetFilters}>{t('Reset')}</Button>
           <Button icon={<ReloadOutlined />} onClick={query.refetch}>{t('Reload')}</Button>
         </div>
         {type === 'deposits' ? (
@@ -246,7 +339,7 @@ export default function TransfersPage({ type }: { type: TransferType }) {
             columns={depositColumns}
             pagination={{ pageSize: 20, showSizeChanger: true }}
             locale={{ emptyText: <Empty description={t('No deposits yet')} /> }}
-            scroll={{ x: 900 }}
+            scroll={{ x: 1260 }}
           />
         ) : (
           <Table<WithdrawalRow>
@@ -256,7 +349,7 @@ export default function TransfersPage({ type }: { type: TransferType }) {
             columns={withdrawalColumns}
             pagination={{ pageSize: 20, showSizeChanger: true }}
             locale={{ emptyText: <Empty description={t('No withdrawals yet')} /> }}
-            scroll={{ x: 1300 }}
+            scroll={{ x: 2050 }}
           />
         )}
       </section>
@@ -379,7 +472,7 @@ export default function TransfersPage({ type }: { type: TransferType }) {
                 {pendingWithdrawal.amount} {pendingWithdrawal.assetSymbol}
               </Descriptions.Item>
               <Descriptions.Item label={t('Destination')}>
-                <CopyText value={pendingWithdrawal.toAddress} />
+                <CopyText value={pendingWithdrawal.toAddress} compact={false} />
               </Descriptions.Item>
               <Descriptions.Item label={t('External reference')}>
                 {pendingWithdrawal.externalReference || '—'}

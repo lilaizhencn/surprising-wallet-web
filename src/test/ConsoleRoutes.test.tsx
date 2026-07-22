@@ -98,7 +98,7 @@ function installConsoleApi() {
           symbol: 'USDT', standard: 'TRC20', contractAddress: 'TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj',
           decimals: 6, platformEnabled: true,
         }],
-        capabilities: ['NATIVE_QUOTE'], openedAt: timestamp,
+        capabilities: ['NATIVE_QUOTE', 'TOKEN_QUOTE'], openedAt: timestamp,
       }]);
     }
     if (path.startsWith('/custody/console/v1/onboarding')) {
@@ -152,6 +152,7 @@ function installConsoleApi() {
       return jsonResponse([{
         id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
         custodyAddressId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        address: '0x1111111111111111111111111111111111111111',
         subject: 'user_10086',
         chain: 'ETH',
         assetSymbol: 'ETH',
@@ -167,6 +168,8 @@ function installConsoleApi() {
       return jsonResponse([{
         id: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
         custodyAddressId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        sourceAddress: '0x1111111111111111111111111111111111111111',
+        subject: 'user_10086',
         orderNo: 'CW-acme-1',
         externalReference: 'merchant-order-1',
         chain: 'ETH',

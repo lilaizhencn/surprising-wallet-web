@@ -139,17 +139,16 @@ export default function TenantChainsPage() {
           loading={query.loading}
           dataSource={query.data ?? []}
           pagination={false}
+          tableLayout="fixed"
           locale={{ emptyText: <Empty description={t('No executable platform chains are available')} /> }}
-          scroll={{ x: 1460 }}
           expandable={{
             expandedRowRender: tokenArea,
-            expandedRowKeys: (query.data ?? []).map((row) => row.chain),
-            showExpandColumn: false,
+            rowExpandable: (row) => row.capabilities.includes('TOKEN_QUOTE'),
           }}
           columns={[
             {
               title: t('Chain'),
-              width: 210,
+              width: 150,
               render: (_, row) => (
                 <Space>
                   <ChainLogo chain={row.chain} size={32} />
@@ -157,13 +156,13 @@ export default function TenantChainsPage() {
                 </Space>
               ),
             },
-            { title: t('Native asset'), width: 150, render: (_, row) => (
+            { title: t('Native asset'), width: 120, render: (_, row) => (
               <Space><AssetLogo symbol={row.nativeSymbol} size={22} />{row.nativeSymbol}</Space>
             ) },
-            { title: t('Status'), width: 130, dataIndex: 'status', render: (value) => <StatusText value={value} /> },
+            { title: t('Status'), width: 110, dataIndex: 'status', render: (value) => <StatusText value={value} /> },
             {
               title: t('Platform operations'),
-              width: 210,
+              width: 160,
               render: (_, row) => (
                 <Space size={[4, 4]} wrap>
                   <Tag color={row.scanEnabled ? 'green' : 'default'}>{t('Deposits')}</Tag>
@@ -175,17 +174,16 @@ export default function TenantChainsPage() {
               title: t('Collection / gas address'),
               dataIndex: 'collectionAddress',
               className: 'collection-address-cell',
-              width: 480,
+              width: 360,
               render: (address?: string) => address
                 ? <CopyText value={address} compact={false} />
                 : <Typography.Text type="secondary">{t('Not generated')}</Typography.Text>,
             },
             {
               title: t('Action'),
-              fixed: 'right',
-              width: 280,
+              width: 250,
               render: (_, row) => (
-                <Space size={12}>
+                <Space size={[12, 8]} wrap>
                   <Switch
                     checked={row.enabled}
                     disabled={!canManage || saving !== undefined}

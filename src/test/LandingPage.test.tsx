@@ -24,6 +24,21 @@ describe('LandingPage', () => {
     ).toBeInTheDocument();
     expect(screen.getAllByText('Tenant isolation')).not.toHaveLength(0);
     expect(screen.getByText('Reliable webhook delivery')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Native SegWit multisig' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', {
+      name: 'Batch collection and sponsored gas',
+    })).toBeInTheDocument();
+    expect(screen.getByRole('heading', {
+      name: 'A shared foundation for all your product lines',
+    })).toBeInTheDocument();
+    expect(screen.getByText('Deployment and ongoing technical support included'))
+      .toBeInTheDocument();
+    expect(screen.getAllByText('business@tokdou.com').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/surprising_app/).length).toBeGreaterThan(0);
+    expect(document.querySelectorAll('.chain-logo-item')).toHaveLength(27);
+    expect(document.querySelector('[title="BTC"] svg')).not.toBeNull();
+    expect(document.querySelector('[title="USDT"] svg')).not.toBeNull();
+    expect(document.querySelector('[title="USDC"] svg')).not.toBeNull();
 
     await user.click(screen.getAllByRole('button', { name: /open console/i })[0]);
     expect(

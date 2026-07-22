@@ -97,7 +97,7 @@ describe('custody operator workflows', () => {
     await user.click(screen.getByRole('button', { name: /Create withdrawal/ }));
     await user.click(screen.getByRole('combobox', { name: 'Source custody address' }));
     await user.click(await screen.findByText(/Customer 42/));
-    await user.type(screen.getByRole('textbox', { name: 'Asset' }), 'ETH');
+    await user.type(screen.getByPlaceholderText('USDT'), 'ETH');
     await user.type(
       screen.getByRole('textbox', { name: 'Destination address' }),
       '0x2222222222222222222222222222222222222222',
@@ -167,6 +167,121 @@ describe('custody operator workflows', () => {
       subject: 'customer-42',
       addressVersion: 2,
     });
+  }, 60_000);
+
+  it('shows full custody addresses and applies address filters only when searched', async () => {
+    const addressQueries: string[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const path = String(input);
+      if (path.startsWith('/custody/console/v1/addresses')) {
+        addressQueries.push(path);
+        return response([customerAddress]);
+      }
+      throw new Error(`Unhandled request: ${path}`);
+    }));
+
+    render(<MemoryRouter initialEntries={['/console/addresses']}><App /></MemoryRouter>);
+
+    await screen.findByRole('heading', { name: 'Addresses', level: 1 }, { timeout: 15_000 });
+    await Promise.resolve();
+    await Promise.resolve();
+    const manageButton = screen.getByText('Manage').closest('button');
+    expect(manageButton).not.toBeNull();
+    if (!manageButton) throw new Error('Manage address button was not rendered');
+    expect(screen.getByText(customerAddress.address)).toBeInTheDocument();
+    fireEvent.click(manageButton);
+    const managerTitle = screen.getByText('Manage address', { selector: '.ant-drawer-title' });
+    const manager = managerTitle.closest<HTMLElement>('.ant-drawer');
+    expect(manager).not.toBeNull();
+    if (!manager) throw new Error('Manage address drawer was not rendered');
+    expect(within(manager).getByText(customerAddress.address)).toBeInTheDocument();
+    fireEvent.click(within(manager).getByRole('button', { name: 'Cancel' }));
+
+    fireEvent.change(screen.getByLabelText('Search address or subject'), {
+      target: { value: 'customer-42' },
+    });
+    expect(addressQueries).toHaveLength(1);
+    fireEvent.click(screen.getByText('Search'));
+
+    await vi.waitFor(() => expect(addressQueries.some((path) =>
+      path.includes('search=customer-42'))).toBe(true));
+    fireEvent.click(screen.getByText('Reset'));
+    await vi.waitFor(() => expect(addressQueries.filter((path) =>
+      path === '/custody/console/v1/addresses?limit=100')).toHaveLength(2));
+  }, 60_000);
+
+  it('shows full deposit addresses and sends all deposit filters', async () => {
+    const depositQueries: string[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const path = String(input);
+      if (path.startsWith('/custody/console/v1/deposits')) {
+        depositQueries.push(path);
+        return response([{
+          id: 'deposit-1', custodyAddressId: customerAddress.id,
+          address: customerAddress.address, subject: customerAddress.subject,
+          chain: 'ETH', assetSymbol: 'USDT', txHash: '0xdeposit-filter', logIndex: 0,
+          amount: '12.5', status: 'CONFIRMED', creditedAt: customerAddress.createdAt,
+          createdAt: customerAddress.createdAt,
+        }]);
+      }
+      throw new Error(`Unhandled request: ${path}`);
+    }));
+
+    render(<MemoryRouter initialEntries={['/console/deposits']}><App /></MemoryRouter>);
+
+    await screen.findByRole('heading', { name: 'Deposits', level: 1 }, { timeout: 15_000 });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(screen.getByText('0xdeposit-filter')).toBeInTheDocument();
+    expect(screen.getByText(customerAddress.address)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Asset'), { target: { value: 'usdt' } });
+    fireEvent.change(screen.getByLabelText('Search deposits'), {
+      target: { value: 'customer-42' },
+    });
+    expect(depositQueries).toHaveLength(1);
+    fireEvent.click(screen.getByText('Search'));
+
+    await vi.waitFor(() => expect(depositQueries.some((path) =>
+      path.includes('assetSymbol=USDT')
+      && path.includes('search=customer-42'))).toBe(true));
+  }, 60_000);
+
+  it('shows full withdrawal source and destination addresses and filters withdrawals', async () => {
+    const withdrawalQueries: string[] = [];
+    const destination = '0x2222222222222222222222222222222222222222';
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const path = String(input);
+      if (path.startsWith('/custody/console/v1/withdrawals')) {
+        withdrawalQueries.push(path);
+        return response([{
+          id: 'withdrawal-1', custodyAddressId: customerAddress.id,
+          sourceAddress: customerAddress.address, subject: customerAddress.subject,
+          orderNo: 'CW-FILTER-1', externalReference: 'payout-alpha', chain: 'ETH',
+          assetSymbol: 'USDT', toAddress: destination, amount: '3.5', fee: '0.1',
+          txHash: '0xwithdrawal-filter', status: 'CONFIRMED', createdAt: customerAddress.createdAt,
+        }]);
+      }
+      if (path.startsWith('/custody/console/v1/addresses')) return response([customerAddress]);
+      if (path.startsWith('/custody/console/v1/gas-accounts')) return response([gasAccount]);
+      throw new Error(`Unhandled request: ${path}`);
+    }));
+
+    render(<MemoryRouter initialEntries={['/console/withdrawals']}><App /></MemoryRouter>);
+
+    await screen.findByRole('heading', { name: 'Withdrawals', level: 1 }, { timeout: 15_000 });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(screen.getByText('payout-alpha')).toBeInTheDocument();
+    expect(screen.getByText(customerAddress.address)).toBeInTheDocument();
+    expect(screen.getByText(destination)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Asset'), { target: { value: 'usdt' } });
+    fireEvent.change(screen.getByLabelText('Search withdrawals'), {
+      target: { value: 'payout-alpha' },
+    });
+    fireEvent.click(screen.getByText('Search'));
+
+    await vi.waitFor(() => expect(withdrawalQueries.some((path) =>
+      path.includes('assetSymbol=USDT') && path.includes('search=payout-alpha'))).toBe(true));
   }, 60_000);
 
   it('filters failed webhooks and supports single and batch manual retry', async () => {
@@ -289,7 +404,7 @@ describe('custody operator workflows', () => {
             scanEnabled: true,
             withdrawalEnabled: true,
             transferEnabled: true,
-            capabilities: [],
+            capabilities: ['NATIVE_QUOTE', 'TOKEN_QUOTE'],
             tokens: [{
               symbol: 'USDT', standard: 'ERC20', contractAddress: '0x1234', decimals: 6,
               platformEnabled: true,
@@ -297,6 +412,11 @@ describe('custody operator workflows', () => {
               symbol: 'USDC', standard: 'ERC20', contractAddress: '0x5678', decimals: 6,
               platformEnabled: false,
             }],
+          }, {
+            chain: 'BTC', network: 'regtest', family: 'utxo', nativeSymbol: 'BTC',
+            assetSymbols: ['BTC'], status: 'ACTIVE', enabled: true,
+            scanEnabled: true, withdrawalEnabled: true, transferEnabled: true,
+            capabilities: ['NATIVE_QUOTE'], tokens: [],
           }]);
       }
       throw new Error(`Unhandled request: ${path}`);
@@ -314,9 +434,17 @@ describe('custody operator workflows', () => {
     expect(initialRow).not.toBeNull();
     if (!initialRow) throw new Error('Enabled chain row was not rendered');
     expect(within(initialRow).getByText('Not generated')).toBeInTheDocument();
-    expect(screen.getByText('Platform unavailable')).toBeInTheDocument();
+    expect(screen.queryByText('Platform unavailable')).not.toBeInTheDocument();
+    expect(screen.queryByText('Enabled with chain')).not.toBeInTheDocument();
+    await user.click(within(initialRow).getByRole('button', { name: 'Expand row' }));
+    expect(await screen.findByText('Platform unavailable')).toBeInTheDocument();
     expect(screen.getByText('Enabled with chain')).toBeInTheDocument();
     expect(screen.queryByRole('switch', { name: /ETH USDT/ })).not.toBeInTheDocument();
+    const btcRow = (await screen.findByText('regtest')).closest('tr');
+    expect(btcRow).not.toBeNull();
+    if (!btcRow) throw new Error('Native-only chain row was not rendered');
+    expect(within(btcRow).queryByRole('button', { name: 'Expand row' })).not.toBeInTheDocument();
+    expect(document.querySelector('.tenant-chains-panel .ant-table-sticky-scroll')).toBeNull();
     await user.click(within(initialRow).getByRole('button', { name: /Generate address/ }));
 
     const address = await screen.findByText(gasAccount.address);

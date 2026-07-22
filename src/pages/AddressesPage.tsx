@@ -58,6 +58,15 @@ type UpdateAddressValues = {
   metadata?: string;
 };
 
+type AddressFilters = {
+  chain: string;
+  source: string;
+  status: string;
+  search: string;
+};
+
+const EMPTY_FILTERS: AddressFilters = { chain: '', source: '', status: '', search: '' };
+
 export default function AddressesPage() {
   const session = useSession();
   const canWrite = hasScope(session, 'addresses:write');
@@ -69,7 +78,8 @@ export default function AddressesPage() {
   const [editingAddress, setEditingAddress] = useState<AddressRow>();
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [filters, setFilters] = useState({ chain: '', source: '', status: '', search: '' });
+  const [filters, setFilters] = useState<AddressFilters>(EMPTY_FILTERS);
+  const [draftFilters, setDraftFilters] = useState<AddressFilters>(EMPTY_FILTERS);
 
   const query = useApiQuery<AddressRow[]>(
     (signal) => session
@@ -159,6 +169,15 @@ export default function AddressesPage() {
     return [...values].toSorted().map((value) => ({ label: value, value }));
   }, [query.data]);
 
+  const applyFilters = () => {
+    setFilters({ ...draftFilters, search: draftFilters.search.trim() });
+  };
+
+  const resetFilters = () => {
+    setDraftFilters(EMPTY_FILTERS);
+    setFilters(EMPTY_FILTERS);
+  };
+
   return (
     <div className="page-stack">
       <PageHeader
@@ -175,38 +194,52 @@ export default function AddressesPage() {
         <div className="table-toolbar">
           <Select
             allowClear
+            aria-label={t('Network')}
             placeholder={t('Network')}
             options={networkOptions}
+            value={draftFilters.chain || undefined}
             style={{ minWidth: 150 }}
-            onChange={(chain = '') => setFilters((current) => ({ ...current, chain }))}
+            onChange={(chain = '') => setDraftFilters((current) => ({ ...current, chain }))}
           />
           <Select
             allowClear
+            aria-label={t('Source')}
             placeholder={t('Source')}
             options={[
               { value: 'API', label: 'API' },
               { value: 'CONSOLE', label: t('Console') },
             ]}
+            value={draftFilters.source || undefined}
             style={{ minWidth: 130 }}
-            onChange={(source = '') => setFilters((current) => ({ ...current, source }))}
+            onChange={(source = '') => setDraftFilters((current) => ({ ...current, source }))}
           />
           <Select
             allowClear
+            aria-label={t('Status')}
             placeholder={t('Status')}
             options={[
               { value: 'ACTIVE', label: t('Active') },
               { value: 'DISABLED', label: t('Disabled') },
             ]}
+            value={draftFilters.status || undefined}
             style={{ minWidth: 130 }}
-            onChange={(status = '') => setFilters((current) => ({ ...current, status }))}
+            onChange={(status = '') => setDraftFilters((current) => ({ ...current, status }))}
           />
-          <Input.Search
+          <Input
             allowClear
+            aria-label={t('Search address or subject')}
             prefix={<SearchOutlined />}
             placeholder={t('Search address or subject')}
+            value={draftFilters.search}
             style={{ width: 330 }}
-            onSearch={(search) => setFilters((current) => ({ ...current, search }))}
+            onChange={(event) => setDraftFilters((current) => ({
+              ...current,
+              search: event.target.value,
+            }))}
+            onPressEnter={applyFilters}
           />
+          <Button type="primary" icon={<SearchOutlined />} onClick={applyFilters}>{t('Search')}</Button>
+          <Button onClick={resetFilters}>{t('Reset')}</Button>
           <Button aria-label={t('Reload addresses')} icon={<ReloadOutlined />} onClick={query.refetch} />
         </div>
         <Table<AddressRow>
@@ -220,10 +253,10 @@ export default function AddressesPage() {
             {
               title: t('Address'),
               dataIndex: 'address',
-              width: 210,
+              width: 360,
               render: (value: string, row) => (
-                <Space orientation="vertical" size={0}>
-                  <CopyText value={value} />
+                <Space className="full-address-cell" orientation="vertical" size={0}>
+                  <CopyText value={value} compact={false} />
                   {row.memo ? <small>{t('Memo')}: {row.memo}</small> : null}
                 </Space>
               ),
@@ -345,7 +378,7 @@ export default function AddressesPage() {
           <>
             <div className="address-manager-identity">
               <span>{editingAddress.chain} · {editingAddress.network}</span>
-              <CopyText value={editingAddress.address} />
+              <CopyText value={editingAddress.address} compact={false} />
               <small>{t('Subject')}: {editingAddress.subject}</small>
               <small>{t('Address version')}: {editingAddress.addressVersion}</small>
             </div>

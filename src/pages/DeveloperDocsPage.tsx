@@ -336,13 +336,14 @@ const apiDocs: ApiDoc[] = [
     description: '查询已识别到本租户地址的链上充值和确认状态。',
     demo: `const deposits = await custodyRequest(
   'GET',
-  '/custody/api/v1/deposits?status=CONFIRMED&limit=50&offset=0'
+  '/custody/api/v1/deposits?chain=ARBITRUM&assetSymbol=USDT&status=CONFIRMED&search=user_10086&limit=50&offset=0'
 );`,
     response: `[
   {
     "id": "bfc248e6-a5f5-44bc-b69d-26434072eebb",
     "custodyAddressId": "8eca3ed7-55f0-49d7-a5ef-c2fd7e9e34ef",
     "subject": "user_10086",
+    "address": "0x1234567890abcdef1234567890abcdef12345678",
     "chain": "ARBITRUM",
     "assetSymbol": "USDT",
     "txHash": "0xabc...789",
@@ -352,7 +353,7 @@ const apiDocs: ApiDoc[] = [
     "creditedAt": "2026-07-21T08:05:00Z"
   }
 ]`,
-    notes: 'txHash 即常说的 txid。Token 转账必须用 chain + txHash + logIndex 唯一定位，不能只用 txHash 去重。',
+    notes: '可按 chain、assetSymbol、status 精确过滤；search 匹配 txHash、完整充值地址、subject 或 label。txHash 即常说的 txid。Token 转账必须用 chain + txHash + logIndex 唯一定位。',
   },
   {
     key: 'create-withdrawal', method: 'POST', path: '/custody/api/v1/withdrawals',
@@ -394,13 +395,15 @@ const apiDocs: ApiDoc[] = [
     description: '查询提现状态、平台订单号、业务关联号和最终链上交易哈希。',
     demo: `const withdrawals = await custodyRequest(
   'GET',
-  '/custody/api/v1/withdrawals?status=CONFIRMED&limit=50&offset=0'
+  '/custody/api/v1/withdrawals?chain=ARBITRUM&assetSymbol=USDT&status=CONFIRMED&search=merchant_order_20260721_001&limit=50&offset=0'
 );`,
     response: `[
   {
     "id": "4ec53331-d178-46a6-a991-68409fe80280",
     "orderNo": "CW-acme-8eca3ed7-000001",
     "externalReference": "merchant_order_20260721_001",
+    "sourceAddress": "0x1234567890abcdef1234567890abcdef12345678",
+    "subject": "merchant_treasury",
     "chain": "ARBITRUM",
     "assetSymbol": "USDT",
     "amount": 25.50,
@@ -466,15 +469,15 @@ $addresses = (new CustodyClient())->request('GET', $target);`,
   deposits: {
     javascript: apiDocs[4].demo,
     java: `String deposits = CustodyClient.request("GET",
-    "/custody/api/v1/deposits?status=CONFIRMED&limit=50&offset=0",
+    "/custody/api/v1/deposits?chain=ARBITRUM&assetSymbol=USDT&status=CONFIRMED&search=user_10086&limit=50&offset=0",
     null, Map.of());`,
     go: `deposits, err := custodyRequest("GET",
-  "/custody/api/v1/deposits?status=CONFIRMED&limit=50&offset=0", nil, nil)`,
+  "/custody/api/v1/deposits?chain=ARBITRUM&assetSymbol=USDT&status=CONFIRMED&search=user_10086&limit=50&offset=0", nil, nil)`,
     python: `deposits = custody_request(
-    "GET", "/custody/api/v1/deposits?status=CONFIRMED&limit=50&offset=0"
+    "GET", "/custody/api/v1/deposits?chain=ARBITRUM&assetSymbol=USDT&status=CONFIRMED&search=user_10086&limit=50&offset=0"
 )`,
     php: `$deposits = (new CustodyClient())->request(
-    'GET', '/custody/api/v1/deposits?status=CONFIRMED&limit=50&offset=0'
+    'GET', '/custody/api/v1/deposits?chain=ARBITRUM&assetSymbol=USDT&status=CONFIRMED&search=user_10086&limit=50&offset=0'
 );`,
   },
   'create-withdrawal': {
@@ -510,15 +513,15 @@ withdrawal, err := custodyRequest("POST", "/custody/api/v1/withdrawals", body,
   withdrawals: {
     javascript: apiDocs[6].demo,
     java: `String withdrawals = CustodyClient.request("GET",
-    "/custody/api/v1/withdrawals?status=CONFIRMED&limit=50&offset=0",
+    "/custody/api/v1/withdrawals?chain=ARBITRUM&assetSymbol=USDT&status=CONFIRMED&search=merchant_order_20260721_001&limit=50&offset=0",
     null, Map.of());`,
     go: `withdrawals, err := custodyRequest("GET",
-  "/custody/api/v1/withdrawals?status=CONFIRMED&limit=50&offset=0", nil, nil)`,
+  "/custody/api/v1/withdrawals?chain=ARBITRUM&assetSymbol=USDT&status=CONFIRMED&search=merchant_order_20260721_001&limit=50&offset=0", nil, nil)`,
     python: `withdrawals = custody_request(
-    "GET", "/custody/api/v1/withdrawals?status=CONFIRMED&limit=50&offset=0"
+    "GET", "/custody/api/v1/withdrawals?chain=ARBITRUM&assetSymbol=USDT&status=CONFIRMED&search=merchant_order_20260721_001&limit=50&offset=0"
 )`,
     php: `$withdrawals = (new CustodyClient())->request(
-    'GET', '/custody/api/v1/withdrawals?status=CONFIRMED&limit=50&offset=0'
+    'GET', '/custody/api/v1/withdrawals?chain=ARBITRUM&assetSymbol=USDT&status=CONFIRMED&search=merchant_order_20260721_001&limit=50&offset=0'
 );`,
   },
 };
