@@ -231,6 +231,18 @@ function installConsoleApi() {
         createdAt: timestamp,
       }]);
     }
+    if (path.startsWith('/custody/console/v1/asset-recoveries')) {
+      return jsonResponse([{
+        id: '81818181-8181-8181-8181-818181818181',
+        tenantId: '22222222-2222-2222-2222-222222222222',
+        actualChain: 'ARBITRUM', expectedChain: 'ETH', assetSymbol: 'USDT',
+        tokenContract: '0x4444444444444444444444444444444444444444',
+        txHash: '0xwrongchain', logIndex: 1,
+        destinationAddress: '0x1111111111111111111111111111111111111111',
+        verifiedAmount: '25', confirmations: 20, status: 'VERIFIED',
+        createdAt: timestamp, updatedAt: timestamp,
+      }]);
+    }
     throw new Error(`Unhandled Console request: ${path}`);
   });
   vi.stubGlobal('fetch', fetchMock);
@@ -252,6 +264,7 @@ describe('tenant Console routes', () => {
     ['/console/deposits', 'Deposits', 'user_10086'],
     ['/console/withdrawals', 'Withdrawals', 'merchant-order-1'],
     ['/console/api-access', 'Developer access', 'Production events'],
+    ['/console/asset-recoveries', 'Asset recovery', '0xwrongchain'],
     ['/console/audit-log', 'Audit log', 'ADDRESS.CREATE'],
   ])('renders %s with live API-shaped data', async (route, heading, record) => {
     render(
@@ -271,16 +284,23 @@ describe('tenant Console routes', () => {
     await screen.findByRole('heading', { name: 'Asset overview', level: 1 });
     expect(screen.queryByText('Developer documentation')).not.toBeInTheDocument();
     const ethBalances = await screen.findAllByText('14 ETH');
-    fireEvent.click(ethBalances[0].closest('tr') as HTMLElement);
+    const ethRow = ethBalances.map((node) => node.closest('tr')).find(Boolean);
+    expect(ethRow).toBeTruthy();
+    fireEvent.click(ethRow as HTMLElement);
     await waitFor(() => expect(screen.getAllByRole('table').length).toBeGreaterThan(3));
     expect((await screen.findAllByText('ARBITRUM')).length).toBeGreaterThan(1);
 
-    const usdt = await screen.findByText('USDT');
-    expect(screen.getByTitle('USDT')).toBeInTheDocument();
-    fireEvent.click(usdt.closest('tr') as HTMLElement);
+    const usdt = (await screen.findAllByText('USDT'))
+      .find((node) => node.closest('tr'));
+    expect(usdt).toBeTruthy();
+    expect(screen.getAllByTitle('USDT').length).toBeGreaterThan(0);
+    fireEvent.click(usdt?.closest('tr') as HTMLElement);
     await waitFor(() => expect(screen.getAllByRole('table').length).toBeGreaterThan(3));
     expect(screen.getAllByText('ETH').length).toBeGreaterThan(0);
     expect(screen.getAllByText('TRON').length).toBeGreaterThan(0);
+    expect(screen.getByLabelText('Asset allocation chart')).toBeInTheDocument();
+    expect(screen.getAllByText('12 USDT').length).toBeGreaterThan(0);
+    expect(screen.queryByText(/USD price/i)).not.toBeInTheDocument();
   }, 15_000);
 });
 

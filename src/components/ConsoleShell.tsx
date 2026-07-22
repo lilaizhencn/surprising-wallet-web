@@ -13,6 +13,7 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   SafetyCertificateOutlined,
+  SafetyOutlined,
   SwapOutlined,
   TeamOutlined,
 } from '@ant-design/icons';
@@ -38,6 +39,7 @@ const tenantItemDefinitions: TenantItemDefinition[] = [
   { key: '/console/chains', icon: <GlobalOutlined />, label: 'Chains', scope: 'chains:read' },
   { key: '/console/addresses', icon: <DatabaseOutlined />, label: 'Addresses', scope: 'addresses:read' },
   { key: '/console/deposits', icon: <GlobalOutlined />, label: 'Deposits', scope: 'deposits:read' },
+  { key: '/console/asset-recoveries', icon: <SafetyOutlined />, label: 'Asset recovery', scope: 'deposits:read' },
   { key: '/console/withdrawals', icon: <SwapOutlined />, label: 'Withdrawals', scope: 'withdrawals:read' },
   { key: '/console/api-access', icon: <ApiOutlined />, label: 'Developer access', role: 'TENANT_ADMIN' },
   { key: '/console/audit-log', icon: <AuditOutlined />, label: 'Audit log', scope: 'audit:read' },
@@ -48,6 +50,7 @@ const platformItemDefinitions = [
   { key: '/platform/wallet-config/chains', icon: <GlobalOutlined />, label: 'Chains & Tokens' },
   { key: '/platform/wallet-config/audit-log', icon: <AuditOutlined />, label: 'Config audit' },
   { key: '/platform/tenants', icon: <TeamOutlined />, label: 'Tenants' },
+  { key: '/platform/asset-recoveries', icon: <SafetyOutlined />, label: 'Asset recovery review' },
   { key: '/platform/wallet-keys', icon: <KeyOutlined />, label: 'Wallet keys' },
 ];
 const deploymentEnvironment = import.meta.env.VITE_CUSTODY_ENVIRONMENT ?? 'Sandbox';

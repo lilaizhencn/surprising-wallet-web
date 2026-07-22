@@ -1999,6 +1999,85 @@ a {
   letter-spacing: -0.035em;
 }
 
+.asset-allocation-content {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.72fr) minmax(340px, 1.28fr);
+  gap: 40px;
+  align-items: center;
+  padding: 12px 4px 4px;
+}
+
+.asset-allocation-chart {
+  position: relative;
+  width: min(100%, 300px);
+  aspect-ratio: 1;
+  margin: 0 auto;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(16, 24, 40, 0.05);
+}
+
+.asset-allocation-center {
+  position: absolute;
+  inset: 22%;
+  display: grid;
+  place-content: center;
+  border-radius: 50%;
+  background: #fff;
+  text-align: center;
+  box-shadow: 0 8px 28px rgba(16, 24, 40, 0.08);
+}
+
+.asset-allocation-center strong {
+  color: #101828;
+  font-size: 32px;
+  line-height: 1;
+}
+
+.asset-allocation-center span {
+  margin-top: 6px;
+  color: #667085;
+  font-size: 12px;
+}
+
+.asset-allocation-list {
+  display: grid;
+  gap: 2px;
+}
+
+.asset-allocation-row {
+  display: grid;
+  grid-template-columns: 8px 28px minmax(90px, 1fr) minmax(150px, auto);
+  gap: 10px;
+  align-items: center;
+  padding: 12px 8px;
+  border-bottom: 1px solid #eef2f6;
+}
+
+.asset-allocation-row:last-child {
+  border-bottom: 0;
+}
+
+.allocation-swatch {
+  width: 8px;
+  height: 28px;
+  border-radius: 999px;
+}
+
+.asset-allocation-row strong,
+.asset-allocation-row small {
+  display: block;
+}
+
+.asset-allocation-row small {
+  margin-top: 2px;
+  color: #667085;
+  font-size: 12px;
+}
+
+.allocation-amount {
+  text-align: right;
+}
+
 .overview-grid {
   display: grid;
   grid-template-columns: 1.1fr 0.9fr;
@@ -2543,6 +2622,9 @@ a {
 }
 
 @media (max-width: 900px) {
+  .asset-allocation-content {
+    grid-template-columns: 1fr;
+  }
   .marketing-header nav {
     display: none;
   }

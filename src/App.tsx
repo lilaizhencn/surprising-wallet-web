@@ -20,6 +20,7 @@ const WalletChainsPage = lazy(() => import('./pages/WalletChainsPage'));
 const WalletChainDetailPage = lazy(() => import('./pages/WalletChainDetailPage'));
 const TenantChainsPage = lazy(() => import('./pages/TenantChainsPage'));
 const DeveloperDocsPage = lazy(() => import('./pages/DeveloperDocsPage'));
+const AssetRecoveriesPage = lazy(() => import('./pages/AssetRecoveriesPage'));
 
 function RouteFallback() {
   return (
@@ -56,6 +57,7 @@ export default function App() {
               </Route>
               <Route element={<ProtectedRoute accountType="tenant" requiredScope="deposits:read" />}>
                 <Route path="deposits" element={<TransfersPage type="deposits" />} />
+                <Route path="asset-recoveries" element={<AssetRecoveriesPage />} />
               </Route>
               <Route element={<ProtectedRoute accountType="tenant" requiredScope="withdrawals:read" />}>
                 <Route path="withdrawals" element={<TransfersPage type="withdrawals" />} />
@@ -75,6 +77,7 @@ export default function App() {
               <Route path="wallet-config/audit-log" element={<AuditPage platform />} />
               <Route path="tenants" element={<TenantsPage />} />
               <Route path="tenants/:tenantId" element={<TenantDetailPage />} />
+              <Route path="asset-recoveries" element={<AssetRecoveriesPage platform />} />
               <Route path="wallet-keys" element={<WalletKeysPage />} />
             </Route>
           </Route>

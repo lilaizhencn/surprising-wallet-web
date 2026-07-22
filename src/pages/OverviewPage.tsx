@@ -39,6 +39,16 @@ type AssetDashboard = {
   oldestPriceObservedAt?: string;
   assets: AssetRow[];
   bySymbol: Array<unknown>;
+  reorgDeficits: Array<{
+    id: string;
+    custodyAddressId: string;
+    chain: string;
+    assetSymbol: string;
+    deficitAmount: string | number;
+    recoveredAmount: string | number;
+    outstandingAmount: string | number;
+    createdAt: string;
+  }>;
 };
 
 type AssetSummary = {
@@ -99,7 +109,13 @@ const emptyDashboard: AssetDashboard = {
   unpricedAssetCount: 0,
   assets: [],
   bySymbol: [],
+  reorgDeficits: [],
 };
+
+const allocationColors = [
+  '#155eef', '#12b76a', '#f79009', '#7a5af8', '#ee46bc',
+  '#06aed4', '#f04438', '#6172f3', '#039855', '#dc6803',
+];
 
 function displayAssetSymbol(row: AssetRow) {
   if (!row.nativeAsset) return row.assetSymbol;
@@ -214,6 +230,22 @@ export default function OverviewPage() {
       };
     })
     .toSorted((a, b) => a.assetSymbol.localeCompare(b.assetSymbol));
+  const allocationAssets = assetDetails.filter((asset) => asset.totalBalance > 0);
+  const useUsdAllocation = allocationAssets.length > 0
+    && allocationAssets.every((asset) => asset.valueUsd !== undefined && asset.valueUsd > 0);
+  const chartAssets = allocationAssets
+    .map((asset, index) => ({
+      ...asset,
+      color: allocationColors[index % allocationColors.length],
+      weight: useUsdAllocation ? asset.valueUsd! : asset.totalBalance,
+    }));
+  const totalChartWeight = chartAssets.reduce((sum, asset) => sum + asset.weight, 0);
+  let chartCursor = 0;
+  const chartGradient = chartAssets.map((asset) => {
+    const start = chartCursor;
+    chartCursor += totalChartWeight > 0 ? asset.weight / totalChartWeight * 100 : 0;
+    return `${asset.color} ${start}% ${chartCursor}%`;
+  }).join(', ');
 
   return (
     <div className="page-stack">
@@ -223,14 +255,22 @@ export default function OverviewPage() {
       />
       <ErrorState message={query.error} onRetry={query.refetch} />
 
-      {query.data?.dashboard.unpricedAssetCount ? (
+      {(query.data?.dashboard.reorgDeficits ?? []).length > 0 ? (
         <Alert
           showIcon
-          type="info"
-          title={t('{count} funded assets do not have a USD price snapshot', {
-            count: query.data.dashboard.unpricedAssetCount,
-          })}
-          description={t('The portfolio total includes only priced assets; token quantities remain complete.')}
+          type="error"
+          title={t('Deposit reorg adjustment in progress')}
+          description={(
+            <Space direction="vertical" size={4}>
+              <span>{t('A previously credited deposit left the canonical chain. Withdrawals from the affected address remain paused until the balance is restored.')}</span>
+              {(query.data?.dashboard.reorgDeficits ?? []).map((deficit) => (
+                <span key={deficit.id}>
+                  {deficit.chain} · {formatAmount(deficit.outstandingAmount)} {deficit.assetSymbol}
+                </span>
+              ))}
+              <Link to="/console/deposits">{t('View affected deposits')}</Link>
+            </Space>
+          )}
         />
       ) : null}
 
@@ -295,6 +335,55 @@ export default function OverviewPage() {
             <strong>{totalAddresses}</strong>
             <small>{t('Distinct custody mappings')}</small>
           </div>
+      </section>
+
+      <section className="data-panel asset-allocation-panel">
+        <div className="panel-heading">
+          <div>
+            <h2>{t('Asset allocation')}</h2>
+            <p>{t('Share of every funded currency across all enabled chains.')}</p>
+          </div>
+        </div>
+        {chartAssets.length ? (
+          <div className="asset-allocation-content">
+            <div
+              className="asset-allocation-chart"
+              style={{ background: `conic-gradient(${chartGradient})` }}
+              role="img"
+              aria-label={t('Asset allocation chart')}
+            >
+              <div className="asset-allocation-center">
+                <strong>{chartAssets.length}</strong>
+                <span>{t('Currencies')}</span>
+              </div>
+            </div>
+            <div className="asset-allocation-list">
+              {chartAssets.map((asset) => {
+                const percentage = totalChartWeight > 0
+                  ? asset.weight / totalChartWeight * 100
+                  : 0;
+                return (
+                  <div key={asset.key} className="asset-allocation-row">
+                    <span className="allocation-swatch" style={{ background: asset.color }} />
+                    <AssetLogo symbol={asset.assetSymbol} size={28} />
+                    <div>
+                      <strong>{asset.assetSymbol}</strong>
+                      <small>{percentage.toFixed(2)}%</small>
+                    </div>
+                    <div className="allocation-amount">
+                      <strong>{formatAmount(asset.totalBalance)} {asset.assetSymbol}</strong>
+                      {asset.valueUsd !== undefined
+                        ? <small>${formatAmount(asset.valueUsd)}</small>
+                        : null}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <Empty description={t('No funded assets yet')} />
+        )}
       </section>
 
       <section className="data-panel asset-details-panel">

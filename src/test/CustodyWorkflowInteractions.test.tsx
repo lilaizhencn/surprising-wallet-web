@@ -72,6 +72,46 @@ describe('custody operator workflows', () => {
     vi.unstubAllGlobals();
   });
 
+  it('submits a tenant wrong-chain recovery request with auditable transaction fields', async () => {
+    const requests: Array<{ path: string; init?: RequestInit }> = [];
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const path = String(input);
+      requests.push({ path, init });
+      if (path === '/custody/console/v1/asset-recoveries' && init?.method === 'POST') {
+        return response({
+          id: 'recovery-1', tenantId: '22222222-2222-2222-2222-222222222222',
+          actualChain: 'ARBITRUM', expectedChain: 'ETH', assetSymbol: 'USDT',
+          txHash: '0xwrongchain', logIndex: 0,
+          destinationAddress: customerAddress.address, verifiedAmount: '25',
+          confirmations: 32, status: 'VERIFIED',
+          createdAt: customerAddress.createdAt, updatedAt: customerAddress.createdAt,
+        });
+      }
+      if (path.startsWith('/custody/console/v1/asset-recoveries')) return response([]);
+      throw new Error(`Unhandled request: ${path}`);
+    }));
+
+    const user = userEvent.setup();
+    render(<MemoryRouter initialEntries={['/console/asset-recoveries']}><App /></MemoryRouter>);
+
+    await screen.findByRole('heading', { name: 'Asset recovery', level: 1 });
+    await user.click(screen.getByRole('button', { name: /Submit recovery request/ }));
+    await user.click(screen.getByRole('combobox', { name: 'Actual chain' }));
+    await user.click(await screen.findByText('ARBITRUM'));
+    await user.type(screen.getByRole('textbox', { name: 'Asset symbol' }), 'USDT');
+    await user.type(screen.getByRole('textbox', { name: 'Transaction hash' }), '0xwrongchain');
+    await user.type(screen.getByRole('textbox', { name: 'System destination address' }), customerAddress.address);
+    await user.click(screen.getByRole('button', { name: 'OK' }));
+
+    await screen.findByText(/verified and is waiting for platform approval/i);
+    const create = requests.find((item) => item.init?.method === 'POST');
+    expect(create?.path).toBe('/custody/console/v1/asset-recoveries');
+    expect(JSON.parse(String(create?.init?.body))).toMatchObject({
+      actualChain: 'ARBITRUM', assetSymbol: 'USDT', txHash: '0xwrongchain',
+      destinationAddress: customerAddress.address,
+    });
+  }, 60_000);
+
   it('requires a second withdrawal confirmation and sends confirmed=true', async () => {
     const requests: Array<{ path: string; init?: RequestInit }> = [];
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {

@@ -8,6 +8,8 @@ const statusMap: Record<string, 'success' | 'processing' | 'warning' | 'error' |
   DELIVERED: 'success',
   READY: 'success',
   SETTLED: 'success',
+  RECOVERED: 'success',
+  VERIFIED: 'success',
   SENT: 'processing',
   RESERVED: 'processing',
   FROZEN: 'processing',
@@ -15,6 +17,10 @@ const statusMap: Record<string, 'success' | 'processing' | 'warning' | 'error' |
   PENDING: 'processing',
   PENDING_REVIEW: 'warning',
   PENDING_VERIFICATION: 'warning',
+  SUBMITTED: 'warning',
+  APPROVED: 'processing',
+  EXECUTING: 'processing',
+  BROADCAST: 'processing',
   RETRY: 'warning',
   RETRY_SCHEDULED: 'warning',
   LOW_BALANCE: 'warning',
@@ -27,6 +33,8 @@ const statusMap: Record<string, 'success' | 'processing' | 'warning' | 'error' |
   REVOKED: 'default',
   DISABLED: 'default',
   RELEASED: 'default',
+  CANCELLED: 'default',
+  REORGED: 'error',
 };
 
 export function StatusText({ value }: { value?: string | null }) {
