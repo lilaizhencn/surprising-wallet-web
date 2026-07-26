@@ -149,38 +149,48 @@ function installConsoleApi() {
       }]);
     }
     if (path.startsWith('/custody/console/v1/deposits')) {
-      return jsonResponse([{
-        id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
-        custodyAddressId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-        address: '0x1111111111111111111111111111111111111111',
-        subject: 'user_10086',
-        chain: 'ETH',
-        assetSymbol: 'ETH',
-        txHash: '0xdeposit',
-        logIndex: 0,
-        amount: 12.5,
-        status: 'CONFIRMED',
-        creditedAt: timestamp,
-        createdAt: timestamp,
-      }]);
+      return jsonResponse({
+        items: [{
+          id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+          custodyAddressId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+          address: '0x1111111111111111111111111111111111111111',
+          subject: 'user_10086',
+          chain: 'ETH',
+          assetSymbol: 'ETH',
+          txHash: '0xdeposit',
+          logIndex: 0,
+          amount: 12.5,
+          status: 'CONFIRMED',
+          creditedAt: timestamp,
+          createdAt: timestamp,
+        }],
+        total: 1,
+        limit: 5,
+        offset: 0,
+      });
     }
     if (path.startsWith('/custody/console/v1/withdrawals')) {
-      return jsonResponse([{
-        id: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
-        custodyAddressId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-        sourceAddress: '0x1111111111111111111111111111111111111111',
-        subject: 'user_10086',
-        orderNo: 'CW-acme-1',
-        externalReference: 'merchant-order-1',
-        chain: 'ETH',
-        assetSymbol: 'ETH',
-        toAddress: '0x2222222222222222222222222222222222222222',
-        amount: 1,
-        fee: 0.01,
-        status: 'CONFIRMED',
-        txHash: '0xwithdrawal',
-        createdAt: timestamp,
-      }]);
+      return jsonResponse({
+        items: [{
+          id: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+          custodyAddressId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+          sourceAddress: '0x1111111111111111111111111111111111111111',
+          subject: 'user_10086',
+          orderNo: 'CW-acme-1',
+          externalReference: 'merchant-order-1',
+          chain: 'ETH',
+          assetSymbol: 'ETH',
+          toAddress: '0x2222222222222222222222222222222222222222',
+          amount: 1,
+          fee: 0.01,
+          status: 'CONFIRMED',
+          txHash: '0xwithdrawal',
+          createdAt: timestamp,
+        }],
+        total: 1,
+        limit: 5,
+        offset: 0,
+      });
     }
     if (path.startsWith('/custody/console/v1/webhook-deliveries')) {
       return jsonResponse([]);

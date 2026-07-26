@@ -14,6 +14,7 @@ import { PageHeader } from '../components/PageHeader';
 import { StatusText } from '../components/StatusText';
 import { AssetLogo, ChainLogo } from '../components/Web3Logo';
 import { useApiQuery } from '../hooks/useApiQuery';
+import type { PageResponse } from '../types/pagination';
 import { formatAmount, formatDate } from '../utils/format';
 import { useI18n } from '../i18n';
 
@@ -178,13 +179,13 @@ export default function OverviewPage() {
       const [dashboard, webhooks, deposits, withdrawals, onboarding] = await Promise.all([
         api.get<AssetDashboard>('/custody/console/v1/dashboard', signal),
         api.get<WebhookRow[]>('/custody/console/v1/webhooks', signal),
-        api.get<TransferRow[]>('/custody/console/v1/deposits?limit=5', signal),
-        api.get<TransferRow[]>('/custody/console/v1/withdrawals?limit=5', signal),
+        api.get<PageResponse<TransferRow>>('/custody/console/v1/deposits?limit=5', signal),
+        api.get<PageResponse<TransferRow>>('/custody/console/v1/withdrawals?limit=5', signal),
         api.get<OnboardingStatus>('/custody/console/v1/onboarding', signal),
       ]);
       const recent = [
-        ...deposits.map((row) => ({ ...row, kind: 'Deposit' as const })),
-        ...withdrawals.map((row) => ({ ...row, kind: 'Withdrawal' as const })),
+        ...deposits.items.map((row) => ({ ...row, kind: 'Deposit' as const })),
+        ...withdrawals.items.map((row) => ({ ...row, kind: 'Withdrawal' as const })),
       ]
         .toSorted((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
         .slice(0, 8);
