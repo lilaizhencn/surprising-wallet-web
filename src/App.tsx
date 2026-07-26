@@ -1,6 +1,6 @@
 import { Component, lazy, Suspense, type ComponentType, type ReactNode } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { App as AntApp, Spin } from 'antd';
+import { App as AntApp, Button, Spin } from 'antd';
 import { ConsoleShell } from './components/ConsoleShell';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { PublicDocsShell } from './components/PublicDocsShell';
@@ -16,7 +16,6 @@ const TenantsPage = lazyRoute(() => import('./pages/TenantsPage'));
 const TenantDetailPage = lazyRoute(() => import('./pages/TenantDetailPage'));
 const WalletKeysPage = lazyRoute(() => import('./pages/WalletKeysPage'));
 const WalletConfigOverviewPage = lazyRoute(() => import('./pages/WalletConfigOverviewPage'));
-const WalletChainsPage = lazyRoute(() => import('./pages/WalletChainsPage'));
 const WalletChainDetailPage = lazyRoute(() => import('./pages/WalletChainDetailPage'));
 const TenantChainsPage = lazyRoute(() => import('./pages/TenantChainsPage'));
 const DeveloperDocsPage = lazyRoute(() => import('./pages/DeveloperDocsPage'));
@@ -123,9 +122,9 @@ export default function App() {
             <Route path="/platform" element={<ConsoleShell accountType="platform" />}>
               <Route index element={<Navigate to="wallet-config" replace />} />
               <Route path="wallet-config" element={<WalletConfigOverviewPage />} />
-              <Route path="wallet-config/chains" element={<WalletChainsPage />} />
+              <Route path="wallet-config/chains" element={<Navigate to="/platform/wallet-config" replace />} />
               <Route path="wallet-config/chains/:chainId" element={<WalletChainDetailPage />} />
-              <Route path="wallet-config/tokens" element={<Navigate to="/platform/wallet-config/chains" replace />} />
+              <Route path="wallet-config/tokens" element={<Navigate to="/platform/wallet-config" replace />} />
               <Route path="wallet-config/audit-log" element={<AuditPage platform />} />
               <Route path="tenants" element={<TenantsPage />} />
               <Route path="tenants/:tenantId" element={<TenantDetailPage />} />

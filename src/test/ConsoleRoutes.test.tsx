@@ -702,7 +702,7 @@ describe('platform Console route', () => {
     const chainRows = within(chainTable).getAllByRole('row');
     expect(chainRows).toHaveLength(3);
     expect(within(chainRows[1]).getByText('ETH')).toBeInTheDocument();
-    expect(within(chainRows[2]).getByText('BTC')).toBeInTheDocument();
+    expect(within(chainRows[2]).getAllByText('BTC')).toHaveLength(2);
     expect(within(chainTable).getByText('devnet').closest('.ant-tag')).toHaveClass('ant-tag-green');
     expect(within(chainTable).getByText('mainnet').closest('.ant-tag')).not.toHaveClass('ant-tag-green');
     expect(within(chainRows[1]).queryByText('Chain profile is disabled.')).not.toBeInTheDocument();
@@ -729,16 +729,15 @@ describe('platform Console route', () => {
   it('groups network profiles into one chain row with token logos and symbols', async () => {
     render(<MemoryRouter initialEntries={['/platform/wallet-config/chains']}><App /></MemoryRouter>);
 
-    expect(await screen.findByRole('heading', { name: 'Chains & Tokens', level: 1 }))
+    expect(await screen.findByRole('heading', { name: 'Wallet configuration', level: 1 }))
       .toBeInTheDocument();
-    const table = screen.getByRole('table');
-    expect(within(table).getAllByRole('row')).toHaveLength(2);
-    expect(within(table).getAllByText('devnet')).toHaveLength(2);
+    const table = screen.getAllByRole('table')[0];
+    expect(within(table).getAllByRole('row')).toHaveLength(3);
+    expect(within(table).getByText('devnet')).toBeInTheDocument();
     expect(within(table).getByText('mainnet')).toBeInTheDocument();
     expect(within(table).getByText('USDT')).toBeInTheDocument();
     expect(within(table).getByText('USDC')).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: /Chains & Tokens$/ })).toBeInTheDocument();
-    expect(screen.queryByRole('menuitem', { name: /^Tokens$/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /Chains & Tokens$/ })).not.toBeInTheDocument();
   }, 15_000);
 
   it('loads the selected network chain ID into the edit form', async () => {
@@ -765,9 +764,9 @@ describe('platform Console route', () => {
   }, 30_000);
 
   it.each([
-    ['/platform/wallet-config/chains', 'Chains & Tokens', 'devnet'],
+    ['/platform/wallet-config/chains', 'Wallet configuration', 'devnet'],
     ['/platform/wallet-config/chains/1', 'ETH', 'Local Hardhat'],
-    ['/platform/wallet-config/tokens', 'Chains & Tokens', 'USDT'],
+    ['/platform/wallet-config/tokens', 'Wallet configuration', 'USDT'],
     ['/platform/wallet-config/audit-log', 'Wallet configuration audit', 'WALLET_RPC.UPDATE'],
   ])('renders %s from platform wallet APIs', async (route, heading, record) => {
     render(<MemoryRouter initialEntries={[route]}><App /></MemoryRouter>);

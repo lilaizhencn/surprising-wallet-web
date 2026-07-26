@@ -47,7 +47,6 @@ const tenantItemDefinitions: TenantItemDefinition[] = [
 
 const platformItemDefinitions = [
   { key: '/platform/wallet-config', icon: <DashboardOutlined />, label: 'Wallet config' },
-  { key: '/platform/wallet-config/chains', icon: <GlobalOutlined />, label: 'Chains & Tokens' },
   { key: '/platform/wallet-config/audit-log', icon: <AuditOutlined />, label: 'Config audit' },
   { key: '/platform/tenants', icon: <TeamOutlined />, label: 'Tenants' },
   { key: '/platform/asset-recoveries', icon: <SafetyOutlined />, label: 'Asset recovery review' },

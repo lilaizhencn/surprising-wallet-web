@@ -340,7 +340,7 @@ export default function WalletChainDetailPage() {
             type="text"
             icon={<ArrowLeftOutlined />}
             aria-label={t('Back to chains')}
-            onClick={() => navigate('/platform/wallet-config/chains')}
+            onClick={() => navigate('/platform/wallet-config')}
           />
           {data ? <ChainLogo chain={data.chain.chain} size={52} /> : null}
           <div>
