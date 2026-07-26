@@ -26,8 +26,10 @@ import { PageHeader } from '../components/PageHeader';
 import { StatusText } from '../components/StatusText';
 import { commonChainOptions } from '../constants/chains';
 import { useApiQuery } from '../hooks/useApiQuery';
+import { useServerPagination } from '../hooks/useServerPagination';
 import { formatDate, queryString } from '../utils/format';
 import { useI18n } from '../i18n';
+import { emptyPage, type PageResponse } from '../types/pagination';
 
 type AddressRow = {
   id: string;
@@ -80,15 +82,23 @@ export default function AddressesPage() {
   const [saving, setSaving] = useState(false);
   const [filters, setFilters] = useState<AddressFilters>(EMPTY_FILTERS);
   const [draftFilters, setDraftFilters] = useState<AddressFilters>(EMPTY_FILTERS);
+  const pagination = useServerPagination(20);
 
-  const query = useApiQuery<AddressRow[]>(
+  const query = useApiQuery<PageResponse<AddressRow>>(
     (signal) => session
       ? api.get(
-          `/custody/console/v1/addresses${queryString({ ...filters, limit: 100 })}`,
+          `/custody/console/v1/addresses${queryString({
+            ...filters,
+            limit: pagination.pageSize,
+            offset: pagination.offset,
+          })}`,
           signal,
         )
-      : Promise.resolve([]),
-    [session?.userId, filters.chain, filters.source, filters.status, filters.search],
+      : Promise.resolve(emptyPage(pagination.pageSize, pagination.offset)),
+    [
+      session?.userId, filters.chain, filters.source, filters.status, filters.search,
+      pagination.pageSize, pagination.offset,
+    ],
   );
 
   const createAddress = async (values: CreateAddressValues) => {
@@ -165,15 +175,17 @@ export default function AddressesPage() {
 
   const networkOptions = useMemo(() => {
     const values = new Set<string>(commonChainOptions.map((item) => item.value));
-    query.data?.forEach((row) => values.add(row.chain));
+    query.data?.items.forEach((row) => values.add(row.chain));
     return [...values].toSorted().map((value) => ({ label: value, value }));
   }, [query.data]);
 
   const applyFilters = () => {
+    pagination.reset();
     setFilters({ ...draftFilters, search: draftFilters.search.trim() });
   };
 
   const resetFilters = () => {
+    pagination.reset();
     setDraftFilters(EMPTY_FILTERS);
     setFilters(EMPTY_FILTERS);
   };
@@ -245,9 +257,9 @@ export default function AddressesPage() {
         <Table<AddressRow>
           rowKey="id"
           loading={query.loading}
-          dataSource={query.data ?? []}
+          dataSource={query.data?.items ?? []}
           locale={{ emptyText: <Empty description={t('No deposit addresses yet')} /> }}
-          pagination={{ pageSize: 20, showSizeChanger: true }}
+          pagination={pagination.config(query.data?.total ?? 0)}
           scroll={{ x: 1120 }}
           columns={[
             {

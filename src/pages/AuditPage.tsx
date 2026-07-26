@@ -5,9 +5,11 @@ import { useSession } from '../auth/session';
 import { CopyText } from '../components/CopyText';
 import { ErrorState } from '../components/ErrorState';
 import { PageHeader } from '../components/PageHeader';
+import { useServerPagination } from '../hooks/useServerPagination';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { formatDate } from '../utils/format';
 import { useI18n } from '../i18n';
+import { emptyPage, type PageResponse } from '../types/pagination';
 
 type AuditRow = {
   id: string;
@@ -24,13 +26,14 @@ type AuditRow = {
 export default function AuditPage({ platform = false }: { platform?: boolean }) {
   const session = useSession();
   const { t } = useI18n();
-  const query = useApiQuery<AuditRow[]>(
+  const pagination = useServerPagination(25);
+  const query = useApiQuery<PageResponse<AuditRow>>(
     (signal) => session
       ? api.get(platform
-        ? '/custody/platform/v1/wallet-config/audit-log?limit=200'
-        : '/custody/console/v1/audit-log?limit=200', signal)
-      : Promise.resolve([]),
-    [session?.userId],
+        ? `/custody/platform/v1/wallet-config/audit-log?limit=${pagination.pageSize}&offset=${pagination.offset}`
+        : `/custody/console/v1/audit-log?limit=${pagination.pageSize}&offset=${pagination.offset}`, signal)
+      : Promise.resolve(emptyPage(pagination.pageSize, pagination.offset)),
+    [session?.userId, platform, pagination.pageSize, pagination.offset],
   );
 
   return (
@@ -47,8 +50,8 @@ export default function AuditPage({ platform = false }: { platform?: boolean }) 
         <Table<AuditRow>
           rowKey="id"
           loading={query.loading}
-          dataSource={query.data ?? []}
-          pagination={{ pageSize: 25, showSizeChanger: true }}
+          dataSource={query.data?.items ?? []}
+          pagination={pagination.config(query.data?.total ?? 0)}
           locale={{ emptyText: <Empty description={t('No audit events yet')} /> }}
           scroll={{ x: 1080 }}
           expandable={{

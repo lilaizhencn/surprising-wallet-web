@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { App, Button, Empty, Space, Switch, Table, Tag, Typography } from 'antd';
+import { Alert, App, Button, Empty, Space, Switch, Table, Tag, Typography } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { api } from '../api/client';
 import { hasRole, useSession } from '../auth/session';
@@ -24,6 +24,7 @@ type TenantChain = {
   network: string;
   family: string;
   nativeSymbol: string;
+  eip7702Enabled: boolean;
   tokens: TenantToken[];
   status: string;
   enabled: boolean;
@@ -68,11 +69,11 @@ export default function TenantChainsPage() {
     try {
       await api.post('/custody/console/v1/gas-accounts', { chain });
       query.refetch();
-      void message.success(t('{chain} collection address generated', { chain }));
+      void message.success(t('{chain} hot withdrawal wallet generated', { chain }));
     } catch (error) {
       void message.error(error instanceof Error
         ? error.message
-        : t('Unable to generate collection address'));
+        : t('Unable to generate hot withdrawal wallet'));
     } finally {
       setSaving(undefined);
     }
@@ -130,9 +131,15 @@ export default function TenantChainsPage() {
     <div className="page-stack tenant-chains-page">
       <PageHeader
         title={t('Chains')}
-        description={t('Open a chain to enable its platform-supported tokens and generate its collection address.')}
+        description={t('Open a chain to enable its supported tokens and generate its hot withdrawal wallet and Gas funding address.')}
       />
       <ErrorState message={query.error} onRetry={query.refetch} />
+      <Alert
+        showIcon
+        type="info"
+        title={t('Hot withdrawal wallet and Gas rules')}
+        description={t('Fund the generated wallet with the network native coin. Non-EIP-7702 token collection funds the deposit address before collection; EIP-7702 uses sponsored execution and includes authorization only when the address has no approved delegation.')}
+      />
       <section className="data-panel tenant-chains-panel">
         <Table<TenantChain>
           rowKey="chain"
@@ -171,13 +178,20 @@ export default function TenantChainsPage() {
               ),
             },
             {
-              title: t('Collection / gas address'),
+              title: t('Hot withdrawal wallet / Gas address'),
               dataIndex: 'collectionAddress',
               className: 'collection-address-cell',
               width: 360,
-              render: (address?: string) => address
-                ? <CopyText value={address} compact={false} />
-                : <Typography.Text type="secondary">{t('Not generated')}</Typography.Text>,
+              render: (_: unknown, row) => (
+                <Space orientation="vertical" size={4}>
+                  {row.collectionAddress
+                    ? <CopyText value={row.collectionAddress} compact={false} />
+                    : <Typography.Text type="secondary">{t('Not generated')}</Typography.Text>}
+                  <Tag color={row.eip7702Enabled ? 'cyan' : 'gold'}>
+                    {t(row.eip7702Enabled ? 'EIP-7702 sponsored Gas' : 'Address-funded Gas')}
+                  </Tag>
+                </Space>
+              ),
             },
             {
               title: t('Action'),
@@ -200,7 +214,7 @@ export default function TenantChainsPage() {
                     loading={saving === `address:${row.chain}`}
                     onClick={() => void generateAddress(row.chain)}
                   >
-                    {row.collectionAddress ? t('Address generated') : t('Generate address')}
+                    {row.collectionAddress ? t('Hot wallet generated') : t('Generate hot withdrawal wallet')}
                   </Button>
                 </Space>
               ),

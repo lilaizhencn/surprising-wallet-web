@@ -17,6 +17,19 @@ export default defineConfig({
   build: {
     sourcemap: false,
     target: 'es2022',
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('/node_modules/')) return undefined;
+          if (id.includes('/react/') || id.includes('/react-dom/')
+            || id.includes('/react-router-dom/')) return 'vendor-react';
+          if (id.includes('/antd/') || id.includes('/@ant-design/')
+            || id.includes('/@rc-component/') || id.includes('/rc-')) return 'vendor-ui';
+          if (id.includes('/@web3icons/')) return 'vendor-web3';
+          return 'vendor';
+        },
+      },
+    },
   },
   test: {
     environment: 'jsdom',

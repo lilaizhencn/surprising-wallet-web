@@ -62,23 +62,28 @@ export function ConsoleShell({ accountType }: { accountType: AccountType }) {
   const navigate = useNavigate();
   const { message } = App.useApp();
   const { t } = useI18n();
-  const tenantItems = tenantItemDefinitions
-    .filter((item) => (!item.scope || hasScope(session, item.scope))
-      && (!item.role || hasRole(session, item.role)))
-    .map((item) => ({ ...item, label: t(item.label) }));
-  const platformItems = platformItemDefinitions.map((item) => ({ ...item, label: t(item.label) }));
-  const items = accountType === 'platform' ? platformItems : tenantItems;
-  const selectedMenuKey = accountType === 'platform'
-    ? [...platformItems]
-      .sort((left, right) => right.key.length - left.key.length)
-      .find((item) => location.pathname.startsWith(item.key))?.key ?? location.pathname
-    : location.pathname;
-  const initials = (session?.displayName || session?.email || 'A')
-    .split(/\s+/)
-    .map((part) => part[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
+  const items = useMemo(() => {
+    const definitions = accountType === 'platform'
+      ? platformItemDefinitions
+      : tenantItemDefinitions.filter((item) => (!item.scope || hasScope(session, item.scope))
+        && (!item.role || hasRole(session, item.role)));
+    return definitions.map((item) => ({ ...item, label: t(item.label) }));
+  }, [accountType, session, t]);
+  const selectedMenuKey = useMemo(() => (
+    accountType === 'platform'
+      ? [...items]
+        .sort((left, right) => right.key.length - left.key.length)
+        .find((item) => location.pathname.startsWith(item.key))?.key ?? location.pathname
+      : location.pathname
+  ), [accountType, items, location.pathname]);
+  const initials = useMemo(() => (
+    (session?.displayName || session?.email || 'A')
+      .split(/\s+/)
+      .map((part) => part[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase()
+  ), [session?.displayName, session?.email]);
 
   const profileItems = useMemo(
     () => [

@@ -22,7 +22,9 @@ import { ErrorState } from '../components/ErrorState';
 import { PageHeader } from '../components/PageHeader';
 import { StatusText } from '../components/StatusText';
 import { useApiQuery } from '../hooks/useApiQuery';
+import { useServerPagination } from '../hooks/useServerPagination';
 import { useI18n } from '../i18n';
+import type { PageResponse } from '../types/pagination';
 import { formatAmount, formatDate, queryString } from '../utils/format';
 
 const evmChainOptions = [
@@ -83,12 +85,17 @@ export default function AssetRecoveriesPage({ platform = false }: { platform?: b
   const [submitForm] = Form.useForm<SubmitValues>();
   const [approveForm] = Form.useForm<{ recoveryAddress: string }>();
   const [rejectForm] = Form.useForm<{ reason: string }>();
+  const pagination = useServerPagination(20);
   const basePath = platform
     ? '/custody/platform/v1/asset-recoveries'
     : '/custody/console/v1/asset-recoveries';
-  const query = useApiQuery<Recovery[]>(
-    (signal) => api.get(`${basePath}${queryString({ status })}`, signal),
-    [basePath, status],
+  const query = useApiQuery<PageResponse<Recovery>>(
+    (signal) => api.get(`${basePath}${queryString({
+      status,
+      limit: pagination.pageSize,
+      offset: pagination.offset,
+    })}`, signal),
+    [basePath, status, pagination.pageSize, pagination.offset],
   );
 
   const submit = async (values: SubmitValues) => {
@@ -134,7 +141,10 @@ export default function AssetRecoveriesPage({ platform = false }: { platform?: b
             <Select
               value={status}
               options={statusOptions.map((option) => ({ ...option, label: t(option.label) }))}
-              onChange={setStatus}
+              onChange={(value) => {
+                pagination.reset();
+                setStatus(value);
+              }}
               style={{ width: 160 }}
             />
             <Button icon={<ReloadOutlined />} onClick={query.refetch}>{t('Refresh')}</Button>
@@ -160,8 +170,8 @@ export default function AssetRecoveriesPage({ platform = false }: { platform?: b
         <Table<Recovery>
           rowKey="id"
           loading={query.loading}
-          dataSource={query.data ?? []}
-          pagination={{ pageSize: 20, hideOnSinglePage: true }}
+          dataSource={query.data?.items ?? []}
+          pagination={pagination.config(query.data?.total ?? 0)}
           locale={{ emptyText: <Empty description={t('No asset recovery cases')} /> }}
           onRow={(row) => ({ onClick: () => setSelected(row) })}
           columns={[

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ApiError } from '../api/client';
+import { ApiError, invalidateApiCache } from '../api/client';
 
 type QueryState<T> = {
   data?: T;
@@ -16,7 +16,11 @@ export function useApiQuery<T>(
 
   useEffect(() => {
     const controller = new AbortController();
-    setState((current) => ({ ...current, loading: true, error: undefined }));
+    setState((current) => ({
+      ...current,
+      loading: current.data === undefined,
+      error: undefined,
+    }));
     void query(controller.signal)
       .then((data) => {
         if (!controller.signal.aborted) {
@@ -38,6 +42,9 @@ export function useApiQuery<T>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...dependencies, revision]);
 
-  const refetch = useCallback(() => setRevision((value) => value + 1), []);
+  const refetch = useCallback(() => {
+    invalidateApiCache();
+    setRevision((value) => value + 1);
+  }, []);
   return { ...state, refetch };
 }

@@ -98,7 +98,7 @@ export default function WalletChainDetailPage() {
     : Promise.resolve([]), [session?.userId]);
   const query = useApiQuery<WalletChainDetail>((signal) => session
     ? api.get(endpoint, signal)
-    : Promise.reject(new Error(t('Platform session is required'))), [session?.userId, chainId, t]);
+    : Promise.reject(new Error('Platform session is required')), [session?.userId, chainId]);
 
   const networkProfiles = useMemo(() => {
     if (!query.data) return [];
@@ -695,6 +695,13 @@ export default function WalletChainDetailPage() {
         destroyOnHidden
       >
         <Form form={tokenForm} layout="vertical" className="chain-editor-grid">
+          <Alert
+            className="chain-editor-span"
+            showIcon
+            type="info"
+            title={t('Token validation is enforced by the backend')}
+            description={t('When an EVM token is enabled, the backend verifies the RPC chain ID, deployed contract bytecode, symbol and decimals before saving.')}
+          />
           <Form.Item name="chain" label={t('Chain')}><Input readOnly /></Form.Item>
           <Form.Item name="network" label={t('Network')}><Input readOnly /></Form.Item>
           <Form.Item name="symbol" label={t('Symbol')} rules={[{ required: true }]}><Input /></Form.Item>

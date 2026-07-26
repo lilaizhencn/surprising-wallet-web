@@ -23,7 +23,9 @@ import { PageHeader } from '../components/PageHeader';
 import { StatusText } from '../components/StatusText';
 import { commonChainOptions } from '../constants/chains';
 import { useApiQuery } from '../hooks/useApiQuery';
+import { useServerPagination } from '../hooks/useServerPagination';
 import { useI18n } from '../i18n';
+import { emptyPage, type PageResponse } from '../types/pagination';
 import { formatAmount, formatDate, queryString } from '../utils/format';
 
 type TransferType = 'deposits' | 'withdrawals';
@@ -113,21 +115,29 @@ export default function TransfersPage({ type }: { type: TransferType }) {
   const [pendingWithdrawal, setPendingWithdrawal] = useState<WithdrawalValues>();
   const [form] = Form.useForm<WithdrawalValues>();
   const selectedChain = Form.useWatch('chain', form);
+  const pagination = useServerPagination(20);
 
-  const query = useApiQuery<Array<DepositRow | WithdrawalRow>>(
+  const query = useApiQuery<PageResponse<DepositRow | WithdrawalRow>>(
     (signal) => session
       ? api.get(
-          `/custody/console/v1/${type}${queryString({ ...filters, limit: 100 })}`,
+          `/custody/console/v1/${type}${queryString({
+            ...filters,
+            limit: pagination.pageSize,
+            offset: pagination.offset,
+          })}`,
           signal,
         )
-      : Promise.resolve([]),
-    [session?.userId, type, filters.chain, filters.assetSymbol, filters.status, filters.search],
+      : Promise.resolve(emptyPage(pagination.pageSize, pagination.offset)),
+    [
+      session?.userId, type, filters.chain, filters.assetSymbol, filters.status,
+      filters.search, pagination.pageSize, pagination.offset,
+    ],
   );
 
-  const addressQuery = useApiQuery<AddressOption[]>(
+  const addressQuery = useApiQuery<PageResponse<AddressOption>>(
     (signal) => session && type === 'withdrawals'
       ? api.get('/custody/console/v1/addresses?status=ACTIVE&limit=200', signal)
-      : Promise.resolve([]),
+      : Promise.resolve(emptyPage(200, 0)),
     [session?.userId, type],
   );
   const gasQuery = useApiQuery<GasAccount[]>(
@@ -138,7 +148,7 @@ export default function TransfersPage({ type }: { type: TransferType }) {
   );
 
   const addressOptions = useMemo(
-    () => (addressQuery.data ?? [])
+    () => (addressQuery.data?.items ?? [])
       .filter((row) => row.metadata?.systemPurpose !== 'GAS_FUNDING')
       .map((row) => ({
         value: row.id,
@@ -162,6 +172,7 @@ export default function TransfersPage({ type }: { type: TransferType }) {
       ]).map((value) => ({ value, label: t(value.replaceAll('_', ' ')) }));
 
   const applyFilters = () => {
+    pagination.reset();
     setFilters({
       ...draftFilters,
       assetSymbol: draftFilters.assetSymbol.trim().toUpperCase(),
@@ -170,6 +181,7 @@ export default function TransfersPage({ type }: { type: TransferType }) {
   };
 
   const resetFilters = () => {
+    pagination.reset();
     setDraftFilters(EMPTY_FILTERS);
     setFilters(EMPTY_FILTERS);
   };
@@ -335,9 +347,9 @@ export default function TransfersPage({ type }: { type: TransferType }) {
           <Table<DepositRow>
             rowKey="id"
             loading={query.loading}
-            dataSource={(query.data ?? []) as DepositRow[]}
+            dataSource={(query.data?.items ?? []) as DepositRow[]}
             columns={depositColumns}
-            pagination={{ pageSize: 20, showSizeChanger: true }}
+            pagination={pagination.config(query.data?.total ?? 0)}
             locale={{ emptyText: <Empty description={t('No deposits yet')} /> }}
             scroll={{ x: 1260 }}
           />
@@ -345,9 +357,9 @@ export default function TransfersPage({ type }: { type: TransferType }) {
           <Table<WithdrawalRow>
             rowKey="id"
             loading={query.loading}
-            dataSource={(query.data ?? []) as WithdrawalRow[]}
+            dataSource={(query.data?.items ?? []) as WithdrawalRow[]}
             columns={withdrawalColumns}
-            pagination={{ pageSize: 20, showSizeChanger: true }}
+            pagination={pagination.config(query.data?.total ?? 0)}
             locale={{ emptyText: <Empty description={t('No withdrawals yet')} /> }}
             scroll={{ x: 2050 }}
           />

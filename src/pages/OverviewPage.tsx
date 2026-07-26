@@ -151,8 +151,8 @@ const onboardingSteps = [
   },
   {
     key: 'gasAccountConfigured' as const,
-    title: 'Create a collection address',
-    description: 'Generate a dedicated collection address for every enabled chain.',
+    title: 'Generate a hot withdrawal wallet',
+    description: 'Generate the chain wallet used for collection and Gas funding.',
     to: '/console/chains',
   },
   {
