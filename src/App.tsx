@@ -14,7 +14,6 @@ const ApiAccessPage = lazyRoute(() => import('./pages/ApiAccessPage'));
 const AuditPage = lazyRoute(() => import('./pages/AuditPage'));
 const TenantsPage = lazyRoute(() => import('./pages/TenantsPage'));
 const TenantDetailPage = lazyRoute(() => import('./pages/TenantDetailPage'));
-const WalletKeysPage = lazyRoute(() => import('./pages/WalletKeysPage'));
 const WalletConfigOverviewPage = lazyRoute(() => import('./pages/WalletConfigOverviewPage'));
 const WalletChainDetailPage = lazyRoute(() => import('./pages/WalletChainDetailPage'));
 const TenantChainsPage = lazyRoute(() => import('./pages/TenantChainsPage'));
@@ -129,7 +128,6 @@ export default function App() {
               <Route path="tenants" element={<TenantsPage />} />
               <Route path="tenants/:tenantId" element={<TenantDetailPage />} />
               <Route path="asset-recoveries" element={<AssetRecoveriesPage platform />} />
-              <Route path="wallet-keys" element={<WalletKeysPage />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

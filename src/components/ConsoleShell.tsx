@@ -8,7 +8,6 @@ import {
   DatabaseOutlined,
   DownOutlined,
   GlobalOutlined,
-  KeyOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -50,7 +49,6 @@ const platformItemDefinitions = [
   { key: '/platform/wallet-config/audit-log', icon: <AuditOutlined />, label: 'Config audit' },
   { key: '/platform/tenants', icon: <TeamOutlined />, label: 'Tenants' },
   { key: '/platform/asset-recoveries', icon: <SafetyOutlined />, label: 'Asset recovery review' },
-  { key: '/platform/wallet-keys', icon: <KeyOutlined />, label: 'Wallet keys' },
 ];
 const deploymentEnvironment = import.meta.env.VITE_CUSTODY_ENVIRONMENT ?? 'Sandbox';
 

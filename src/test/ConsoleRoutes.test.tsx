@@ -339,18 +339,6 @@ describe('platform Console route', () => {
     platformSession();
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const path = String(input);
-      if (path === '/custody/platform/v1/wallet-config/keyset') {
-        return jsonResponse({
-          configured: true,
-          locked: true,
-          sig1Seed: 'AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
-          sig2Seed: 'AgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
-          recoverySeed: 'AwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
-          ed25519Seed: 'BAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
-          updatedAt: timestamp,
-          updatedBy: '33333333-3333-3333-3333-333333333333',
-        });
-      }
       if (path === '/custody/platform/v1/wallet-config/summary') {
         return jsonResponse({
           environment: 'test2',
@@ -678,23 +666,16 @@ describe('platform Console route', () => {
     expect(await screen.findByText('Integration readiness')).toBeInTheDocument();
   }, 15_000);
 
-  it('keeps a locked wallet keyset viewable but not editable', async () => {
-    const user = userEvent.setup();
+  it('does not expose wallet key management navigation', async () => {
     render(
-      <MemoryRouter initialEntries={['/platform/wallet-keys']}>
+      <MemoryRouter initialEntries={['/platform/wallet-config']}>
         <App />
       </MemoryRouter>,
     );
 
-    expect(await screen.findByRole('heading', { name: 'Wallet keys', level: 1 }))
+    expect(await screen.findByRole('heading', { name: 'Wallet configuration', level: 1 }))
       .toBeInTheDocument();
-    expect(await screen.findByText('Configured')).toBeInTheDocument();
-    const sig1Seed = screen.getByLabelText('Sig1 BIP32 Seed');
-    expect(sig1Seed).toHaveAttribute('readonly');
-    expect(sig1Seed).toHaveAttribute('type', 'password');
-    await user.click(screen.getAllByRole('img', { name: 'eye-invisible' })[0]);
-    expect(sig1Seed).toHaveAttribute('type', 'text');
-    expect(screen.getByRole('button', { name: /Save all four seeds/ })).toBeDisabled();
+    expect(screen.queryByRole('menuitem', { name: 'Wallet keys' })).not.toBeInTheDocument();
   }, 15_000);
 
   it('renders wallet configuration health and effective runtime state', async () => {
