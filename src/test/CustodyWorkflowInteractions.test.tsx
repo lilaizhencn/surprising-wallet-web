@@ -444,7 +444,6 @@ describe('custody operator workflows', () => {
             scanEnabled: true,
             withdrawalEnabled: true,
             transferEnabled: true,
-            capabilities: ['NATIVE_QUOTE', 'TOKEN_QUOTE'],
             tokens: [{
               symbol: 'USDT', standard: 'ERC20', contractAddress: '0x1234', decimals: 6,
               platformEnabled: true,
@@ -456,7 +455,7 @@ describe('custody operator workflows', () => {
             chain: 'BTC', network: 'regtest', family: 'utxo', nativeSymbol: 'BTC',
             assetSymbols: ['BTC'], status: 'ACTIVE', enabled: true,
             scanEnabled: true, withdrawalEnabled: true, transferEnabled: true,
-            capabilities: ['NATIVE_QUOTE'], tokens: [],
+            tokens: [],
           }]);
       }
       throw new Error(`Unhandled request: ${path}`);

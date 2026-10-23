@@ -98,7 +98,7 @@ function installConsoleApi() {
           symbol: 'USDT', standard: 'TRC20', contractAddress: 'TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj',
           decimals: 6, platformEnabled: true,
         }],
-        capabilities: ['NATIVE_QUOTE', 'TOKEN_QUOTE'], openedAt: timestamp,
+        openedAt: timestamp,
       }]);
     }
     if (path.startsWith('/custody/console/v1/onboarding')) {

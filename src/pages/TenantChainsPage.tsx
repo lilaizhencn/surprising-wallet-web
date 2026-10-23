@@ -31,7 +31,6 @@ type TenantChain = {
   scanEnabled: boolean;
   withdrawalEnabled: boolean;
   transferEnabled: boolean;
-  capabilities: string[];
   collectionAddressId?: string;
   collectionAddress?: string;
   memo?: string;
@@ -150,7 +149,7 @@ export default function TenantChainsPage() {
           locale={{ emptyText: <Empty description={t('No executable platform chains are available')} /> }}
           expandable={{
             expandedRowRender: tokenArea,
-            rowExpandable: (row) => row.capabilities.includes('TOKEN_QUOTE'),
+            rowExpandable: (row) => row.tokens.length > 0,
           }}
           columns={[
             {
