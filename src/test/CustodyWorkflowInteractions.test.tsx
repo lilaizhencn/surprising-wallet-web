@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../App';
+import { pageFixture } from './pageFixture';
 import { clearSession, saveSession } from '../auth/session';
 
 function response(body: unknown, status = 200): Response {
@@ -87,7 +88,7 @@ describe('custody operator workflows', () => {
           createdAt: customerAddress.createdAt, updatedAt: customerAddress.createdAt,
         });
       }
-      if (path.startsWith('/custody/console/v1/asset-recoveries')) return response([]);
+      if (path.startsWith('/custody/console/v1/asset-recoveries')) return response(pageFixture([], path));
       throw new Error(`Unhandled request: ${path}`);
     }));
 
@@ -120,8 +121,8 @@ describe('custody operator workflows', () => {
       if (path.startsWith('/custody/console/v1/withdrawals') && init?.method === 'POST') {
         return response({ id: 'withdrawal-1', status: 'FROZEN' }, 201);
       }
-      if (path.startsWith('/custody/console/v1/withdrawals')) return response([]);
-      if (path.startsWith('/custody/console/v1/addresses')) return response([customerAddress]);
+      if (path.startsWith('/custody/console/v1/withdrawals')) return response(pageFixture([], path));
+      if (path.startsWith('/custody/console/v1/addresses')) return response(pageFixture([customerAddress], path));
       if (path.startsWith('/custody/console/v1/gas-accounts')) return response([gasAccount]);
       throw new Error(`Unhandled request: ${path}`);
     }));
@@ -173,7 +174,7 @@ describe('custody operator workflows', () => {
           addressVersion: 2,
         });
       }
-      if (path.startsWith('/custody/console/v1/addresses')) return response([]);
+      if (path.startsWith('/custody/console/v1/addresses')) return response(pageFixture([], path));
       throw new Error(`Unhandled request: ${path}`);
     }));
 
@@ -211,11 +212,19 @@ describe('custody operator workflows', () => {
 
   it('shows full custody addresses and applies address filters only when searched', async () => {
     const addressQueries: string[] = [];
+    const otherAddress = {
+      ...customerAddress,
+      id: 'dddddddd-dddd-dddd-dddd-dddddddddddd',
+      address: '0x5555555555555555555555555555555555555555',
+      subject: 'another-customer',
+      label: 'Another customer',
+    };
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
       const path = String(input);
       if (path.startsWith('/custody/console/v1/addresses')) {
         addressQueries.push(path);
-        return response([customerAddress]);
+        const filtered = new URL(path, 'http://wallet.test').searchParams.has('search');
+        return response(pageFixture(filtered ? [customerAddress] : [customerAddress, otherAddress], path));
       }
       throw new Error(`Unhandled request: ${path}`);
     }));
@@ -223,12 +232,10 @@ describe('custody operator workflows', () => {
     render(<MemoryRouter initialEntries={['/console/addresses']}><App /></MemoryRouter>);
 
     await screen.findByRole('heading', { name: 'Addresses', level: 1 }, { timeout: 15_000 });
-    await Promise.resolve();
-    await Promise.resolve();
-    const manageButton = screen.getByText('Manage').closest('button');
-    expect(manageButton).not.toBeNull();
-    if (!manageButton) throw new Error('Manage address button was not rendered');
-    expect(screen.getByText(customerAddress.address)).toBeInTheDocument();
+    const row = (await screen.findByText(customerAddress.address)).closest('tr');
+    if (!row) throw new Error('Customer address row was not rendered');
+    const manageButton = within(row).getByRole('button', { name: /Manage/ });
+    expect(await screen.findByText(otherAddress.address)).toBeInTheDocument();
     fireEvent.click(manageButton);
     const managerTitle = screen.getByText('Manage address', { selector: '.ant-drawer-title' });
     const manager = managerTitle.closest<HTMLElement>('.ant-drawer');
@@ -245,9 +252,10 @@ describe('custody operator workflows', () => {
 
     await vi.waitFor(() => expect(addressQueries.some((path) =>
       path.includes('search=customer-42'))).toBe(true));
+    await vi.waitFor(() => expect(screen.queryByText(otherAddress.address)).not.toBeInTheDocument());
     fireEvent.click(screen.getByText('Reset'));
-    await vi.waitFor(() => expect(addressQueries.filter((path) =>
-      path === '/custody/console/v1/addresses?limit=100')).toHaveLength(2));
+    expect(await screen.findByText(otherAddress.address)).toBeInTheDocument();
+    expect(screen.getByLabelText('Search address or subject')).toHaveValue('');
   }, 60_000);
 
   it('shows full deposit addresses and sends all deposit filters', async () => {
@@ -256,13 +264,13 @@ describe('custody operator workflows', () => {
       const path = String(input);
       if (path.startsWith('/custody/console/v1/deposits')) {
         depositQueries.push(path);
-        return response([{
+        return response(pageFixture([{
           id: 'deposit-1', custodyAddressId: customerAddress.id,
           address: customerAddress.address, subject: customerAddress.subject,
           chain: 'ETH', assetSymbol: 'USDT', txHash: '0xdeposit-filter', logIndex: 0,
           amount: '12.5', status: 'CONFIRMED', creditedAt: customerAddress.createdAt,
           createdAt: customerAddress.createdAt,
-        }]);
+        }], path));
       }
       throw new Error(`Unhandled request: ${path}`);
     }));
@@ -270,9 +278,7 @@ describe('custody operator workflows', () => {
     render(<MemoryRouter initialEntries={['/console/deposits']}><App /></MemoryRouter>);
 
     await screen.findByRole('heading', { name: 'Deposits', level: 1 }, { timeout: 15_000 });
-    await Promise.resolve();
-    await Promise.resolve();
-    expect(screen.getByText('0xdeposit-filter')).toBeInTheDocument();
+    expect(await screen.findByText('0xdeposit-filter')).toBeInTheDocument();
     expect(screen.getByText(customerAddress.address)).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Asset'), { target: { value: 'usdt' } });
     fireEvent.change(screen.getByLabelText('Search deposits'), {
@@ -293,15 +299,15 @@ describe('custody operator workflows', () => {
       const path = String(input);
       if (path.startsWith('/custody/console/v1/withdrawals')) {
         withdrawalQueries.push(path);
-        return response([{
+        return response(pageFixture([{
           id: 'withdrawal-1', custodyAddressId: customerAddress.id,
           sourceAddress: customerAddress.address, subject: customerAddress.subject,
           orderNo: 'CW-FILTER-1', externalReference: 'payout-alpha', chain: 'ETH',
           assetSymbol: 'USDT', toAddress: destination, amount: '3.5', fee: '0.1',
           txHash: '0xwithdrawal-filter', status: 'CONFIRMED', createdAt: customerAddress.createdAt,
-        }]);
+        }], path));
       }
-      if (path.startsWith('/custody/console/v1/addresses')) return response([customerAddress]);
+      if (path.startsWith('/custody/console/v1/addresses')) return response(pageFixture([customerAddress], path));
       if (path.startsWith('/custody/console/v1/gas-accounts')) return response([gasAccount]);
       throw new Error(`Unhandled request: ${path}`);
     }));
@@ -309,9 +315,7 @@ describe('custody operator workflows', () => {
     render(<MemoryRouter initialEntries={['/console/withdrawals']}><App /></MemoryRouter>);
 
     await screen.findByRole('heading', { name: 'Withdrawals', level: 1 }, { timeout: 15_000 });
-    await Promise.resolve();
-    await Promise.resolve();
-    expect(screen.getByText('payout-alpha')).toBeInTheDocument();
+    expect(await screen.findByText('payout-alpha')).toBeInTheDocument();
     expect(screen.getByText(customerAddress.address)).toBeInTheDocument();
     expect(screen.getByText(destination)).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Asset'), { target: { value: 'usdt' } });

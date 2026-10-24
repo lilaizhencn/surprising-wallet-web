@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../App';
+import { pageFixture } from './pageFixture';
 import { clearSession, saveSession } from '../auth/session';
 import { I18nProvider } from '../i18n';
 
@@ -134,7 +135,7 @@ function installConsoleApi() {
       }]);
     }
     if (path.startsWith('/custody/console/v1/addresses')) {
-      return jsonResponse([{
+      return jsonResponse(pageFixture([{
         id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
         chain: 'ETH',
         network: 'sepolia',
@@ -146,7 +147,7 @@ function installConsoleApi() {
         source: 'API',
         status: 'ACTIVE',
         createdAt: timestamp,
-      }]);
+      }], path));
     }
     if (path.startsWith('/custody/console/v1/deposits')) {
       return jsonResponse({
@@ -229,7 +230,7 @@ function installConsoleApi() {
       });
     }
     if (path.startsWith('/custody/console/v1/audit-log')) {
-      return jsonResponse([{
+      return jsonResponse(pageFixture([{
         id: '99999999-9999-9999-9999-999999999999',
         actorType: 'TENANT_USER',
         actorId: '11111111-1111-1111-1111-111111111111',
@@ -239,10 +240,10 @@ function installConsoleApi() {
         sourceIp: '203.0.113.20',
         details: '{}',
         createdAt: timestamp,
-      }]);
+      }], path));
     }
     if (path.startsWith('/custody/console/v1/asset-recoveries')) {
-      return jsonResponse([{
+      return jsonResponse(pageFixture([{
         id: '81818181-8181-8181-8181-818181818181',
         tenantId: '22222222-2222-2222-2222-222222222222',
         actualChain: 'ARBITRUM', expectedChain: 'ETH', assetSymbol: 'USDT',
@@ -251,7 +252,7 @@ function installConsoleApi() {
         destinationAddress: '0x1111111111111111111111111111111111111111',
         verifiedAmount: '25', confirmations: 20, status: 'VERIFIED',
         createdAt: timestamp, updatedAt: timestamp,
-      }]);
+      }], path));
     }
     throw new Error(`Unhandled Console request: ${path}`);
   });
@@ -533,7 +534,7 @@ describe('platform Console route', () => {
         return jsonResponse({});
       }
       if (path.startsWith('/custody/platform/v1/wallet-config/audit-log')) {
-        return jsonResponse([{
+        return jsonResponse(pageFixture([{
           id: '99999999-9999-9999-9999-999999999999',
           actorType: 'PLATFORM_USER',
           actorId: '33333333-3333-3333-3333-333333333333',
@@ -542,7 +543,7 @@ describe('platform Console route', () => {
           resourceId: '3',
           details: '{}',
           createdAt: timestamp,
-        }]);
+        }], path));
       }
       if (!path.startsWith('/custody/platform/v1/tenants')) {
         throw new Error(`Unhandled Platform request: ${path}`);
@@ -692,8 +693,9 @@ describe('platform Console route', () => {
     const chainTable = screen.getAllByRole('table')[0];
     const chainRows = within(chainTable).getAllByRole('row');
     expect(chainRows).toHaveLength(3);
-    expect(within(chainRows[1]).getByText('ETH')).toBeInTheDocument();
-    expect(within(chainRows[2]).getAllByText('BTC')).toHaveLength(2);
+    expect(within(chainRows[1]).getByText('Ethereum')).toBeInTheDocument();
+    expect(within(chainRows[2]).getByText('Bitcoin')).toBeInTheDocument();
+    expect(within(chainRows[2]).getByText('BTC')).toBeInTheDocument();
     expect(within(chainTable).getByText('devnet').closest('.ant-tag')).toHaveClass('ant-tag-green');
     expect(within(chainTable).getByText('mainnet').closest('.ant-tag')).not.toHaveClass('ant-tag-green');
     expect(within(chainRows[1]).queryByText('Chain profile is disabled.')).not.toBeInTheDocument();
