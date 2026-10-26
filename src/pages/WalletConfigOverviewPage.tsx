@@ -17,7 +17,6 @@ import {
   Typography,
 } from 'antd';
 import {
-  ArrowRightOutlined,
   PlusOutlined,
   ReloadOutlined,
   SaveOutlined,
@@ -34,6 +33,7 @@ import {
   WalletChainForm,
   type WalletChainFormValues,
 } from '../components/WalletChainForm';
+import { getChainDisplayName } from '../constants/chains';
 import { useApiQuery } from '../hooks/useApiQuery';
 import type {
   WalletChain,
@@ -320,15 +320,14 @@ export default function WalletConfigOverviewPage() {
     {
       title: t('Chain'),
       key: 'chain',
-      width: 210,
       render: (_: unknown, row: WalletChainStatusGroup) => (
         <div className="chain-cell">
           <ChainLogo chain={row.chain} size={34} />
           <div>
-            <Typography.Text strong>{row.chain}</Typography.Text>
+            <Typography.Text strong>{getChainDisplayName(row.chain)}</Typography.Text>
             <br />
             <Typography.Text type="secondary">
-              {row.nativeSymbol} · {row.family}
+              {row.chain} · {row.nativeSymbol} · {row.family}
             </Typography.Text>
           </div>
         </div>
@@ -356,7 +355,6 @@ export default function WalletConfigOverviewPage() {
     {
       title: t('Supported tokens'),
       key: 'supportedTokens',
-      width: 230,
       render: (_: unknown, row: WalletChainStatusGroup) => {
         const symbols = row.tokenSymbols.length ? row.tokenSymbols : [row.nativeSymbol];
         return (
@@ -381,8 +379,8 @@ export default function WalletConfigOverviewPage() {
       key: 'effectiveTasks',
       render: (_: unknown, row: WalletChainStatusGroup) => <TaskTags tasks={row.representative.effectiveTasks} />,
     },
-    { title: t('Tokens'), dataIndex: 'enabledTokenCount', width: 84 },
-    { title: 'RPC', dataIndex: 'enabledRpcNodeCount', width: 72 },
+    { title: t('Tokens'), dataIndex: 'enabledTokenCount' },
+    { title: 'RPC', dataIndex: 'enabledRpcNodeCount' },
     {
       title: t('Blocking reason'),
       dataIndex: 'blockers',
@@ -393,33 +391,22 @@ export default function WalletConfigOverviewPage() {
     {
       title: t('Operations'),
       key: 'operations',
-      fixed: 'right' as const,
-      width: 210,
       onCell: () => ({
         onClick: (event: MouseEvent) => event.stopPropagation(),
       }),
       render: (_: unknown, row: WalletChainStatusGroup) => (
-        <Space>
-          <Popconfirm
-            title={`${t(row.configuredEnabled ? 'Disable' : 'Enable')} ${row.chain} / ${row.representative.network}?`}
-            onConfirm={() => toggleChain(row)}
-          >
-            <Button
-              size="small"
-              danger={row.configuredEnabled}
-              loading={togglingProfileId === row.representative.profileId}
-            >
-              {t(row.configuredEnabled ? 'Disable' : 'Enable')}
-            </Button>
-          </Popconfirm>
+        <Popconfirm
+          title={`${t(row.configuredEnabled ? 'Disable' : 'Enable')} ${getChainDisplayName(row.chain)} / ${row.representative.network}?`}
+          onConfirm={() => toggleChain(row)}
+        >
           <Button
             size="small"
-            icon={<ArrowRightOutlined />}
-            onClick={() => navigate(`/platform/wallet-config/chains/${row.representative.profileId}`)}
+            danger={row.configuredEnabled}
+            loading={togglingProfileId === row.representative.profileId}
           >
-            {t('Open chain')}
+            {t(row.configuredEnabled ? 'Disable' : 'Enable')}
           </Button>
-        </Space>
+        </Popconfirm>
       ),
     },
   ];
@@ -567,7 +554,6 @@ export default function WalletConfigOverviewPage() {
               dataSource={filteredChainGroups}
               loading={query.loading || profilesQuery.loading}
               pagination={{ pageSize: 20, showSizeChanger: false }}
-              scroll={{ x: 1800 }}
               locale={{ emptyText: <Empty description={t('No chains found')} /> }}
               onRow={(row) => ({
                 onClick: () => navigate(`/platform/wallet-config/chains/${row.representative.profileId}`),
