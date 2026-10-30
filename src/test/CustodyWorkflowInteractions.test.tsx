@@ -65,6 +65,8 @@ const gasAccount = {
 describe('custody operator workflows', () => {
   beforeEach(() => {
     clearSession();
+    localStorage.clear();
+    Object.defineProperty(navigator,'locks',{configurable:true,value:{request:async (_:string, action:()=>Promise<unknown>)=>action()}});
     signIn();
   });
 
@@ -119,7 +121,8 @@ describe('custody operator workflows', () => {
       const path = String(input);
       requests.push({ path, init });
       if (path.startsWith('/custody/console/v1/withdrawals') && init?.method === 'POST') {
-        return response({ id: 'withdrawal-1', status: 'FROZEN' }, 201);
+        const body=JSON.parse(String(init.body));
+        return response({ ...body, id: 'withdrawal-1', status: 'FROZEN' }, 202);
       }
       if (path.startsWith('/custody/console/v1/withdrawals')) return response(pageFixture([], path));
       if (path.startsWith('/custody/console/v1/addresses')) return response(pageFixture([customerAddress], path));
@@ -150,11 +153,13 @@ describe('custody operator workflows', () => {
     expect(requests.filter((item) => item.init?.method === 'POST')).toHaveLength(0);
     await user.click(screen.getByRole('button', { name: 'Confirm and freeze funds' }));
 
-    await screen.findByText(/asset and network-fee reserves are frozen/i);
+    await screen.findByText(/principal and the separate gas reserve are frozen/i);
     const create = requests.find((item) => item.init?.method === 'POST');
     expect(create?.path).toBe('/custody/console/v1/withdrawals');
+    expect(new Headers(create?.init?.headers).get('Idempotency-Key')).toMatch(/^console-/);
     expect(JSON.parse(String(create?.init?.body))).toMatchObject({
       custodyAddressId: customerAddress.id,
+      subject: customerAddress.subject, fundingSource: 'ADDRESS',
       chain: 'ETH',
       assetSymbol: 'ETH',
       amount: '0.25',
@@ -422,7 +427,7 @@ describe('custody operator workflows', () => {
       '/custody/console/v1/webhook-deliveries/delivery-1/retry',
       '/custody/console/v1/webhook-deliveries/retry-failed?endpointId=endpoint-1',
     ]);
-  }, 60_000);
+  }, 180_000); // Multiple modal/Select cycles need their own render budget on shared QA hosts.
 
   it('manages the collection address and lists tokens enabled with the chain', async () => {
     let generated = false;

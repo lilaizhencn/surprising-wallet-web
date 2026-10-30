@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { invalidateApiCache } from '../api/client';
 
 export type AccountType = 'tenant' | 'platform';
 
@@ -46,11 +47,13 @@ function emit() {
 }
 
 export function saveSession(session: Session) {
+  invalidateApiCache();
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify(session));
   emit();
 }
 
 export function clearSession() {
+  invalidateApiCache();
   sessionStorage.removeItem(STORAGE_KEY);
   emit();
 }

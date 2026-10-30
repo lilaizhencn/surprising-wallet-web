@@ -322,9 +322,9 @@ const apiDocs: ApiDoc[] = [
   {
     "chain": "ARBITRUM",
     "assetSymbol": "USDT",
-    "availableBalance": 1250.25,
-    "lockedBalance": 50,
-    "totalBalance": 1300.25,
+    "availableBalance": "1250.25",
+    "lockedBalance": "50",
+    "totalBalance": "1300.25",
     "addressCount": 18
   }
 ]`,
@@ -342,13 +342,15 @@ const apiDocs: ApiDoc[] = [
   {
     "id": "bfc248e6-a5f5-44bc-b69d-26434072eebb",
     "custodyAddressId": "8eca3ed7-55f0-49d7-a5ef-c2fd7e9e34ef",
+    "fundingSource": "ADDRESS",
+    "subject": "user:42",
     "subject": "user_10086",
     "address": "0x1234567890abcdef1234567890abcdef12345678",
     "chain": "ARBITRUM",
     "assetSymbol": "USDT",
     "txHash": "0xabc...789",
     "logIndex": 3,
-    "amount": 100,
+    "amount": "100",
     "status": "CONFIRMED",
     "creditedAt": "2026-07-21T08:05:00Z"
   }
@@ -364,6 +366,7 @@ const apiDocs: ApiDoc[] = [
   '/custody/api/v1/withdrawals',
   {
     custodyAddressId: '8eca3ed7-55f0-49d7-a5ef-c2fd7e9e34ef',
+    fundingSource: 'ADDRESS', subject: 'user:42',
     chain: 'ARBITRUM',
     assetSymbol: 'USDT',
     toAddress: '0xabcd...1234',
@@ -376,18 +379,21 @@ const apiDocs: ApiDoc[] = [
     response: `{
   "id": "4ec53331-d178-46a6-a991-68409fe80280",
   "custodyAddressId": "8eca3ed7-55f0-49d7-a5ef-c2fd7e9e34ef",
+    "fundingSource": "ADDRESS",
+    "subject": "user:42",
   "orderNo": "CW-acme-8eca3ed7-000001",
   "externalReference": "merchant_order_20260721_001",
   "chain": "ARBITRUM",
   "assetSymbol": "USDT",
   "toAddress": "0xabcd...1234",
-  "amount": 25.50,
-  "fee": 0.12,
+  "amount": "25.50",
+  "fee": "0",
+    "networkFee": "0.000012", "networkFeeAsset": "ETH",
   "status": "FROZEN",
   "txHash": null,
   "errorMessage": null
 }`,
-    notes: 'amount 必须作为十进制字符串提交。相同 Idempotency-Key + 相同参数返回原结果；相同键配不同参数会被拒绝。confirmed 必须为 true。',
+    notes: 'amount 必须作为十进制字符串提交。提现幂等凭据永久保留，相同 Idempotency-Key + 相同参数先重放原结果，再考虑新的业务校验；相同键配不同参数会被拒绝。超时或 HTTP 4xx 不能视为未出款。需要退款时用原键、原请求调用 POST /custody/api/v1/withdrawals/resolve，校验永久拒绝凭据的键和请求哈希；已受理单按精确 externalReference 查询。confirmed 必须为 true。',
   },
   {
     key: 'withdrawals', method: 'GET', path: '/custody/api/v1/withdrawals',
@@ -395,7 +401,7 @@ const apiDocs: ApiDoc[] = [
     description: '查询提现状态、平台订单号、业务关联号和最终链上交易哈希。',
     demo: `const withdrawals = await custodyRequest(
   'GET',
-  '/custody/api/v1/withdrawals?chain=ARBITRUM&assetSymbol=USDT&status=CONFIRMED&search=merchant_order_20260721_001&limit=50&offset=0'
+  '/custody/api/v1/withdrawals?chain=ARBITRUM&assetSymbol=USDT&status=CONFIRMED&externalReference=merchant_order_20260721_001&limit=50&offset=0'
 );`,
     response: `[
   {
@@ -406,8 +412,9 @@ const apiDocs: ApiDoc[] = [
     "subject": "merchant_treasury",
     "chain": "ARBITRUM",
     "assetSymbol": "USDT",
-    "amount": 25.50,
-    "fee": 0.12,
+    "amount": "25.50",
+    "fee": "0",
+    "networkFee": "0.000012", "networkFeeAsset": "ETH",
     "status": "CONFIRMED",
     "txHash": "0xdef...456",
     "errorMessage": null
@@ -484,6 +491,7 @@ $addresses = (new CustodyClient())->request('GET', $target);`,
     javascript: apiDocs[5].demo,
     java: `Map<String, Object> body = Map.of(
     "custodyAddressId", "8eca3ed7-55f0-49d7-a5ef-c2fd7e9e34ef",
+    "fundingSource", "ADDRESS", "subject", "user:42",
     "chain", "ARBITRUM", "assetSymbol", "USDT",
     "toAddress", "0xabcd...1234", "amount", "25.50",
     "externalReference", "merchant_order_20260721_001", "confirmed", true);
@@ -491,6 +499,8 @@ String withdrawal = CustodyClient.request("POST", "/custody/api/v1/withdrawals",
     Map.of("Idempotency-Key", "withdrawal-merchant-order-20260721-001"));`,
     go: `body := map[string]any{
   "custodyAddressId": "8eca3ed7-55f0-49d7-a5ef-c2fd7e9e34ef",
+    "fundingSource": "ADDRESS",
+    "subject": "user:42",
   "chain": "ARBITRUM", "assetSymbol": "USDT", "toAddress": "0xabcd...1234",
   "amount": "25.50", "externalReference": "merchant_order_20260721_001",
   "confirmed": true,
@@ -499,12 +509,15 @@ withdrawal, err := custodyRequest("POST", "/custody/api/v1/withdrawals", body,
   map[string]string{"Idempotency-Key": "withdrawal-merchant-order-20260721-001"})`,
     python: `withdrawal = custody_request("POST", "/custody/api/v1/withdrawals", {
     "custodyAddressId": "8eca3ed7-55f0-49d7-a5ef-c2fd7e9e34ef",
+    "fundingSource": "ADDRESS",
+    "subject": "user:42",
     "chain": "ARBITRUM", "assetSymbol": "USDT", "toAddress": "0xabcd...1234",
     "amount": "25.50", "externalReference": "merchant_order_20260721_001",
     "confirmed": True,
 }, {"Idempotency-Key": "withdrawal-merchant-order-20260721-001"})`,
     php: `$withdrawal = (new CustodyClient())->request('POST', '/custody/api/v1/withdrawals', [
     'custodyAddressId' => '8eca3ed7-55f0-49d7-a5ef-c2fd7e9e34ef',
+    'fundingSource' => 'ADDRESS', 'subject' => 'user:42',
     'chain' => 'ARBITRUM', 'assetSymbol' => 'USDT', 'toAddress' => '0xabcd...1234',
     'amount' => '25.50', 'externalReference' => 'merchant_order_20260721_001',
     'confirmed' => true,
@@ -513,15 +526,15 @@ withdrawal, err := custodyRequest("POST", "/custody/api/v1/withdrawals", body,
   withdrawals: {
     javascript: apiDocs[6].demo,
     java: `String withdrawals = CustodyClient.request("GET",
-    "/custody/api/v1/withdrawals?chain=ARBITRUM&assetSymbol=USDT&status=CONFIRMED&search=merchant_order_20260721_001&limit=50&offset=0",
+    "/custody/api/v1/withdrawals?chain=ARBITRUM&assetSymbol=USDT&status=CONFIRMED&externalReference=merchant_order_20260721_001&limit=50&offset=0",
     null, Map.of());`,
     go: `withdrawals, err := custodyRequest("GET",
-  "/custody/api/v1/withdrawals?chain=ARBITRUM&assetSymbol=USDT&status=CONFIRMED&search=merchant_order_20260721_001&limit=50&offset=0", nil, nil)`,
+  "/custody/api/v1/withdrawals?chain=ARBITRUM&assetSymbol=USDT&status=CONFIRMED&externalReference=merchant_order_20260721_001&limit=50&offset=0", nil, nil)`,
     python: `withdrawals = custody_request(
-    "GET", "/custody/api/v1/withdrawals?chain=ARBITRUM&assetSymbol=USDT&status=CONFIRMED&search=merchant_order_20260721_001&limit=50&offset=0"
+    "GET", "/custody/api/v1/withdrawals?chain=ARBITRUM&assetSymbol=USDT&status=CONFIRMED&externalReference=merchant_order_20260721_001&limit=50&offset=0"
 )`,
     php: `$withdrawals = (new CustodyClient())->request(
-    'GET', '/custody/api/v1/withdrawals?chain=ARBITRUM&assetSymbol=USDT&status=CONFIRMED&search=merchant_order_20260721_001&limit=50&offset=0'
+    'GET', '/custody/api/v1/withdrawals?chain=ARBITRUM&assetSymbol=USDT&status=CONFIRMED&externalReference=merchant_order_20260721_001&limit=50&offset=0'
 );`,
   },
 };
@@ -661,7 +674,7 @@ const depositWebhook = `{
     "address": "0x1234...abcd",
     "memo": null,
     "purpose": "CUSTOMER",
-    "amount": 100,
+    "amount": "100",
     "txHash": "0xabc...789",
     "logIndex": 3,
     "blockHeight": 231004567,
@@ -677,13 +690,16 @@ const withdrawalWebhook = `{
   "data": {
     "withdrawalId": "4ec53331-d178-46a6-a991-68409fe80280",
     "custodyAddressId": "8eca3ed7-55f0-49d7-a5ef-c2fd7e9e34ef",
+    "fundingSource": "ADDRESS",
+    "subject": "user:42",
     "externalReference": "merchant_order_20260721_001",
     "orderNo": "CW-acme-8eca3ed7-000001",
     "chain": "ARBITRUM",
     "asset": "USDT",
     "toAddress": "0xabcd...1234",
-    "amount": 25.50,
-    "fee": 0.12,
+    "amount": "25.50",
+    "fee": "0",
+    "networkFee": "0.000012", "networkFeeAsset": "ETH",
     "status": "CONFIRMED",
     "txHash": "0xdef...456",
     "errorMessage": null
@@ -698,7 +714,7 @@ const fieldRows = [
   { field: 'logIndex', meaning: '交易内事件序号；Token 充值使用 chain + txHash + logIndex 做唯一键。' },
   { field: 'subject', meaning: '租户业务系统中的用户/账户稳定标识，用来关联充值地址和到账用户。' },
   { field: 'addressVersion', meaning: '地址业务版本，默认 0；需要给同一 subject 更换地址时递增。旧版本地址仍继续监听和入账。' },
-  { field: 'custodyAddressId', meaning: '平台生成的托管地址 UUID，提现时用于指定资金来源。' },
+  { field: 'custodyAddressId / fundingSource', meaning: 'ADDRESS 必须指定托管地址；TENANT_POOL 必须传 null，以租户本金池出款且不动用 Gas 余额。两种模式均须独立 subject 标记提现用户。' },
   { field: 'externalReference', meaning: '租户自己的订单号/业务流水号，便于双方对账。' },
   { field: 'orderNo', meaning: '平台提现订单号；排障、查询和对账时应同时保留 orderNo 与 externalReference。' },
   { field: 'amount / fee', meaning: '十进制金额。请求时用字符串，业务计算使用 Decimal/BigDecimal，禁止浮点数。' },

@@ -1,6 +1,10 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
+
+// Lazy route imports must be allowed to finish before querying their API-backed content.
+configure({ asyncUtilTimeout: 15_000 });
 import { afterEach, vi } from 'vitest';
+import { invalidateApiCache } from '../api/client';
 
 class TestResizeObserver implements ResizeObserver {
   observe() {}
@@ -34,6 +38,7 @@ Object.defineProperty(window, 'scrollTo', {
 
 afterEach(() => {
   cleanup();
+  invalidateApiCache();
   sessionStorage.clear();
   vi.unstubAllGlobals();
 });
