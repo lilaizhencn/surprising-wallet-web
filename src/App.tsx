@@ -11,6 +11,9 @@ const OverviewPage = lazyRoute(() => import('./pages/OverviewPage'));
 const AddressesPage = lazyRoute(() => import('./pages/AddressesPage'));
 const TransfersPage = lazyRoute(() => import('./pages/TransfersPage'));
 const ApiAccessPage = lazyRoute(() => import('./pages/ApiAccessPage'));
+const ApprovalEntryPage = lazyRoute(() => import('./pages/ApprovalEntryPage'));
+const ApprovalPortalPage = lazyRoute(() => import('./pages/ApprovalPortalPage'));
+const TenantMembersPage = lazyRoute(() => import('./pages/TenantMembersPage'));
 const AuditPage = lazyRoute(() => import('./pages/AuditPage'));
 const TenantsPage = lazyRoute(() => import('./pages/TenantsPage'));
 const TenantDetailPage = lazyRoute(() => import('./pages/TenantDetailPage'));
@@ -86,6 +89,7 @@ export default function App() {
         <Suspense fallback={<RouteFallback />}>
           <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/approval" element={<ApprovalPortalPage />} />
           <Route path="/console/login" element={<LoginPage />} />
           <Route element={<PublicDocsShell />}>
             <Route path="/console/developer-docs" element={<DeveloperDocsPage />} />
@@ -99,8 +103,10 @@ export default function App() {
               <Route element={<ProtectedRoute accountType="tenant" requiredScope="chains:read" />}>
                 <Route path="chains" element={<TenantChainsPage />} />
               </Route>
+              <Route element={<ProtectedRoute accountType="tenant" requiredScope="approvals:read" />}><Route path="approvals" element={<ApprovalEntryPage />} /></Route>
               <Route element={<ProtectedRoute accountType="tenant" requiredRole="TENANT_ADMIN" />}>
                 <Route path="api-access" element={<ApiAccessPage />} />
+                <Route path="users" element={<TenantMembersPage />} />
               </Route>
               <Route element={<ProtectedRoute accountType="tenant" requiredScope="addresses:read" />}>
                 <Route path="addresses" element={<AddressesPage />} />

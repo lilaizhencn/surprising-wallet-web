@@ -41,6 +41,8 @@ const tenantItemDefinitions: TenantItemDefinition[] = [
   { key: '/console/asset-recoveries', icon: <SafetyOutlined />, label: 'Asset recovery', scope: 'deposits:read' },
   { key: '/console/withdrawals', icon: <SwapOutlined />, label: 'Withdrawals', scope: 'withdrawals:read' },
   { key: '/console/api-access', icon: <ApiOutlined />, label: 'Developer access', role: 'TENANT_ADMIN' },
+  { key: '/console/approvals', icon: <SafetyCertificateOutlined />, label: 'Withdrawal approvals', scope: 'approvals:read' },
+  { key: '/console/users', icon: <TeamOutlined />, label: 'Team members', role: 'TENANT_ADMIN' },
   { key: '/console/audit-log', icon: <AuditOutlined />, label: 'Audit log', scope: 'audit:read' },
 ];
 
