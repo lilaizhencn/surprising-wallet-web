@@ -102,3 +102,34 @@ describe('LoginPage', () => {
     expect(await screen.findByRole('heading', { name: /^chains$/i })).toBeInTheDocument();
   }, 15_000);
 });
+
+it('keeps business access locked until email verification and authenticator enrollment both finish', async () => {
+  clearSession();
+  const result = { expiresAt: '2099-01-01T00:00:00Z', userId: 'user', tenantId: 'tenant', tenantSlug: 'test', email: 'mfa@example.test', displayName: 'MFA', role: 'OPERATOR', scopes: ['withdrawals:read'],
+    verificationRequired: true, emailRequired: true, emailVerified: false, totpRequired: true, totpSetupRequired: true };
+  const writes: Array<{ path: string; body: unknown }> = [];
+  let verifiedEmail = false;
+  vi.stubGlobal('fetch', vi.fn(async (input, init) => {
+    const path = String(input); writes.push({ path, body: init?.body ? JSON.parse(init.body) : undefined });
+    if (path.endsWith('/login')) return jsonResponse(result);
+    if (path.endsWith('/email-code')) return jsonResponse({ ok: true });
+    if (path.endsWith('/totp/setup')) return jsonResponse({ secret: 'TESTONLYSECRET', uri: 'otpauth://totp/test?secret=TESTONLYSECRET', expiresAt: '2099-01-01' });
+    if (path.endsWith('/verify')) {
+      if (!verifiedEmail) { verifiedEmail = true; return jsonResponse({ ...result, emailVerified: true }); }
+      return jsonResponse({ ...result, verificationRequired: false, emailVerified: true, totpSetupRequired: false });
+    }
+    throw new Error(path);
+  }));
+  const user = userEvent.setup();
+  render(<AntApp><MemoryRouter initialEntries={['/console/login']}><Routes><Route path="/console/login" element={<LoginPage />} /><Route path="/console/overview" element={<h1>Protected business</h1>} /></Routes></MemoryRouter></AntApp>);
+  await user.type(screen.getByLabelText('Email'), 'mfa@example.test'); await user.type(screen.getByLabelText('Password'), 'test-password-123'); await user.click(screen.getByRole('button', { name: 'Sign in' }));
+  await screen.findByText('Complete sign-in verification'); expect(getSession()).toBeNull(); expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Send email code' }));
+  await user.type(screen.getByLabelText('Email verification code'), '123456'); await user.click(await screen.findByRole('button', { name: 'Verify and continue' }));
+  await user.click(await screen.findByRole('button', { name: 'Show binding QR code' }));
+  await screen.findByText('TESTONLYSECRET'); expect(getSession()).toBeNull(); expect(sessionStorage.getItem('surprising-wallet.session.v2')).toBeNull();
+  await user.type(screen.getByLabelText('Authenticator code'), '654321'); await user.click(await screen.findByRole('button', { name: 'Verify and continue' }));
+  await screen.findByText('Protected business'); expect(getSession()?.email).toBe('mfa@example.test');
+  expect(writes.filter(w => w.path.endsWith('/verify')).map(w => w.body)).toEqual([{ emailCode: '123456' }, { totpCode: '654321' }]);
+  clearSession();
+}, 30000);

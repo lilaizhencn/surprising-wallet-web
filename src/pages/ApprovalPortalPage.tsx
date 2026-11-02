@@ -11,6 +11,7 @@ import { LanguageSwitch } from '../components/LanguageSwitch';
 type Principal = { tenantId: string; memberId: string; displayName: string; role: string; email: string; csrfToken: string };
 type Intent = { id: string; chain: string; network: string; assetSymbol: string; recipient: string; amount: string; maximumNetworkFee: string; source: string; subject: string; businessReference: string; initiatorId: string; externalReference: string; fundingSource: string };
 type Request = { assetSnapshot: { networkIdentity: string; tokenIdentifier: string | null; nativeSymbol: string }; intent: Intent; intentHash: string; status: string; reasons: string[]; requiredReviewers: number; policyVersion: number; expiresAt: string; signingStarted: boolean };
+type DecisionHistory = { reviewerId: string; decision: string; reason: string; createdAt: string };
 type Page = { items: Request[]; total: number; limit: number; offset: number };
 type Policy = { chain: string; network: string; assetSymbol: string; version: number; singleAmount: string | null; rolling24hAmount: string | null; allWithdrawals: boolean; newRecipient: boolean; consoleWithdrawal: boolean; requiredReviewers: number; expirySeconds: number };
 type PolicyFields = Omit<Policy, 'version'>;
@@ -25,15 +26,17 @@ export default function ApprovalPortalPage() {
   });
   const activationCompleted = useRef(false);
   const [checking, setChecking] = useState(true); const [loginError, setLoginError] = useState(''); const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState('PENDING'); const [pagination, setPagination] = useState({ current: 1, pageSize: 20 });
+  const [status, setStatus] = useState(''); const [pagination, setPagination] = useState({ current: 1, pageSize: 20 });
   const [revision, setRevision] = useState(0); const [selected, setSelected] = useState<Request>(); const [decision, setDecision] = useState('APPROVE');
+  const [history, setHistory] = useState<DecisionHistory[]>([]); const [historyError, setHistoryError] = useState(''); const [historyLoading, setHistoryLoading] = useState(false);
+  const historyVersion = useRef(0);
   const [decisionForm] = Form.useForm<{ reason: string }>(); const [policyForm] = Form.useForm<PolicyFields>();
   const identityVersion = useRef(0); const policyAbort = useRef<AbortController | undefined>(undefined);
   const [policies, setPolicies] = useState<Policy[]>([]); const [editingPolicy, setEditingPolicy] = useState<Policy>(); const [policyOpen, setPolicyOpen] = useState(false);
   const clearIdentity = useCallback(() => {
-    identityVersion.current++; policyAbort.current?.abort(); policyAbort.current = undefined; setBusy(false);
+    identityVersion.current++; historyVersion.current++; setHistory([]); setHistoryError(''); policyAbort.current?.abort(); policyAbort.current = undefined; setBusy(false);
     setPrincipal(undefined); setSelected(undefined); setPolicies([]); setEditingPolicy(undefined); setPolicyOpen(false);
-    setStatus('PENDING'); setPagination({ current: 1, pageSize: 20 }); decisionForm.resetFields(); policyForm.resetFields();
+    setStatus(''); setPagination({ current: 1, pageSize: 20 }); decisionForm.resetFields(); policyForm.resetFields();
   }, [decisionForm, policyForm]);
   const expired = useCallback(() => { clearIdentity(); setLoginError(t('Independent approval session expired. Please sign in again.')); }, [clearIdentity, t]);
   useEffect(() => { if (!trustedSite || activationToken || activationCompleted.current) { setChecking(false); return; } const controller = new AbortController();
@@ -50,7 +53,17 @@ export default function ApprovalPortalPage() {
   };
   const logout = async () => { try { await approvalRequest('/auth/logout', { method: 'POST', csrf: principal?.csrfToken }); clearIdentity(); setLoginError(''); }
     catch (error) { void message.error(error instanceof Error ? error.message : t('Unable to sign out')); } };
-  const recordDecision = async ({ reason }: { reason: string }) => { if (!selected || !principal) return; const version = identityVersion.current; setBusy(true);
+  const inspect = async (row: Request) => {
+    setSelected(row); setDecision('APPROVE'); decisionForm.resetFields(); setHistory([]); setHistoryError(''); setHistoryLoading(true);
+    const identity = identityVersion.current; const version = ++historyVersion.current;
+    try { const data = await approvalRequest<DecisionHistory[]>(`/requests/${row.intent.id}/decisions`); if (identity === identityVersion.current && version === historyVersion.current) setHistory(data); }
+    catch(error) { if(identity === identityVersion.current && version === historyVersion.current) { if(error instanceof ApprovalApiError && error.status === 401) expired(); else setHistoryError(error instanceof Error ? error.message : t('Unable to load decision history')); } }
+    finally { if(version === historyVersion.current) setHistoryLoading(false); }
+  };
+  const canReview = selected && selected.status === 'PENDING' && !selected.signingStarted && new Date(selected.expiresAt).getTime() > Date.now()
+    && !(selected.intent.source === 'CONSOLE' && selected.intent.initiatorId === principal?.memberId)
+    && !history.some(item => item.reviewerId === principal?.memberId) && !historyLoading && !historyError;
+  const recordDecision = async ({ reason }: { reason: string }) => { if (!selected || !principal || !canReview) return; const version = identityVersion.current; setBusy(true);
     try { const result = await approvalRequest<Request>(`/requests/${selected.intent.id}/decisions`, { method: 'POST', csrf: principal.csrfToken,
       body: { decision, reason, intentHash: selected.intentHash } }); if (version !== identityVersion.current) return; setSelected(undefined); decisionForm.resetFields(); setRevision(n => n + 1);
       void message.success(t(result.status === 'EXPIRED' ? 'Approval expired; no decision was accepted.' : 'Decision recorded')); }
@@ -92,7 +105,7 @@ export default function ApprovalPortalPage() {
               { title: t('Order'), render: (_, r) => r.intent.businessReference }, { title: t('Chain'), render: (_, r) => `${r.intent.chain} / ${r.intent.network}` },
               { title: t('Amount'), render: (_, r) => `${r.intent.amount} ${r.intent.assetSymbol}` }, { title: t('Recipient'), render: (_, r) => <Typography.Text copyable>{r.intent.recipient}</Typography.Text> },
               { title: t('Approval reasons'), render: (_, r) => r.reasons.map(reason => <Tag key={reason}>{t(reason)}</Tag>) }, { title: t('Required reviewers'), dataIndex: 'requiredReviewers' },
-              { title: t('Status'), dataIndex: 'status', render: value => t(value) }, { title: t('Actions'), render: (_, r) => <Button disabled={r.status !== 'PENDING' || (r.intent.source === 'CONSOLE' && r.intent.initiatorId === principal.memberId)} onClick={() => { setSelected(r); setDecision('APPROVE'); decisionForm.resetFields(); }}>{t('Review')}</Button> },
+              { title: t('Status'), dataIndex: 'status', render: value => t(value) }, { title: t('Actions'), render: (_, r) => <Button onClick={() => void inspect(r)}>{t(r.status === 'PENDING' ? 'Review' : 'Details')}</Button> },
             ]} />
         </> },
         ...(principal.role === 'TENANT_ADMIN' ? [{ key: 'policies', label: t('Approval policies'), children: <>
@@ -105,7 +118,7 @@ export default function ApprovalPortalPage() {
         { key: 'audit', label: t('Approval audit'), children: <ApprovalAuditPanel key={`${principal.tenantId}/${principal.memberId}`} onExpired={expired} /> },
         ] : []),
       ]} />
-      <Modal title={t('Review withdrawal')} open={Boolean(selected)} confirmLoading={busy} okText={t('Record decision')} onOk={() => decisionForm.submit()} onCancel={() => setSelected(undefined)}>
+      <Modal width={880} title={t('Review withdrawal')} open={Boolean(selected)} confirmLoading={busy} okButtonProps={{ disabled: !canReview }} okText={t('Record decision')} onOk={() => decisionForm.submit()} onCancel={() => setSelected(undefined)}>
         {selected && <Descriptions column={1} items={[
           { key: 'order', label: t('Order'), children: selected.intent.businessReference }, { key: 'chain', label: t('Chain'), children: `${selected.intent.chain} / ${selected.intent.network}` },
           { key: 'amount', label: t('Amount'), children: `${selected.intent.amount} ${selected.intent.assetSymbol}` }, { key: 'recipient', label: t('Recipient'), children: selected.intent.recipient },
@@ -116,7 +129,14 @@ export default function ApprovalPortalPage() {
           { key: 'fundingSource', label: t('Funding source'), children: selected.intent.fundingSource === 'TENANT_POOL' ? t('Tenant pool') : selected.intent.fundingSource === 'ADDRESS' ? t('Address') : '—' },
           { key: 'subject', label: t('Subject'), children: selected.intent.subject }, { key: 'expiry', label: t('Expires at'), children: selected.expiresAt },
         ]} />}
-        <Form form={decisionForm} layout="vertical" onFinish={recordDecision}><Form.Item label={t('Decision')}><Select value={decision} onChange={setDecision} options={[{ value: 'APPROVE', label: t('Approve') }, { value: 'REJECT', label: t('Reject') }]} /></Form.Item>
+        <Typography.Title level={5}>{t('Decision history')}</Typography.Title>
+        <Typography.Paragraph>{t('Approval progress')}: {history.filter(item => item.decision === 'APPROVE').length} / {selected?.requiredReviewers ?? 0}</Typography.Paragraph>
+        {historyError && <Alert type="error" title={historyError} action={<Button onClick={() => selected && void inspect(selected)}>{t('Retry')}</Button>} />}
+        <Table<DecisionHistory> size="small" rowKey="reviewerId" loading={historyLoading} dataSource={history} pagination={false} columns={[
+          { title: t('Reviewer'), dataIndex: 'reviewerId' }, { title: t('Decision'), dataIndex: 'decision', render: value => t(value) }, { title: t('Reason'), dataIndex: 'reason' }, { title: t('Created at'), dataIndex: 'createdAt' },
+        ]} />
+        {!canReview && !historyLoading && <Alert type="info" title={t('This request is view-only: it is finalized, expired, already reviewed, or initiated by you.')} />}
+        <Form disabled={!canReview} form={decisionForm} layout="vertical" onFinish={recordDecision}><Form.Item label={t('Decision')}><Select value={decision} onChange={setDecision} options={[{ value: 'APPROVE', label: t('Approve') }, { value: 'REJECT', label: t('Reject') }]} /></Form.Item>
           <Form.Item name="reason" label={t('Reason')} rules={[{ required: true, whitespace: true, max: 1000 }]}><Input.TextArea rows={3} /></Form.Item></Form>
       </Modal>
       <Modal title={t('Approval policy')} open={policyOpen} confirmLoading={busy} onOk={() => policyForm.submit()} onCancel={() => setPolicyOpen(false)}>

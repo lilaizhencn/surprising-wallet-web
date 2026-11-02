@@ -11,6 +11,8 @@ import {
   Button,
   Descriptions,
   Empty,
+  Form,
+  Modal,
   Input,
   Popconfirm,
   Progress,
@@ -311,6 +313,9 @@ export default function TenantDetailPage() {
   });
   const [saving, setSaving] = useState(false);
   const [statusSaving, setStatusSaving] = useState(false);
+  const [recoveryTarget, setRecoveryTarget] = useState<TenantAdministrator>();
+  const [recoveryForm] = Form.useForm<{ reason: string }>();
+  const [recovering, setRecovering] = useState(false);
   const [unlockingId, setUnlockingId] = useState<string>();
 
   const query = useApiQuery<TenantDetail>(
@@ -372,7 +377,7 @@ export default function TenantDetailPage() {
           const locked = Boolean(
             row.lockedUntil && new Date(row.lockedUntil).getTime() > Date.now(),
           );
-          return locked ? (
+          return <Space>{locked ? (
             <Popconfirm
               title={t('Unlock this tenant administrator?')}
               description={t('Failed-login counters and the temporary login lock will be cleared.')}
@@ -386,11 +391,11 @@ export default function TenantDetailPage() {
                 {t('Unlock')}
               </Button>
             </Popconfirm>
-          ) : null;
+          ) : null}<Button danger size="small" onClick={() => { recoveryForm.resetFields(); setRecoveryTarget(row); }}>{t('Reset authenticator')}</Button></Space>;
         },
       },
     ],
-    [t, unlockAdministrator, unlockingId],
+    [t, unlockAdministrator, unlockingId, recoveryForm],
   );
 
   const saveTenant = async () => {
@@ -800,6 +805,15 @@ export default function TenantDetailPage() {
         ]}
       />
 
+      <Modal title={t('Reset authenticator')} open={Boolean(recoveryTarget)} confirmLoading={recovering} onOk={() => recoveryForm.submit()} onCancel={() => setRecoveryTarget(undefined)}>
+        <p>{recoveryTarget?.email}</p><Alert type="warning" title={t('Verify the administrator identity before resetting. This revokes all sessions and requires a fresh binding when mandatory.')} />
+        <Form form={recoveryForm} layout="vertical" preserve={false} onFinish={async values => {
+          if (!recoveryTarget) return;
+          setRecovering(true);
+          try { await api.post(`/custody/platform/v1/tenants/${tenantId}/administrators/${recoveryTarget.id}/reset-totp`, values); setRecoveryTarget(undefined); query.refetch(); void message.success(t('Authenticator reset; the member must bind again when required')); }
+          catch(e) { void message.error(t(e instanceof Error ? e.message : 'Unable to save account security')); } finally { setRecovering(false); }
+        }}><Form.Item name="reason" label={t('Reason')} rules={[{ required: true, whitespace: true, max: 500 }]}><Input.TextArea /></Form.Item></Form>
+      </Modal>
     </div>
   );
 }

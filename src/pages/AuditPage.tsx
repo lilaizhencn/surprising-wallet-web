@@ -60,7 +60,7 @@ export default function AuditPage({ platform = false }: { platform?: boolean }) 
             ),
           }}
           columns={[
-            { title: t('Action'), dataIndex: 'action' },
+            { title: t('Action'), dataIndex: 'action', render: value => t(value) },
             { title: t('Actor'), dataIndex: 'actorType' },
             { title: t('Actor ID'), dataIndex: 'actorId', render: (value) => <CopyText value={value} /> },
             { title: t('Resource'), dataIndex: 'resourceType' },

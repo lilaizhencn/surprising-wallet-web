@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { App, Button, Form, Input, Segmented } from 'antd';
+import { Alert, App, Button, Form, Input, QRCode, Segmented, Space, Typography } from 'antd';
 import { ArrowLeftOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { apiRequest } from '../api/client';
-import { saveSession, type AccountType, type Session } from '../auth/session';
+import { clearSession, saveSession, type AccountType, type Session } from '../auth/session';
 import { Brand } from '../components/Brand';
 import { LanguageSwitch } from '../components/LanguageSwitch';
 import { useI18n } from '../i18n';
@@ -17,6 +17,11 @@ type LoginResponse = {
   displayName: string;
   role: string;
   scopes: string[];
+  verificationRequired?: boolean;
+  emailRequired?: boolean;
+  emailVerified?: boolean;
+  totpRequired?: boolean;
+  totpSetupRequired?: boolean;
 };
 
 type LoginValues = {
@@ -29,18 +34,14 @@ export default function LoginPage() {
   const requestedType = (location.state as { accountType?: AccountType } | null)?.accountType;
   const [accountType, setAccountType] = useState<AccountType>(requestedType ?? 'tenant');
   const [loading, setLoading] = useState(false);
+  const [pending, setPending] = useState<LoginResponse>();
+  const [setup, setSetup] = useState<{ secret: string; uri: string; expiresAt: string }>();
+  const [sent, setSent] = useState(false);
   const navigate = useNavigate();
   const { message } = App.useApp();
   const { t } = useI18n();
 
-  const submit = async (values: LoginValues) => {
-    setLoading(true);
-    try {
-      const path = accountType === 'platform'
-        ? '/custody/platform/v1/auth/login'
-        : '/custody/console/v1/auth/login';
-      const body = { email: values.email, password: values.password };
-      const result = await apiRequest<LoginResponse>(path, { method: 'POST', body });
+  const complete = (result: LoginResponse) => {
       const session: Session = { version: 2, accountType, ...result };
       saveSession(session);
       void message.success(t('Welcome back'));
@@ -54,6 +55,27 @@ export default function LoginPage() {
       navigate(destination, {
         replace: true,
       });
+  };
+  const securityAction = async (action: () => Promise<void>) => {
+    setLoading(true);
+    try { await action(); } catch (error) { void message.error(t(error instanceof Error ? error.message : 'Unable to verify sign in')); }
+    finally { setLoading(false); }
+  };
+  const verify = (fields: { emailCode?: string; totpCode?: string }) => securityAction(async () => {
+    const result = await apiRequest<LoginResponse>('/custody/console/v1/auth/verify', { method: 'POST', body: fields });
+    if (result.verificationRequired) setPending(result); else complete(result);
+  });
+
+  const submit = async (values: LoginValues) => {
+    setLoading(true);
+    try {
+      const path = accountType === 'platform'
+        ? '/custody/platform/v1/auth/login'
+        : '/custody/console/v1/auth/login';
+      const body = { email: values.email, password: values.password };
+      const result = await apiRequest<LoginResponse>(path, { method: 'POST', body });
+      if (result.verificationRequired) { clearSession(); setPending(result); setSetup(undefined); setSent(false); }
+      else complete(result);
     } catch (error) {
       void message.error(t(error instanceof Error ? error.message : 'Unable to sign in'));
     } finally {
@@ -77,7 +99,25 @@ export default function LoginPage() {
         <div className="login-form-shell">
           <h2>{t('Sign in')}</h2>
           <p>{t('Use the credentials created for your Console account.')}</p>
-          <Segmented<AccountType>
+          {pending ? <>
+            <Alert type="info" title={t('Complete sign-in verification')} description={t('Verification expires after 5 minutes. Business access stays locked until all required checks pass.')} />
+            <Typography.Paragraph>{pending.email}</Typography.Paragraph>
+            {pending.emailRequired && !pending.emailVerified ? <Button disabled={loading} onClick={() => void securityAction(async () => {
+              await apiRequest('/custody/console/v1/auth/email-code', { method: 'POST' }); setSent(true);
+              void message.success(t('Verification code sent. Wait 60 seconds before resending.'));
+            })}>{t(sent ? 'Resend email code' : 'Send email code')}</Button> : pending.totpSetupRequired && <>
+              <p>{t('Your administrator requires Google Authenticator. Scan the QR code and enter the generated code to bind your account.')}</p>
+              {!setup ? <Button disabled={loading} onClick={() => void securityAction(async () => setSetup(await apiRequest('/custody/console/v1/auth/totp/setup', { method: 'POST' }))) }>{t('Show binding QR code')}</Button>
+                : <Space orientation="vertical"><QRCode value={setup.uri} /><Typography.Text copyable>{setup.secret}</Typography.Text><Typography.Text type="secondary">{t('Keep this secret private. The QR code expires in 5 minutes.')}</Typography.Text></Space>}
+            </>}
+            <Form key={pending.emailVerified ? 'totp' : 'email'} layout="vertical" onFinish={verify} preserve={false}>
+              {pending.emailRequired && !pending.emailVerified ? <Form.Item name="emailCode" label={t('Email verification code')} rules={[{ required: true, pattern: /^[0-9]{6}$/ }]}><Input autoComplete="one-time-code" inputMode="numeric" maxLength={6} /></Form.Item>
+                : <Form.Item name="totpCode" label={t('Authenticator code')} rules={[{ required: true, pattern: /^[0-9]{6}$/ }]}><Input autoComplete="one-time-code" inputMode="numeric" maxLength={6} /></Form.Item>}
+              <Button aria-label={t('Verify and continue')} type="primary" htmlType="submit" loading={loading}>{t('Verify and continue')}</Button>
+            </Form>
+            <Button type="link" disabled={loading} onClick={() => { setPending(undefined); setSetup(undefined); setSent(false); }}>{t('Back to sign in')}</Button>
+          </> : <><Segmented<AccountType>
+            disabled={loading}
             block
             value={accountType}
             options={[
@@ -107,7 +147,7 @@ export default function LoginPage() {
             <Button type="primary" htmlType="submit" block size="large" loading={loading}>
               {t('Sign in')}
             </Button>
-          </Form>
+          </Form></>}
         </div>
       </div>
     </main>

@@ -25,6 +25,7 @@ it('creates an operator, changes their role and resets their password through te
   const writes: Array<{ path: string; body: Record<string, string> }> = [];
   vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const path = String(input);
+    if (path === '/custody/console/v1/users/security') return response(members.map(m => ({ userId: m.id, emailRequired: false, totpRequired: false, totpBound: false, emailDeliveryConfigured: false })));
     if (path === '/custody/console/v1/users' && (!init?.method || init.method === 'GET')) return response(members);
     if (path.startsWith('/custody/console/v1/users') && init?.method) {
       const body = JSON.parse(String(init.body)) as Record<string, string>;

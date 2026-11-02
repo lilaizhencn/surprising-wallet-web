@@ -13,6 +13,7 @@ import {
   MenuUnfoldOutlined,
   SafetyCertificateOutlined,
   SafetyOutlined,
+  UserOutlined,
   SwapOutlined,
   TeamOutlined,
 } from '@ant-design/icons';
@@ -86,6 +87,12 @@ export function ConsoleShell({ accountType }: { accountType: AccountType }) {
 
   const profileItems = useMemo(
     () => [
+      ...(accountType === 'tenant' ? [{
+        key: 'account-security',
+        icon: <UserOutlined />,
+        label: t('Account security'),
+        onClick: () => navigate('/console/account-security'),
+      }] : []),
       {
         key: 'logout',
         icon: <LogoutOutlined />,
@@ -156,7 +163,7 @@ export function ConsoleShell({ accountType }: { accountType: AccountType }) {
           </div>
           <Space size={16}>
             <LanguageSwitch compact />
-            <Dropdown menu={{ items: profileItems }} placement="bottomRight">
+            <Dropdown menu={{ items: profileItems }} placement="bottomRight" trigger={['click']}>
               <Button type="text" className="profile-button">
                 <Avatar size={30}>{initials}</Avatar>
                 <span className="profile-name">{session?.displayName || session?.email}</span>

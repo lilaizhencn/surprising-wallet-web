@@ -21,6 +21,7 @@ it('uses independent login, automatically adds new requests and sends the exact 
     if (path === '/approval/v1/auth/session') return response({ message: 'independent login required' }, 401);
     if (path === '/approval/v1/auth/login') { writes.push({ path, init }); return response(principal); }
     if (path.startsWith('/approval/v1/requests?')) { polls++; const items = polls === 1 ? [withdrawal('first')] : [withdrawal('first'), withdrawal('second')]; return response({ items, total: items.length, limit: 20, offset: 0 }); }
+    if (path === '/approval/v1/requests/first/decisions' && init?.method !== 'POST') return response([]);
     if (path === '/approval/v1/requests/first/decisions') { writes.push({ path, init }); return response({ ...withdrawal('first'), status: 'APPROVED' }); }
     throw new Error(`Unexpected request: ${path}`);
   }));
@@ -132,3 +133,24 @@ it('ignores a late policy response from the previous independent tenant session'
   await act(async () => { staleResponse?.(response([{ chain: 'ETH', network: 'eip155:11155111', assetSymbol: 'LATE_TENANT_ONE_ASSET', version: 1 }])); });
   expect(screen.queryByText('LATE_TENANT_ONE_ASSET')).not.toBeInTheDocument();
 }, 60000);
+
+it('shows every status to the independent administrator and includes prior reviewers before assisting', async () => {
+  const request = { ...withdrawal('assisted'), requiredReviewers: 2 }; let listPath = ''; let reviewed: unknown;
+  vi.stubGlobal('fetch', vi.fn(async (input, init) => {
+    const path = String(input);
+    if (path.endsWith('/auth/session')) return response({ ...principal, memberId: 'admin-1', role: 'TENANT_ADMIN' });
+    if (path.includes('/requests?')) { listPath = path; return response({ items: [request], total: 1 }); }
+    if (path.endsWith('/assisted/decisions')) {
+      if (init?.method === 'POST') { reviewed = JSON.parse(String(init.body)); return response({ ...request, status: 'APPROVED' }); }
+      return response([{ reviewerId: 'reviewer-1', decision: 'APPROVE', reason: 'First reviewer checked', createdAt: '2026-11-02T10:00:00Z' }]);
+    }
+    throw new Error(path);
+  }));
+  const user = userEvent.setup(); render(<MemoryRouter initialEntries={['/approval']}><App /></MemoryRouter>);
+  await screen.findByText('CW-assisted'); expect(new URL(listPath, window.location.origin).searchParams.get('status')).toBe('');
+  await user.click(screen.getByRole('button', { name: 'Review' }));
+  await screen.findByText('First reviewer checked'); expect(screen.getByText('Approval progress: 1 / 2')).toBeInTheDocument();
+  const dialog = within(screen.getByRole('dialog')); await user.type(dialog.getByLabelText('Reason'), 'Administrator independently checked');
+  await user.click(dialog.getByRole('button', { name: 'Record decision' }));
+  await waitFor(() => expect(reviewed).toMatchObject({ decision: 'APPROVE', intentHash: 'assisted-immutable-hash' }));
+}, 30000);

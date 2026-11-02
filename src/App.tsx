@@ -6,6 +6,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { PublicDocsShell } from './components/PublicDocsShell';
 
 const LandingPage = lazyRoute(() => import('./pages/LandingPage'));
+const AccountSecurityPage = lazyRoute(() => import('./pages/AccountSecurityPage'));
 const LoginPage = lazyRoute(() => import('./pages/LoginPage'));
 const OverviewPage = lazyRoute(() => import('./pages/OverviewPage'));
 const AddressesPage = lazyRoute(() => import('./pages/AddressesPage'));
@@ -97,6 +98,7 @@ export default function App() {
           <Route element={<ProtectedRoute accountType="tenant" />}>
             <Route path="/console" element={<ConsoleShell accountType="tenant" />}>
               <Route index element={<Navigate to="overview" replace />} />
+              <Route path="account-security" element={<AccountSecurityPage />} />
               <Route element={<ProtectedRoute accountType="tenant" requiredScope="assets:read" />}>
                 <Route path="overview" element={<OverviewPage />} />
               </Route>
