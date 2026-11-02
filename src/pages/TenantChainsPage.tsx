@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, App, Button, Empty, Space, Switch, Table, Tag, Typography } from 'antd';
+import { Alert, App, Button, Empty, Space, Spin, Switch, Table, Tag, Typography } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { api } from '../api/client';
 import { hasRole, useSession } from '../auth/session';
@@ -43,6 +43,7 @@ export default function TenantChainsPage() {
   const { message } = App.useApp();
   const { t } = useI18n();
   const [saving, setSaving] = useState<string>();
+  const [slow, setSlow] = useState(false);
   const canManage = hasRole(session, 'TENANT_ADMIN');
   const query = useApiQuery<TenantChain[]>((signal) => session
     ? api.get('/custody/console/v1/chains', signal)
@@ -51,6 +52,8 @@ export default function TenantChainsPage() {
   const toggleChain = async (row: TenantChain, enabled: boolean) => {
     const key = `chain:${row.chain}`;
     setSaving(key);
+    setSlow(false);
+    const slowTimer = window.setTimeout(() => setSlow(true), 8000);
     try {
       await api.put(`/custody/console/v1/chains/${row.chain}`, { enabled });
       query.refetch();
@@ -58,13 +61,17 @@ export default function TenantChainsPage() {
     } catch (error) {
       void message.error(t(error instanceof Error ? error.message : 'Unable to update chain'));
     } finally {
+      window.clearTimeout(slowTimer);
       setSaving(undefined);
+      setSlow(false);
     }
   };
 
   const generateAddress = async (chain: string) => {
     const key = `address:${chain}`;
     setSaving(key);
+    setSlow(false);
+    const slowTimer = window.setTimeout(() => setSlow(true), 8000);
     try {
       await api.post('/custody/console/v1/gas-accounts', { chain });
       query.refetch();
@@ -74,7 +81,9 @@ export default function TenantChainsPage() {
         ? error.message
         : t('Unable to generate hot withdrawal wallet'));
     } finally {
+      window.clearTimeout(slowTimer);
       setSaving(undefined);
+      setSlow(false);
     }
   };
 
@@ -133,6 +142,14 @@ export default function TenantChainsPage() {
         description={t('Open a chain to enable its supported tokens and generate its hot withdrawal wallet and Gas funding address.')}
       />
       <ErrorState message={query.error} onRetry={query.refetch} />
+      {saving && <Alert
+        showIcon
+        icon={<Spin size="small" />}
+        type="info"
+        role="status"
+        title={t(saving.startsWith('address:') ? 'Generating {chain} hot withdrawal wallet' : 'Updating {chain} chain', { chain: saving.split(':')[1] })}
+        description={t(slow ? 'Still processing. Please keep this page open; the result will appear when the request finishes.' : 'Processing your request. This can take a little while.')}
+      />}
       <Alert
         showIcon
         type="info"
