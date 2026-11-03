@@ -63,9 +63,9 @@ Console origin.
 资金池提现：交易所经 Core 可用余额授权后，以租户同链同资产本金池出款，独立保存提现用户。Gas 余额不参与本金；平台费用按原报价内扣，仅确认后入账。托管控制台地址出款须明确提现用户标识。
 
 
-## Independent withdrawal approval portal
+## Withdrawal approvals in the console
 
-The Wallet console exposes tenant subaccount management and an entry to the independently hosted approval portal. Set `VITE_APPROVAL_ORIGIN` to its HTTPS origin in the frontend build. Host `/approval` and its static assets under that independent origin; route `/approval/v1/*` to the separately deployed `wallet-approval` authority, not Wallet Java. Keep hosting/deployment access separate from Wallet application access. The portal refuses to show the approval login on another origin, uses a separate host-only secure cookie and never reuses Wallet sessions or API keys.
+The Wallet console shows approvals at `/console/approvals` under the same public origin as the rest of the console. The Worker forwards `/approval/v1/*` to the separately deployed `wallet-approval` authority; it blocks public `/approval/service/*` and serves the normal console assets for all other routes. Set `VITE_APPROVAL_ORIGIN` to the console HTTPS origin. The approval authority still requires its own login, session cookie, and CSRF token; the console checks that the approval identity matches the current Wallet tenant and member before showing approval data. Keep approval runtime and deployment access separate from Wallet application access.
 
 The approval queue polls without GET caching every five seconds, pauses hidden tabs, aborts on unmount, retries network failures after fifteen seconds and returns to independent login when the session expires. Decisions retain the exact displayed intent hash. Policies support single amount, rolling 24-hour amount, first recipient and console withdrawal scenarios, with one or two independent reviewers. Decimal money fields are strings.
 

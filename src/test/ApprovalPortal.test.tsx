@@ -1,8 +1,9 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import App from '../App';
+import { clearSession, saveSession } from '../auth/session';
 
 vi.mock('../approval/origin', () => ({ approvalOrigin: () => window.location.origin }));
 const principal = { tenantId: 'tenant-1', memberId: 'reviewer-1', role: 'APPROVER', displayName: 'Reviewer', email: 'reviewer@example.test', csrfToken: 'csrf-secret' };
@@ -12,7 +13,12 @@ const withdrawal = (id: string) => ({ assetSnapshot: { networkIdentity: 'eip155:
 function response(body: unknown, status = 200): Response {
   return { ok: status < 400, status, headers: new Headers({ 'content-type': 'application/json' }), json: async () => body } as Response;
 }
-afterEach(() => { vi.unstubAllGlobals(); });
+function walletSignIn(memberId = 'reviewer-1', tenantId = 'tenant-1') {
+  saveSession({ version: 2, accountType: 'tenant', expiresAt: '2099-01-01', userId: memberId, tenantId,
+    tenantSlug: tenantId, displayName: memberId, email: `${memberId}@example.test`, role: 'APPROVER', scopes: ['*'] });
+}
+beforeEach(() => walletSignIn());
+afterEach(() => { clearSession(); vi.unstubAllGlobals(); });
 
 it('uses independent login, automatically adds new requests and sends the exact displayed intent hash with CSRF', async () => {
   let polls = 0; const writes: Array<{ path: string; init?: RequestInit }> = [];
@@ -26,7 +32,7 @@ it('uses independent login, automatically adds new requests and sends the exact 
     throw new Error(`Unexpected request: ${path}`);
   }));
   const user = userEvent.setup();
-  render(<MemoryRouter initialEntries={['/approval']}><App /></MemoryRouter>);
+  render(<MemoryRouter initialEntries={['/console/approvals']}><App /></MemoryRouter>);
   await screen.findByText('Independent approval sign in');
   await user.type(screen.getByRole('textbox', { name: 'Email' }), 'reviewer@example.test');
   await user.type(screen.getByLabelText('Password'), 'independent-password-123');
@@ -64,7 +70,7 @@ it('saves tenant thresholds as decimal strings and includes the expected policy 
     throw new Error(`Unexpected request: ${path}`);
   }));
   const user = userEvent.setup();
-  render(<MemoryRouter initialEntries={['/approval']}><App /></MemoryRouter>);
+  render(<MemoryRouter initialEntries={['/console/approvals']}><App /></MemoryRouter>);
   await user.click(await screen.findByRole('tab', { name: 'Approval policies' }));
   await user.click(screen.getByRole('button', { name: 'Add policy' }));
   const dialog = within(screen.getByRole('dialog'));
@@ -90,14 +96,14 @@ it('clears the previous tenant policy list when an independent session signs out
       return new Promise<Response>(resolve => { finishPolicies = resolve; });
     }
     if (path === '/approval/v1/auth/logout') return response({ ok: true });
-    if (path === '/approval/v1/auth/login' && init?.method === 'POST') return response({ ...principal, tenantId: 'tenant-2', memberId: 'admin-2', role: 'TENANT_ADMIN' });
+    if (path === '/approval/v1/auth/login' && init?.method === 'POST') return response({ ...principal, role: 'TENANT_ADMIN' });
     throw new Error(`Unexpected request: ${path}`);
   }));
   const user = userEvent.setup();
-  render(<MemoryRouter initialEntries={['/approval']}><App /></MemoryRouter>);
+  render(<MemoryRouter initialEntries={['/console/approvals']}><App /></MemoryRouter>);
   await user.click(await screen.findByRole('tab', { name: 'Approval policies' }));
   await screen.findByText('TENANT_ONE_ASSET');
-  await user.click(screen.getByRole('button', { name: 'Sign out' }));
+  await user.click(screen.getAllByRole('button', { name: 'Sign out' })[1]);
   await screen.findByText('Independent approval sign in');
   await user.type(screen.getByRole('textbox', { name: 'Email' }), 'admin2@example.test');
   await user.type(screen.getByLabelText('Password'), 'independent-password-456');
@@ -116,14 +122,14 @@ it('ignores a late policy response from the previous independent tenant session'
     if (path.startsWith('/approval/v1/requests?')) return response({ items: [], total: 0, limit: 20, offset: 0 });
     if (path === '/approval/v1/policies') { policyReads++; return policyReads === 1 ? new Promise<Response>(resolve => { staleResponse = resolve; }) : response([]); }
     if (path === '/approval/v1/auth/logout') return response({ ok: true });
-    if (path === '/approval/v1/auth/login') return response({ ...principal, tenantId: 'tenant-2', memberId: 'admin-2', role: 'TENANT_ADMIN' });
+    if (path === '/approval/v1/auth/login') return response({ ...principal, role: 'TENANT_ADMIN' });
     throw new Error(`Unexpected request: ${path}`);
   }));
   const user = userEvent.setup();
-  render(<MemoryRouter initialEntries={['/approval']}><App /></MemoryRouter>);
+  render(<MemoryRouter initialEntries={['/console/approvals']}><App /></MemoryRouter>);
   await user.click(await screen.findByRole('tab', { name: 'Approval policies' }));
   await waitFor(() => expect(staleResponse).toBeDefined());
-  await user.click(screen.getByRole('button', { name: 'Sign out' }));
+  await user.click(screen.getAllByRole('button', { name: 'Sign out' })[1]);
   await screen.findByText('Independent approval sign in');
   await user.type(screen.getByRole('textbox', { name: 'Email' }), 'admin2@example.test');
   await user.type(screen.getByLabelText('Password'), 'independent-password-456');
@@ -146,7 +152,8 @@ it('shows every status to the independent administrator and includes prior revie
     }
     throw new Error(path);
   }));
-  const user = userEvent.setup(); render(<MemoryRouter initialEntries={['/approval']}><App /></MemoryRouter>);
+  walletSignIn('admin-1');
+  const user = userEvent.setup(); render(<MemoryRouter initialEntries={['/console/approvals']}><App /></MemoryRouter>);
   await screen.findByText('CW-assisted'); expect(new URL(listPath, window.location.origin).searchParams.get('status')).toBe('');
   await user.click(screen.getByRole('button', { name: 'Review' }));
   await screen.findByText('First reviewer checked'); expect(screen.getByText('Approval progress: 1 / 2')).toBeInTheDocument();

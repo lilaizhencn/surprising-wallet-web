@@ -23,9 +23,8 @@ it('opens account security when clicking the nickname and binds a QR code only a
     throw new Error(path);
   }));
   const user = userEvent.setup();
-  render(<MemoryRouter initialEntries={['/console/account-security']}><App /></MemoryRouter>);
+  render(<MemoryRouter initialEntries={['/console/approvals']}><App /></MemoryRouter>);
   await user.click(await screen.findByRole('button', { name: /Test Admin/ }));
-  await user.click(await screen.findByRole('menuitem', { name: /Account security/ }));
   await screen.findByText('Email delivery is not configured. Email verification cannot be enabled yet.');
   expect(screen.getByRole('switch', { name: 'Require email verification' })).toBeDisabled();
   await user.type(screen.getByLabelText('Current password'), 'test-password');

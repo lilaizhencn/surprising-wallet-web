@@ -1,9 +1,15 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "surprising-wallet-web",
+  "main": "./src/worker.ts",
   "compatibility_date": "2026-07-22",
+  "vars": {
+    "APPROVAL_UPSTREAM_ORIGIN": "https://approval.43.110.44.53.sslip.io"
+  },
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "single-page-application"
+    "not_found_handling": "single-page-application",
+    "binding": "ASSETS",
+    "run_worker_first": ["/approval/v1/*", "/approval/service/*"]
   }
 }

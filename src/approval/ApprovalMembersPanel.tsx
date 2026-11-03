@@ -46,7 +46,7 @@ export function ApprovalMembersPanel({ csrf, onExpired }: { csrf: string; onExpi
       if (error instanceof ApprovalApiError && error.status === 401) onExpired(); else void message.error(error instanceof Error ? error.message : t('Unable to update reviewer'));
     } finally { if (alive.current) setBusy(false); }
   };
-  const activationLink = activation ? `${window.location.origin}/approval#activate=${activation.token}` : '';
+  const activationLink = activation ? `${window.location.origin}/console/approvals#activate=${activation.token}` : '';
   return <>
     <p>{t('Invite the verified Wallet subaccount using its public member ID. Approval credentials remain separate.')}</p>
     <Button onClick={() => open('invite')}>{t('Invite reviewer')}</Button>

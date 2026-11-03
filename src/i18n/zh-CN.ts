@@ -3,6 +3,9 @@ const messages: Record<string, string> = {
   'Verify the administrator identity before resetting. This revokes all sessions and requires a fresh binding when mandatory.': '请核实管理员身份后再重置。此操作会撤销全部会话；已开启强制验证时须重新绑定。',
 
   "Account security": "账号安全",
+  "My account": "我的账号",
+  "Review requests, policies, and reviewer access in one place.": "在这里处理提币审核、审批规则和审核员权限。",
+  "Use the approval account linked to your current wallet account.": "请使用与当前钱包账号对应的审核账号。",
   "Manage your sign-in verification and authenticator binding.": "管理登录验证方式及谷歌验证器绑定。",
   "Complete sign-in verification": "完成登录验证",
   "Verification expires after 5 minutes. Business access stays locked until all required checks pass.": "验证有效期为 5 分钟，完成全部验证后才能进入后台。",
@@ -1045,7 +1048,7 @@ const messages: Record<string, string> = {
   "EXPIRED": "已过期",
   "Open independent approvals": "打开独立审批系统",
   "Independent approval site has not been configured.": "尚未配置独立审批站点。",
-  "Open approvals only on the configured independent approval site.": "请在已配置的独立审批站点打开审核页面。",
+  "Open approvals only on the configured console site.": "请在后台站点打开审批页面。",
   "All withdrawals require approval": "全部提币需要审批",
   "ALL_WITHDRAWALS": "全部提币审批",
   "Asset identifier": "资产标识",

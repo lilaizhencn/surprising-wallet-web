@@ -16,7 +16,7 @@ export function ProtectedRoute({ accountType, requiredScope, requiredRole }: Pro
       <Navigate
         to="/console/login"
         replace
-        state={{ from: location.pathname, accountType }}
+        state={{ from: location.pathname + location.search + location.hash, accountType }}
       />
     );
   }

@@ -1,4 +1,4 @@
-// Approval credentials and requests stay on the independently hosted approval origin.
+// Approval requests use the console origin and are forwarded to the separate approval authority.
 export class ApprovalApiError extends Error {
   constructor(readonly status: number, message: string) { super(message); }
 }

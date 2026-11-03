@@ -5,8 +5,9 @@ import { approvalRequest, ApprovalApiError } from '../approval/client';
 import { useApprovalPolling } from '../approval/useApprovalPolling';
 import { ApprovalMembersPanel, ApprovalAuditPanel } from '../approval/ApprovalMembersPanel';
 import { ApprovalActivationForm } from '../approval/ApprovalActivationForm';
+import { useSession } from '../auth/session';
+import { PageHeader } from '../components/PageHeader';
 import { useI18n } from '../i18n';
-import { LanguageSwitch } from '../components/LanguageSwitch';
 
 type Principal = { tenantId: string; memberId: string; displayName: string; role: string; email: string; csrfToken: string };
 type Intent = { id: string; chain: string; network: string; assetSymbol: string; recipient: string; amount: string; maximumNetworkFee: string; source: string; subject: string; businessReference: string; initiatorId: string; externalReference: string; fundingSource: string };
@@ -18,6 +19,7 @@ type PolicyFields = Omit<Policy, 'version'>;
 
 export default function ApprovalPortalPage() {
   const { t } = useI18n(); const { message } = App.useApp();
+  const walletSession = useSession();
   const trustedSite = approvalOrigin() === window.location.origin;
   const [principal, setPrincipal] = useState<Principal>();
   const [activationToken, setActivationToken] = useState<string | undefined>(() => {
@@ -39,16 +41,26 @@ export default function ApprovalPortalPage() {
     setStatus(''); setPagination({ current: 1, pageSize: 20 }); decisionForm.resetFields(); policyForm.resetFields();
   }, [decisionForm, policyForm]);
   const expired = useCallback(() => { clearIdentity(); setLoginError(t('Independent approval session expired. Please sign in again.')); }, [clearIdentity, t]);
+  useEffect(() => {
+    if (principal && (principal.tenantId !== walletSession?.tenantId || principal.memberId !== walletSession.userId)) clearIdentity();
+  }, [principal, walletSession?.tenantId, walletSession?.userId, clearIdentity]);
+  const linkedPrincipal = useCallback(async (candidate: Principal) => {
+    if (candidate.tenantId === walletSession?.tenantId && candidate.memberId === walletSession.userId) return candidate;
+    await approvalRequest('/auth/logout', { method: 'POST', csrf: candidate.csrfToken }).catch(() => undefined);
+    throw new Error(t('Use the approval account linked to your current wallet account.'));
+  }, [walletSession?.tenantId, walletSession?.userId, t]);
   useEffect(() => { if (!trustedSite || activationToken || activationCompleted.current) { setChecking(false); return; } const controller = new AbortController();
-    void approvalRequest<Principal>('/auth/session', { signal: controller.signal }).then(setPrincipal).catch(error => {
+    void approvalRequest<Principal>('/auth/session', { signal: controller.signal }).then(linkedPrincipal).then(candidate => {
+      if (!controller.signal.aborted) setPrincipal(candidate);
+    }).catch(error => {
       if (!controller.signal.aborted && !(error instanceof ApprovalApiError && error.status === 401)) setLoginError(error.message);
     }).finally(() => { if (!controller.signal.aborted) setChecking(false); });
     return () => controller.abort();
-  }, [trustedSite, activationToken]);
+  }, [trustedSite, activationToken, linkedPrincipal]);
   const load = useCallback((signal: AbortSignal) => approvalRequest<Page>(`/requests?status=${status}&limit=${pagination.pageSize}&offset=${(pagination.current - 1) * pagination.pageSize}`, { signal }), [status, pagination]);
   const rows = useApprovalPolling(load, expired, Boolean(principal), revision);
   const login = async (fields: { email: string; password: string }) => { setBusy(true); setLoginError('');
-    try { setPrincipal(await approvalRequest<Principal>('/auth/login', { method: 'POST', body: fields })); }
+    try { setPrincipal(await linkedPrincipal(await approvalRequest<Principal>('/auth/login', { method: 'POST', body: fields }))); }
     catch (error) { setLoginError(error instanceof Error ? error.message : t('Unable to sign in')); } finally { setBusy(false); }
   };
   const logout = async () => { try { await approvalRequest('/auth/logout', { method: 'POST', csrf: principal?.csrfToken }); clearIdentity(); setLoginError(''); }
@@ -86,9 +98,9 @@ export default function ApprovalPortalPage() {
     catch (error) { if (version !== identityVersion.current) return; if (error instanceof ApprovalApiError && error.status === 401) expired(); else void message.error(error instanceof Error ? error.message : t('Unable to save policy')); } finally { if (version === identityVersion.current) setBusy(false); }
   };
   const decimal = { pattern: /^(?:0|[1-9]\d{0,59})(?:\.\d{1,24})?$/, message: t('Enter a positive decimal amount') };
-  return <main style={{ maxWidth: 1360, margin: '0 auto', padding: 24 }}>
-    <Space style={{ width: '100%', justifyContent: 'space-between' }}><Typography.Title level={2}>{t('Withdrawal approvals')}</Typography.Title><LanguageSwitch compact /></Space>
-    {!trustedSite ? <Alert type="error" title={t("Open approvals only on the configured independent approval site.")} /> : activationToken ? <ApprovalActivationForm token={activationToken} onComplete={() => { activationCompleted.current = true; window.history.replaceState(null, '', window.location.pathname + window.location.search); clearIdentity(); setActivationToken(undefined); setLoginError(''); }} /> : checking ? <Card loading /> : !principal ? <Card title={t('Independent approval sign in')} style={{ maxWidth: 460 }}>
+  return <div className="page-stack">
+    <PageHeader title={t('Withdrawal approvals')} description={t('Review requests, policies, and reviewer access in one place.')} />
+    {!trustedSite ? <Alert type="error" title={t("Open approvals only on the configured console site.")} /> : activationToken ? <ApprovalActivationForm token={activationToken} onComplete={() => { activationCompleted.current = true; window.history.replaceState(null, '', window.location.pathname + window.location.search); clearIdentity(); setActivationToken(undefined); setLoginError(''); }} /> : checking ? <Card loading /> : !principal ? <Card title={t('Independent approval sign in')} style={{ maxWidth: 460 }}>
       <p>{t('Use your separately activated approval account.')}</p>{loginError && <Alert type="error" title={loginError} />}
       <Form layout="vertical" onFinish={login} preserve={false}><Form.Item name="email" label={t('Email')} rules={[{ required: true, type: 'email' }]}><Input autoComplete="username" /></Form.Item>
         <Form.Item name="password" label={t('Password')} rules={[{ required: true }]}><Input.Password autoComplete="current-password" /></Form.Item>
@@ -155,5 +167,5 @@ export default function ApprovalPortalPage() {
         </Form>
       </Modal>
     </>}
-  </main>;
+  </div>;
 }

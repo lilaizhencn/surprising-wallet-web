@@ -4,6 +4,7 @@ import { App as AntApp } from 'antd';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
 import App from '../App';
+import { clearSession, saveSession } from '../auth/session';
 import { ApprovalMembersPanel, ApprovalAuditPanel } from '../approval/ApprovalMembersPanel';
 
 vi.mock('../approval/origin', () => ({ approvalOrigin: () => window.location.origin }));
@@ -11,7 +12,7 @@ const memberId = '11111111-1111-4111-8111-111111111111';
 const member = { id: memberId, email: 'reviewer@example.test', displayName: 'Existing reviewer', role: 'APPROVER', status: 'ACTIVE', walletRevocationSequence: 0 };
 const activation = { memberId, token: 'a'.repeat(64), expiresAt: '2099-01-01T00:00:00Z' };
 function response(body: unknown, status = 200): Response { return { ok: status < 400, status, json: async () => body } as Response; }
-afterEach(() => { window.history.replaceState(null, '', '/'); });
+afterEach(() => { clearSession(); window.history.replaceState(null, '', '/'); });
 
 it('invites a verified public Wallet identity and requires reasons for reset and disable with independent CSRF', async () => {
   const writes: Array<{ path: string; body: unknown; csrf: unknown }> = [];
@@ -32,17 +33,17 @@ it('invites a verified public Wallet identity and requires reasons for reset and
   await user.type(dialog.getByRole('textbox', { name: 'Name' }), 'New reviewer');
   await user.type(dialog.getByRole('textbox', { name: 'Reason' }), 'Verified independent reviewer identity');
   await user.click(dialog.getByRole('button', { name: 'OK' }));
-  await screen.findByText(`${window.location.origin}/approval#activate=${activation.token}`);
+  await screen.findByText(`${window.location.origin}/console/approvals#activate=${activation.token}`);
   expect(writes[0]).toEqual({ path: '/approval/v1/members', csrf: 'independent-csrf', body: { memberId, email: 'new@example.test', displayName: 'New reviewer', reason: 'Verified independent reviewer identity', acknowledgedWalletRevocation: 0 } });
   expect(JSON.stringify(localStorage)).not.toContain(activation.token);
   await user.click(screen.getByText('Close', { selector: 'button span' }));
-  await waitFor(() => expect(screen.queryByText(`${window.location.origin}/approval#activate=${activation.token}`)).not.toBeInTheDocument());
+  await waitFor(() => expect(screen.queryByText(`${window.location.origin}/console/approvals#activate=${activation.token}`)).not.toBeInTheDocument());
   await user.click(screen.getByRole('button', { name: 'Reset independent credentials' }));
   dialog = within(screen.getByRole('dialog'));
   expect(dialog.getByText('The old password, sessions and activation link stop working immediately.')).toBeInTheDocument();
   await user.type(dialog.getByRole('textbox', { name: 'Reason' }), 'Suspected independent credential exposure');
   await user.click(dialog.getByRole('button', { name: 'OK' }));
-  await screen.findByText(`${window.location.origin}/approval#activate=${activation.token}`);
+  await screen.findByText(`${window.location.origin}/console/approvals#activate=${activation.token}`);
   expect(writes[1]).toMatchObject({ path: `/approval/v1/members/${memberId}/activation`, csrf: 'independent-csrf', body: { reason: 'Suspected independent credential exposure', acknowledgedWalletRevocation: 0 } });
   await user.click(screen.getByText('Close', { selector: 'button span' }));
   await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
@@ -69,17 +70,18 @@ it('does not reveal a late activation capability after the previous administrato
   await waitFor(() => expect(finish).toBeDefined());
   view.rerender(<AntApp><ApprovalMembersPanel key="second-admin" csrf="csrf-2" onExpired={vi.fn()} /></AntApp>);
   await act(async () => { finish?.(response(activation)); });
-  expect(screen.queryByText(`${window.location.origin}/approval#activate=${activation.token}`)).not.toBeInTheDocument();
+  expect(screen.queryByText(`${window.location.origin}/console/approvals#activate=${activation.token}`)).not.toBeInTheDocument();
 }, 60000);
 
-it('activates a fragment capability without Wallet credentials, token storage, automatic login or confirmation-password submission', async () => {
-  window.history.replaceState(null, '', `/approval#activate=${activation.token}`);
+it('activates a fragment capability after Wallet sign in, without token storage or automatic approval login', async () => {
+  saveSession({ version: 2, accountType: 'tenant', expiresAt: '2099-01-01', userId: memberId, tenantId: 'tenant-1', tenantSlug: 'tenant-1', displayName: 'Reviewer', email: 'reviewer@example.test', role: 'APPROVER', scopes: ['*'] });
+  window.history.replaceState(null, '', `/console/approvals#activate=${activation.token}`);
   const calls: Array<{ path: string; body: unknown }> = [];
   vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     calls.push({ path: String(input), body: JSON.parse(String(init?.body)) }); return response({ ok: true });
   }));
   const user = userEvent.setup();
-  render(<MemoryRouter initialEntries={['/approval']}><App /></MemoryRouter>);
+  render(<MemoryRouter initialEntries={['/console/approvals']}><App /></MemoryRouter>);
   await screen.findByText('Activate independent approval account');
   await user.type(screen.getByLabelText('New independent password'), 'independent-password-123');
   await user.type(screen.getByLabelText('Confirm password'), 'independent-password-123');
@@ -126,6 +128,6 @@ it('requires explicit acknowledgment of the latest Wallet revocation before invi
   expect(writes).toHaveLength(0);
   await user.click(checkbox);
   await user.click(dialog.getByRole('button', { name: 'OK' }));
-  await screen.findByText(`${window.location.origin}/approval#activate=${activation.token}`);
+  await screen.findByText(`${window.location.origin}/console/approvals#activate=${activation.token}`);
   expect(writes).toEqual([{ memberId, email: 'new@example.test', displayName: 'Restored reviewer', reason: 'Independently verified current membership', acknowledgedWalletRevocation: 8 }]);
 }, 90000);

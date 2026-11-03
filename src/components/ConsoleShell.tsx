@@ -1,19 +1,17 @@
 import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { App, Avatar, Button, Dropdown, Layout, Menu, Space, Tag, Typography } from 'antd';
+import { App, Avatar, Button, Layout, Menu, Space, Tag, Tooltip, Typography } from 'antd';
 import {
   ApiOutlined,
   AuditOutlined,
   DashboardOutlined,
   DatabaseOutlined,
-  DownOutlined,
   GlobalOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   SafetyCertificateOutlined,
   SafetyOutlined,
-  UserOutlined,
   SwapOutlined,
   TeamOutlined,
 } from '@ant-design/icons';
@@ -85,37 +83,21 @@ export function ConsoleShell({ accountType }: { accountType: AccountType }) {
       .toUpperCase()
   ), [session?.displayName, session?.email]);
 
-  const profileItems = useMemo(
-    () => [
-      ...(accountType === 'tenant' ? [{
-        key: 'account-security',
-        icon: <UserOutlined />,
-        label: t('Account security'),
-        onClick: () => navigate('/console/account-security'),
-      }] : []),
-      {
-        key: 'logout',
-        icon: <LogoutOutlined />,
-        label: t('Sign out'),
-        onClick: async () => {
-          if (session) {
-            const path = accountType === 'platform'
-              ? '/custody/platform/v1/auth/logout'
-              : '/custody/console/v1/auth/logout';
-            try {
-              await api.post(path);
-            } catch {
-              // Local session removal remains authoritative for this browser.
-            }
-          }
-          clearSession();
-          await message.success(t('Signed out'));
-          navigate('/console/login', { replace: true });
-        },
-      },
-    ],
-    [accountType, message, navigate, session, t],
-  );
+  const signOut = async () => {
+    if (session) {
+      const path = accountType === 'platform'
+        ? '/custody/platform/v1/auth/logout'
+        : '/custody/console/v1/auth/logout';
+      try {
+        await api.post(path);
+      } catch {
+        // Local session removal remains authoritative for this browser.
+      }
+    }
+    clearSession();
+    void message.success(t('Signed out'));
+    navigate('/console/login', { replace: true });
+  };
 
   return (
     <Layout className="console-layout">
@@ -163,13 +145,13 @@ export function ConsoleShell({ accountType }: { accountType: AccountType }) {
           </div>
           <Space size={16}>
             <LanguageSwitch compact />
-            <Dropdown menu={{ items: profileItems }} placement="bottomRight" trigger={['click']}>
-              <Button type="text" className="profile-button">
-                <Avatar size={30}>{initials}</Avatar>
-                <span className="profile-name">{session?.displayName || session?.email}</span>
-                <DownOutlined />
-              </Button>
-            </Dropdown>
+            <Button type="text" className="profile-button" onClick={() => navigate(accountType === 'tenant' ? '/console/account-security' : '/platform/account')}>
+              <Avatar size={30}>{initials}</Avatar>
+              <span className="profile-name">{session?.displayName || session?.email}</span>
+            </Button>
+            <Tooltip title={t('Sign out')}>
+              <Button type="text" icon={<LogoutOutlined />} aria-label={t('Sign out')} onClick={() => void signOut()} />
+            </Tooltip>
           </Space>
         </Header>
         <Content className="console-content">

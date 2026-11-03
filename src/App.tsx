@@ -1,5 +1,5 @@
 import { Component, lazy, Suspense, type ComponentType, type ReactNode } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { App as AntApp, Button, Spin } from 'antd';
 import { ConsoleShell } from './components/ConsoleShell';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -7,12 +7,12 @@ import { PublicDocsShell } from './components/PublicDocsShell';
 
 const LandingPage = lazyRoute(() => import('./pages/LandingPage'));
 const AccountSecurityPage = lazyRoute(() => import('./pages/AccountSecurityPage'));
+const PlatformAccountPage = lazyRoute(() => import('./pages/PlatformAccountPage'));
 const LoginPage = lazyRoute(() => import('./pages/LoginPage'));
 const OverviewPage = lazyRoute(() => import('./pages/OverviewPage'));
 const AddressesPage = lazyRoute(() => import('./pages/AddressesPage'));
 const TransfersPage = lazyRoute(() => import('./pages/TransfersPage'));
 const ApiAccessPage = lazyRoute(() => import('./pages/ApiAccessPage'));
-const ApprovalEntryPage = lazyRoute(() => import('./pages/ApprovalEntryPage'));
 const ApprovalPortalPage = lazyRoute(() => import('./pages/ApprovalPortalPage'));
 const TenantMembersPage = lazyRoute(() => import('./pages/TenantMembersPage'));
 const AuditPage = lazyRoute(() => import('./pages/AuditPage'));
@@ -83,6 +83,11 @@ function RouteFallback() {
   );
 }
 
+function ApprovalRedirect() {
+  const { hash } = useLocation();
+  return <Navigate to={`/console/approvals${hash}`} replace />;
+}
+
 export default function App() {
   return (
     <AntApp>
@@ -90,7 +95,7 @@ export default function App() {
         <Suspense fallback={<RouteFallback />}>
           <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/approval" element={<ApprovalPortalPage />} />
+          <Route path="/approval" element={<ApprovalRedirect />} />
           <Route path="/console/login" element={<LoginPage />} />
           <Route element={<PublicDocsShell />}>
             <Route path="/console/developer-docs" element={<DeveloperDocsPage />} />
@@ -105,7 +110,7 @@ export default function App() {
               <Route element={<ProtectedRoute accountType="tenant" requiredScope="chains:read" />}>
                 <Route path="chains" element={<TenantChainsPage />} />
               </Route>
-              <Route element={<ProtectedRoute accountType="tenant" requiredScope="approvals:read" />}><Route path="approvals" element={<ApprovalEntryPage />} /></Route>
+              <Route element={<ProtectedRoute accountType="tenant" requiredScope="approvals:read" />}><Route path="approvals" element={<ApprovalPortalPage />} /></Route>
               <Route element={<ProtectedRoute accountType="tenant" requiredRole="TENANT_ADMIN" />}>
                 <Route path="api-access" element={<ApiAccessPage />} />
                 <Route path="users" element={<TenantMembersPage />} />
@@ -128,6 +133,7 @@ export default function App() {
           <Route element={<ProtectedRoute accountType="platform" />}>
             <Route path="/platform" element={<ConsoleShell accountType="platform" />}>
               <Route index element={<Navigate to="wallet-config" replace />} />
+              <Route path="account" element={<PlatformAccountPage />} />
               <Route path="wallet-config" element={<WalletConfigOverviewPage />} />
               <Route path="wallet-config/chains" element={<Navigate to="/platform/wallet-config" replace />} />
               <Route path="wallet-config/chains/:chainId" element={<WalletChainDetailPage />} />
