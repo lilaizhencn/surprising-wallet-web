@@ -78,7 +78,7 @@ it('activates a fragment capability after Wallet sign in, without token storage 
   window.history.replaceState(null, '', `/console/approvals#activate=${activation.token}`);
   const calls: Array<{ path: string; body: unknown }> = [];
   vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-    if (String(input).includes('/custody/console/v1/approvals?')) return response({ items: [], total: 0 });
+    if (String(input).includes('/custody/console/v1/approvals/authority?')) return response({ items: [], total: 0 });
     calls.push({ path: String(input), body: JSON.parse(String(init?.body)) }); return response({ ok: true });
   }));
   const user = userEvent.setup();

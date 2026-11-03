@@ -13,7 +13,7 @@ const receipt = {
   assetSnapshot: { networkIdentity: 'aptos:2', tokenIdentifier: null, nativeSymbol: 'APT' },
 };
 const withdrawal = {
-  withdrawalId: 'withdrawal-1', orderId: 42, state: 'PENDING', receipt,
+  ...receipt,
   intent: { id: '11111111-1111-4111-8111-111111111111', businessReference: 'CW-admin-review', chain: 'APTOS', network: 'testnet',
     assetSymbol: 'APT', amount: '0.001', recipient: '0xrecipient', maximumNetworkFee: '0.05', source: 'API', subject: 'customer-1',
     initiatorId: 'api-key-1', externalReference: 'merchant-1', fundingSource: 'TENANT_POOL' },
@@ -31,7 +31,7 @@ it('shows the tenant administrator every request without an approval login and v
   signIn(); const writes: Array<{ path: string; body: Record<string, unknown> }> = [];
   vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const path = String(input);
-    if (path.startsWith('/custody/console/v1/approvals?')) return response({ items: [withdrawal], total: 1 });
+    if (path.startsWith('/custody/console/v1/approvals/authority?')) return response({ items: [withdrawal], total: 1 });
     if (path.endsWith('/decisions/step-up')) {
       writes.push({ path, body: JSON.parse(String(init?.body)) });
       return response({ status: 'PENDING' });
@@ -63,7 +63,7 @@ it('keeps a self-initiated console withdrawal view-only', async () => {
   signIn();
   const self = { ...withdrawal, intent: { ...withdrawal.intent, initiatorId: adminId, source: 'CONSOLE' } };
   vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
-    if (String(input).startsWith('/custody/console/v1/approvals?')) return response({ items: [self], total: 1 });
+    if (String(input).startsWith('/custody/console/v1/approvals/authority?')) return response({ items: [self], total: 1 });
     throw new Error(String(input));
   }));
   const user = userEvent.setup();
