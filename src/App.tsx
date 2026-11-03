@@ -14,6 +14,7 @@ const AddressesPage = lazyRoute(() => import('./pages/AddressesPage'));
 const TransfersPage = lazyRoute(() => import('./pages/TransfersPage'));
 const ApiAccessPage = lazyRoute(() => import('./pages/ApiAccessPage'));
 const ApprovalPortalPage = lazyRoute(() => import('./pages/ApprovalPortalPage'));
+const ApprovalPage = lazyRoute(() => import('./pages/ApprovalPage'));
 const TenantMembersPage = lazyRoute(() => import('./pages/TenantMembersPage'));
 const AuditPage = lazyRoute(() => import('./pages/AuditPage'));
 const TenantsPage = lazyRoute(() => import('./pages/TenantsPage'));
@@ -110,7 +111,8 @@ export default function App() {
               <Route element={<ProtectedRoute accountType="tenant" requiredScope="chains:read" />}>
                 <Route path="chains" element={<TenantChainsPage />} />
               </Route>
-              <Route element={<ProtectedRoute accountType="tenant" requiredScope="approvals:read" />}><Route path="approvals" element={<ApprovalPortalPage />} /></Route>
+              <Route element={<ProtectedRoute accountType="tenant" requiredScope="approvals:read" />}><Route path="approvals" element={<ApprovalPage />} /></Route>
+              <Route element={<ProtectedRoute accountType="tenant" requiredRole="TENANT_ADMIN" />}><Route path="approval-settings" element={<ApprovalPortalPage />} /></Route>
               <Route element={<ProtectedRoute accountType="tenant" requiredRole="TENANT_ADMIN" />}>
                 <Route path="api-access" element={<ApiAccessPage />} />
                 <Route path="users" element={<TenantMembersPage />} />

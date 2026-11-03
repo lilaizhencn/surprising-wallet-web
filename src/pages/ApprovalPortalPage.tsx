@@ -32,7 +32,7 @@ export default function ApprovalPortalPage() {
   const [revision, setRevision] = useState(0); const [selected, setSelected] = useState<Request>(); const [decision, setDecision] = useState('APPROVE');
   const [history, setHistory] = useState<DecisionHistory[]>([]); const [historyError, setHistoryError] = useState(''); const [historyLoading, setHistoryLoading] = useState(false);
   const historyVersion = useRef(0);
-  const [decisionForm] = Form.useForm<{ reason: string }>(); const [policyForm] = Form.useForm<PolicyFields>();
+  const [decisionForm] = Form.useForm<{ reason: string; password: string }>(); const [policyForm] = Form.useForm<PolicyFields>();
   const identityVersion = useRef(0); const policyAbort = useRef<AbortController | undefined>(undefined);
   const [policies, setPolicies] = useState<Policy[]>([]); const [editingPolicy, setEditingPolicy] = useState<Policy>(); const [policyOpen, setPolicyOpen] = useState(false);
   const clearIdentity = useCallback(() => {
@@ -75,9 +75,9 @@ export default function ApprovalPortalPage() {
   const canReview = selected && selected.status === 'PENDING' && !selected.signingStarted && new Date(selected.expiresAt).getTime() > Date.now()
     && !(selected.intent.source === 'CONSOLE' && selected.intent.initiatorId === principal?.memberId)
     && !history.some(item => item.reviewerId === principal?.memberId) && !historyLoading && !historyError;
-  const recordDecision = async ({ reason }: { reason: string }) => { if (!selected || !principal || !canReview) return; const version = identityVersion.current; setBusy(true);
+  const recordDecision = async ({ reason, password }: { reason: string; password: string }) => { if (!selected || !principal || !canReview) return; const version = identityVersion.current; setBusy(true);
     try { const result = await approvalRequest<Request>(`/requests/${selected.intent.id}/decisions`, { method: 'POST', csrf: principal.csrfToken,
-      body: { decision, reason, intentHash: selected.intentHash } }); if (version !== identityVersion.current) return; setSelected(undefined); decisionForm.resetFields(); setRevision(n => n + 1);
+      body: { decision, reason, intentHash: selected.intentHash, password } }); if (version !== identityVersion.current) return; setSelected(undefined); decisionForm.resetFields(); setRevision(n => n + 1);
       void message.success(t(result.status === 'EXPIRED' ? 'Approval expired; no decision was accepted.' : 'Decision recorded')); }
     catch (error) { if (version !== identityVersion.current) return; if (error instanceof ApprovalApiError && error.status === 401) expired(); else void message.error(error instanceof Error ? error.message : t('Unable to record decision')); }
     finally { if (version === identityVersion.current) setBusy(false); }
@@ -99,7 +99,7 @@ export default function ApprovalPortalPage() {
   };
   const decimal = { pattern: /^(?:0|[1-9]\d{0,59})(?:\.\d{1,24})?$/, message: t('Enter a positive decimal amount') };
   return <div className="page-stack">
-    <PageHeader title={t('Withdrawal approvals')} description={t('Review requests, policies, and reviewer access in one place.')} />
+    <PageHeader title={t('Approval settings')} description={t('Manage approval policies, reviewers, and audit history.')} />
     {!trustedSite ? <Alert type="error" title={t("Open approvals only on the configured console site.")} /> : activationToken ? <ApprovalActivationForm token={activationToken} onComplete={() => { activationCompleted.current = true; window.history.replaceState(null, '', window.location.pathname + window.location.search); clearIdentity(); setActivationToken(undefined); setLoginError(''); }} /> : checking ? <Card loading /> : !principal ? <Card title={t('Independent approval sign in')} style={{ maxWidth: 460 }}>
       <p>{t('Use your separately activated approval account.')}</p>{loginError && <Alert type="error" title={loginError} />}
       <Form layout="vertical" onFinish={login} preserve={false}><Form.Item name="email" label={t('Email')} rules={[{ required: true, type: 'email' }]}><Input autoComplete="username" /></Form.Item>
@@ -149,7 +149,8 @@ export default function ApprovalPortalPage() {
         ]} />
         {!canReview && !historyLoading && <Alert type="info" title={t('This request is view-only: it is finalized, expired, already reviewed, or initiated by you.')} />}
         <Form disabled={!canReview} form={decisionForm} layout="vertical" onFinish={recordDecision}><Form.Item label={t('Decision')}><Select value={decision} onChange={setDecision} options={[{ value: 'APPROVE', label: t('Approve') }, { value: 'REJECT', label: t('Reject') }]} /></Form.Item>
-          <Form.Item name="reason" label={t('Reason')} rules={[{ required: true, whitespace: true, max: 1000 }]}><Input.TextArea rows={3} /></Form.Item></Form>
+          <Form.Item name="reason" label={t('Reason')} rules={[{ required: true, whitespace: true, max: 1000 }]}><Input.TextArea rows={3} /></Form.Item>
+          <Form.Item name="password" label={t('Approval password')} rules={[{ required: true }]}><Input.Password autoComplete="off" /></Form.Item></Form>
       </Modal>
       <Modal title={t('Approval policy')} open={policyOpen} confirmLoading={busy} onOk={() => policyForm.submit()} onCancel={() => setPolicyOpen(false)}>
         <p>{t('Policy changes apply to new withdrawal requests.')}</p>

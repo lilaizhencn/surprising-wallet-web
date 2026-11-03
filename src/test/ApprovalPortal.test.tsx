@@ -15,7 +15,7 @@ function response(body: unknown, status = 200): Response {
 }
 function walletSignIn(memberId = 'reviewer-1', tenantId = 'tenant-1') {
   saveSession({ version: 2, accountType: 'tenant', expiresAt: '2099-01-01', userId: memberId, tenantId,
-    tenantSlug: tenantId, displayName: memberId, email: `${memberId}@example.test`, role: 'APPROVER', scopes: ['*'] });
+    tenantSlug: tenantId, displayName: memberId, email: `${memberId}@example.test`, role: 'TENANT_ADMIN', scopes: ['*'] });
 }
 beforeEach(() => walletSignIn());
 afterEach(() => { clearSession(); vi.unstubAllGlobals(); });
@@ -32,7 +32,7 @@ it('uses independent login, automatically adds new requests and sends the exact 
     throw new Error(`Unexpected request: ${path}`);
   }));
   const user = userEvent.setup();
-  render(<MemoryRouter initialEntries={['/console/approvals']}><App /></MemoryRouter>);
+  render(<MemoryRouter initialEntries={['/console/approval-settings']}><App /></MemoryRouter>);
   await screen.findByText('Independent approval sign in');
   await user.type(screen.getByRole('textbox', { name: 'Email' }), 'reviewer@example.test');
   await user.type(screen.getByLabelText('Password'), 'independent-password-123');
@@ -52,9 +52,10 @@ it('uses independent login, automatically adds new requests and sends the exact 
   expect(dialog.getByText('merchant-first')).toBeInTheDocument();
   expect(dialog.getByText('Tenant pool')).toBeInTheDocument();
   await user.type(dialog.getByRole('textbox', { name: 'Reason' }), 'Recipient and amount checked');
+  await user.type(dialog.getByLabelText('Approval password'), 'reviewer-password');
   await user.click(dialog.getByRole('button', { name: 'Record decision' }));
   await waitFor(() => expect(writes.length).toBe(2));
-  expect(JSON.parse(String(writes[1].init?.body))).toEqual({ decision: 'APPROVE', reason: 'Recipient and amount checked', intentHash: 'first-immutable-hash' });
+  expect(JSON.parse(String(writes[1].init?.body))).toEqual({ decision: 'APPROVE', reason: 'Recipient and amount checked', intentHash: 'first-immutable-hash', password: 'reviewer-password' });
   expect(writes[1].init?.headers).toMatchObject({ 'X-Approval-CSRF': 'csrf-secret' });
   expect(writes[0].init?.credentials).toBe('same-origin');
 }, 60000);
@@ -70,7 +71,7 @@ it('saves tenant thresholds as decimal strings and includes the expected policy 
     throw new Error(`Unexpected request: ${path}`);
   }));
   const user = userEvent.setup();
-  render(<MemoryRouter initialEntries={['/console/approvals']}><App /></MemoryRouter>);
+  render(<MemoryRouter initialEntries={['/console/approval-settings']}><App /></MemoryRouter>);
   await user.click(await screen.findByRole('tab', { name: 'Approval policies' }));
   await user.click(screen.getByRole('button', { name: 'Add policy' }));
   const dialog = within(screen.getByRole('dialog'));
@@ -100,7 +101,7 @@ it('clears the previous tenant policy list when an independent session signs out
     throw new Error(`Unexpected request: ${path}`);
   }));
   const user = userEvent.setup();
-  render(<MemoryRouter initialEntries={['/console/approvals']}><App /></MemoryRouter>);
+  render(<MemoryRouter initialEntries={['/console/approval-settings']}><App /></MemoryRouter>);
   await user.click(await screen.findByRole('tab', { name: 'Approval policies' }));
   await screen.findByText('TENANT_ONE_ASSET');
   await user.click(screen.getAllByRole('button', { name: 'Sign out' })[1]);
@@ -126,7 +127,7 @@ it('ignores a late policy response from the previous independent tenant session'
     throw new Error(`Unexpected request: ${path}`);
   }));
   const user = userEvent.setup();
-  render(<MemoryRouter initialEntries={['/console/approvals']}><App /></MemoryRouter>);
+  render(<MemoryRouter initialEntries={['/console/approval-settings']}><App /></MemoryRouter>);
   await user.click(await screen.findByRole('tab', { name: 'Approval policies' }));
   await waitFor(() => expect(staleResponse).toBeDefined());
   await user.click(screen.getAllByRole('button', { name: 'Sign out' })[1]);
@@ -153,11 +154,12 @@ it('shows every status to the independent administrator and includes prior revie
     throw new Error(path);
   }));
   walletSignIn('admin-1');
-  const user = userEvent.setup(); render(<MemoryRouter initialEntries={['/console/approvals']}><App /></MemoryRouter>);
+  const user = userEvent.setup(); render(<MemoryRouter initialEntries={['/console/approval-settings']}><App /></MemoryRouter>);
   await screen.findByText('CW-assisted'); expect(new URL(listPath, window.location.origin).searchParams.get('status')).toBe('');
   await user.click(screen.getByRole('button', { name: 'Review' }));
   await screen.findByText('First reviewer checked'); expect(screen.getByText('Approval progress: 1 / 2')).toBeInTheDocument();
   const dialog = within(screen.getByRole('dialog')); await user.type(dialog.getByLabelText('Reason'), 'Administrator independently checked');
+  await user.type(dialog.getByLabelText('Approval password'), 'admin-password');
   await user.click(dialog.getByRole('button', { name: 'Record decision' }));
   await waitFor(() => expect(reviewed).toMatchObject({ decision: 'APPROVE', intentHash: 'assisted-immutable-hash' }));
 }, 30000);

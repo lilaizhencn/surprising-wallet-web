@@ -72,7 +72,7 @@ export function ConsoleShell({ accountType }: { accountType: AccountType }) {
       ? [...items]
         .sort((left, right) => right.key.length - left.key.length)
         .find((item) => location.pathname.startsWith(item.key))?.key ?? location.pathname
-      : location.pathname
+      : location.pathname === '/console/approval-settings' ? '/console/approvals' : location.pathname
   ), [accountType, items, location.pathname]);
   const initials = useMemo(() => (
     (session?.displayName || session?.email || 'A')
