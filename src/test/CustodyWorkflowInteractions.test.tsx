@@ -431,6 +431,11 @@ describe('custody operator workflows', () => {
 
   it('manages the collection address and lists tokens enabled with the chain', async () => {
     let generated = false;
+    let withdrawalPaused = false;
+    let standbyCreated = false;
+    let standbyActivated = false;
+    let standbyQuarantined = false;
+    let aggregateLimit = '10';
     const requests: Array<{ path: string; init?: RequestInit }> = [];
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const path = String(input);
@@ -438,6 +443,74 @@ describe('custody operator workflows', () => {
       if (path === '/custody/console/v1/gas-accounts' && init?.method === 'POST') {
         generated = true;
         return response({ ...gasAccount, childIndex: 1 }, 201);
+      }
+      if (path === '/custody/console/v1/chains/ETH/withdrawals/pause' && init?.method === 'PUT') {
+        withdrawalPaused = JSON.parse(String(init.body)).paused;
+        return response({ withdrawalPaused });
+      }
+      if (path === '/custody/console/v1/hot-wallets?chain=ETH') {
+        return response(standbyCreated ? [{
+          id: 'standby-1', chain: 'ETH', address: '0x' + '56'.repeat(20),
+          label: 'Reserve A', status: standbyQuarantined ? 'QUARANTINED' : standbyActivated ? 'ACTIVE' : 'STANDBY',
+          routePriority: standbyActivated ? 100 : 0,
+          quarantineFenceConfirmed: standbyQuarantined,
+          policies: [{ assetSymbol: 'ETH', targetBalance: '1', maximumBalance: '2',
+            maximumSingleWithdrawal: '0.5', maximum24hWithdrawal: '1' }],
+        }] : []);
+      }
+      if (path === '/custody/console/v1/hot-wallets/exposure-limits?chain=ETH') {
+        return response([{ tenantId: 'tenant-1', chain: 'ETH', assetSymbol: 'ETH',
+          maximumActiveBalance: aggregateLimit }]);
+      }
+      if (path === '/custody/console/v1/hot-wallets/exposure-limits/ETH/ETH' && init?.method === 'PUT') {
+        aggregateLimit = JSON.parse(String(init.body)).maximumActiveBalance;
+        return response({ tenantId: 'tenant-1', chain: 'ETH', assetSymbol: 'ETH',
+          maximumActiveBalance: aggregateLimit });
+      }
+      if (path === '/custody/console/v1/hot-wallets/standby-1/collection-rule-preflight'
+        && init?.method === 'POST') {
+        return response({ independentPolicies: [{ assetSymbol: 'ETH', ruleId: 'rule-1' }] });
+      }
+      if (path === '/custody/console/v1/hot-wallets/standby-1/inventory/ETH/refresh'
+        && init?.method === 'POST') {
+        return response({ walletId: 'standby-1', assetSymbol: 'ETH', observedBalance: '1.25',
+          observedAt: '2026-11-04T00:00:00Z', observedBlockHeight: 42,
+          observedBlockHash: `0x${'a'.repeat(64)}`, overMaximum: false });
+      }
+      if (path === '/custody/console/v1/hot-wallets' && init?.method === 'POST') {
+        standbyCreated = true;
+        return response({ id: 'standby-1' }, 201);
+      }
+      if (path === '/custody/console/v1/hot-wallets/standby-1/quarantine' && init?.method === 'POST') {
+        standbyQuarantined = true;
+        return response({ status: 'QUARANTINED' });
+      }
+      if (path === '/custody/console/v1/hot-wallets/standby-1/activate' && init?.method === 'POST') {
+        standbyActivated = true;
+        return response({ status: 'ACTIVE', routePriority: 100 });
+      }
+      if (path === '/custody/console/v1/hot-wallets/standby-1/confirmed-spends/direct-1/reconcile'
+        && init?.method === 'POST') {
+        return response({ walletId: 'standby-1', orderNo: 'direct-1', txHash: `0x${'f'.repeat(64)}`,
+          observedBlockHeight: 66, observedBlockHash: `0x${'a'.repeat(64)}`,
+          remainingCommittedExposure: '0', newlyAccounted: true });
+      }
+      if (path === '/custody/console/v1/hot-wallets/standby-1/confirmed-collections/collection-1/reconcile'
+        && init?.method === 'POST') {
+        return response({ walletId: 'standby-1', collectionNo: 'collection-1',
+          txHash: `0x${'d'.repeat(64)}`, remainingInboundExposure: '0', newlyAccounted: true });
+      }
+      if (path === '/custody/console/v1/hot-wallets/standby-1/incident-inventory') {
+        return response({ walletId: 'standby-1', chain: 'ETH', address: '0x' + '56'.repeat(20),
+          assets: [{ assetSymbol: 'ETH', tokenIdentifier: null,
+            observedBalance: '0.75', observedNativeBalance: '0.75',
+            observedAt: '2026-11-04T00:00:00Z', accountCodeState: 'EIP7702_DELEGATED',
+            delegatedTo: '0x' + 'ab'.repeat(20), observedBlockHash: '0x' + 'cd'.repeat(32) },
+          { assetSymbol: 'USDC', tokenIdentifier: '0x' + 'ef'.repeat(20),
+            observedBalance: '5', observedNativeBalance: '0.75',
+            observedAt: '2026-11-04T00:00:00Z', accountCodeState: 'EMPTY',
+            delegatedTo: null, observedBlockHash: '0x' + 'cd'.repeat(32) }],
+          rescueReadiness: 'NO_INDEPENDENT_RECOVERY_AUTHORITY', assetTransferComplete: false });
       }
       if (path === '/custody/console/v1/chains') {
         return response([{
@@ -450,6 +523,7 @@ describe('custody operator workflows', () => {
             collectionAddress: generated ? gasAccount.address : null,
             status: 'ACTIVE',
             enabled: true,
+            withdrawalPaused,
             scanEnabled: true,
             withdrawalEnabled: true,
             transferEnabled: true,
@@ -507,6 +581,165 @@ describe('custody operator workflows', () => {
       && item.init?.method === 'POST');
     expect(JSON.parse(String(create?.init?.body))).toEqual({ chain: 'ETH' });
 
+    await user.click(within(generatedRow).getByRole('button', { name: 'Emergency pause' }));
+    const pauseDialog = screen.getByRole('dialog');
+    await user.type(within(pauseDialog).getByRole('textbox', { name: 'Reason' }),
+      'Suspected hot wallet key exposure');
+    await user.click(within(pauseDialog).getByRole('button', { name: 'Emergency pause' }));
+    expect((await screen.findAllByText('Withdrawals paused')).length).toBeGreaterThan(0);
+    const pause = requests.find((item) => item.path === '/custody/console/v1/chains/ETH/withdrawals/pause'
+      && item.init?.method === 'PUT');
+    expect(JSON.parse(String(pause?.init?.body))).toEqual({
+      paused: true, reason: 'Suspected hot wallet key exposure',
+    });
+
+    const currentRow = (await screen.findByText('sepolia')).closest('tr');
+    if (!currentRow) throw new Error('ETH chain row disappeared');
+    await user.click(within(currentRow).getByRole('button', { name: 'Standby wallets' }));
+    const walletDialog = (await screen.findAllByRole('dialog')).at(-1);
+    if (!walletDialog) throw new Error('Standby wallet dialog did not open');
+    await user.click(within(walletDialog).getByRole('combobox', { name: 'Asset' }));
+    const assetPopup = [...document.querySelectorAll<HTMLElement>('.ant-select-dropdown')]
+      .find(popup => !popup.classList.contains('ant-select-dropdown-hidden'));
+    if (!assetPopup) throw new Error('Aggregate asset selector did not open');
+    const visibleAsset = assetPopup.querySelector<HTMLElement>('.ant-select-item-option[title="ETH"]');
+    if (!visibleAsset) throw new Error('ETH asset option is unavailable');
+    await user.click(visibleAsset);
+    await user.type(within(walletDialog).getByRole('textbox', { name: 'Maximum active wallet total' }), '8');
+    await user.click(within(walletDialog).getByRole('button', { name: 'Save aggregate limit' }));
+    await vi.waitFor(() => expect(requests.some(item => item.path
+      === '/custody/console/v1/hot-wallets/exposure-limits/ETH/ETH' && item.init?.method === 'PUT')).toBe(true));
+    const aggregateUpdate = requests.find(item => item.path
+      === '/custody/console/v1/hot-wallets/exposure-limits/ETH/ETH' && item.init?.method === 'PUT');
+    expect(JSON.parse(String(aggregateUpdate?.init?.body))).toEqual({ maximumActiveBalance: '8' });
+    await user.type(within(walletDialog).getByRole('textbox', { name: 'New standby label' }), 'Reserve A');
+    await user.click(within(walletDialog).getByRole('button', { name: 'Create standby address' }));
+    expect(await within(walletDialog).findByText('Reserve A')).toBeInTheDocument();
+    const standby = requests.find((item) => item.path === '/custody/console/v1/hot-wallets'
+      && item.init?.method === 'POST');
+    expect(JSON.parse(String(standby?.init?.body))).toEqual({ chain: 'ETH', label: 'Reserve A' });
+    await user.click(within(walletDialog).getByRole('button', { name: 'Check collection rules' }));
+    expect(await within(walletDialog).findByText('Independent rules verified for 1 assets')).toBeInTheDocument();
+    await user.click(within(walletDialog).getByRole('button', { name: 'Refresh chain balance' }));
+    expect(await within(walletDialog).findByText(/Observed balance: 1.25/)).toBeInTheDocument();
+    expect(within(walletDialog).getByText(/Observed block: 42/)).toBeInTheDocument();
+    await user.click(within(walletDialog).getByRole('button', { name: 'Activate routes' }));
+    expect(await within(walletDialog).findByText('Route priority: 100')).toBeInTheDocument();
+    const activation = requests.find((item) => item.path === '/custody/console/v1/hot-wallets/standby-1/activate'
+      && item.init?.method === 'POST');
+    expect(JSON.parse(String(activation?.init?.body))).toEqual({ routePriority: 100 });
+    await user.type(within(walletDialog).getByRole('textbox', { name: 'Original withdrawal order' }), 'direct-1');
+    await user.click(within(walletDialog).getByRole('button', { name: 'Verify finalized payment' }));
+    expect(await within(walletDialog).findByText(/Remaining committed exposure: 0/)).toBeInTheDocument();
+    expect(requests.some((item) => item.path
+      === '/custody/console/v1/hot-wallets/standby-1/confirmed-spends/direct-1/reconcile')).toBe(true);
+    await user.type(within(walletDialog).getByRole('textbox', { name: 'Original collection reference' }), 'collection-1');
+    await user.click(within(walletDialog).getByRole('button', { name: 'Verify finalized receipt' }));
+    expect(await within(walletDialog).findByText(/Remaining inbound exposure: 0/)).toBeInTheDocument();
+    expect(requests.some((item) => item.path
+      === '/custody/console/v1/hot-wallets/standby-1/confirmed-collections/collection-1/reconcile')).toBe(true);
+    await user.click(within(walletDialog).getByRole('button', { name: 'Quarantine' }));
+    await user.type(await within(walletDialog).findByRole('textbox', { name: 'Reason' }),
+      'Suspected signer compromise');
+    const quarantineSubmit = within(walletDialog).getAllByRole('button', { name: 'Quarantine' }).at(-1);
+    if (!quarantineSubmit) throw new Error('Quarantine submit is unavailable');
+    await user.click(quarantineSubmit);
+    expect((await within(walletDialog).findAllByText('QUARANTINED')).length).toBeGreaterThan(0);
+    const quarantine = requests.find((item) => item.path === '/custody/console/v1/hot-wallets/standby-1/quarantine'
+      && item.init?.method === 'POST');
+    expect(JSON.parse(String(quarantine?.init?.body))).toEqual({ reason: 'Suspected signer compromise' });
+    await user.click(within(walletDialog).getByRole('button', { name: 'Inspect old chain inventory' }));
+    expect(await within(walletDialog).findByText(/ETH: 0.75/)).toBeInTheDocument();
+    expect(within(walletDialog).getByText(new RegExp('0x' + 'ef'.repeat(20)))).toBeInTheDocument();
+    expect(within(walletDialog).getByText('Configured asset balances only; scan unknown tokens separately')).toBeInTheDocument();
+    expect(within(walletDialog).getByText('No independent on-chain rescue authority is installed; this workflow cannot move the old assets')).toBeInTheDocument();
+    expect(within(walletDialog).getByText(/EIP-7702 delegation detected/)).toBeInTheDocument();
+
     expect(requests.some((item) => item.path.includes('/tokens/'))).toBe(false);
+  }, 60_000);
+
+  it('allows emergency pause for a platform-disabled historical chain without opening it', async () => {
+    let paused = false;
+    const requests: Array<{ path: string; init?: RequestInit }> = [];
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const path = String(input);
+      requests.push({ path, init });
+      if (path === '/custody/console/v1/chains') return response([{
+        chain: 'BTC', network: 'mainnet', family: 'bitcoin-like', nativeSymbol: 'BTC',
+        platformEnabled: false, tokens: [], status: 'CLOSED', enabled: false,
+        withdrawalPaused: paused, scanEnabled: false, withdrawalEnabled: false,
+        transferEnabled: false,
+      }]);
+      if (path === '/custody/console/v1/chains/BTC/withdrawals/pause' && init?.method === 'PUT') {
+        paused = JSON.parse(String(init.body)).paused;
+        return response({ withdrawalPaused: paused });
+      }
+      throw new Error(`Unhandled request: ${path}`);
+    }));
+    const user = userEvent.setup();
+    render(<MemoryRouter initialEntries={['/console/chains']}><App /></MemoryRouter>);
+    const row = (await screen.findByText('mainnet')).closest('tr');
+    if (!row) throw new Error('Disabled chain row was not rendered');
+    expect(within(row).getByText('Platform unavailable')).toBeInTheDocument();
+    expect(within(row).getByRole('switch', { name: 'BTC Action' })).toBeDisabled();
+    await user.click(within(row).getByRole('button', { name: 'Emergency pause' }));
+    const dialog = screen.getByRole('dialog');
+    await user.type(within(dialog).getByRole('textbox', { name: 'Reason' }), 'Suspected historical key leak');
+    await user.click(within(dialog).getByRole('button', { name: 'Emergency pause' }));
+    const pausedRow = (await screen.findByText('mainnet')).closest('tr');
+    if (!pausedRow) throw new Error('Paused chain row disappeared');
+    expect(within(pausedRow).getByText('Withdrawals paused')).toBeInTheDocument();
+    expect(within(pausedRow).getByRole('button', { name: 'Resume withdrawals' })).toBeDisabled();
+    const pause = requests.find(item => item.path === '/custody/console/v1/chains/BTC/withdrawals/pause'
+      && item.init?.method === 'PUT');
+    expect(JSON.parse(String(pause?.init?.body))).toEqual({
+      paused: true, reason: 'Suspected historical key leak',
+    });
+  }, 60_000);
+
+  it('submits a staged emergency route switch without claiming funds moved', async () => {
+    const requests: Array<{ path: string; init?: RequestInit }> = [];
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const path = String(input);
+      requests.push({ path, init });
+      if (path === '/custody/console/v1/chains') return response([{
+        chain: 'ETH', network: 'sepolia', family: 'evm', nativeSymbol: 'ETH',
+        tokens: [], status: 'ACTIVE', enabled: true, withdrawalPaused: true,
+        scanEnabled: true, withdrawalEnabled: true, transferEnabled: true,
+      }]);
+      if (path === '/custody/console/v1/hot-wallets?chain=ETH') return response([{
+        id: 'old-wallet', chain: 'ETH', address: '0x' + '11'.repeat(20), label: 'Old hot',
+        status: 'ACTIVE', routePriority: 100, quarantineFenceConfirmed: false, policies: [],
+      }, {
+        id: 'safe-wallet', chain: 'ETH', address: '0x' + '22'.repeat(20), label: 'Safe spare',
+        status: 'STANDBY', routePriority: 100, quarantineFenceConfirmed: false,
+        policies: [{ assetSymbol: 'ETH', targetBalance: '1', maximumBalance: '2',
+          maximumSingleWithdrawal: '0.5', maximum24hWithdrawal: '1' }],
+      }]);
+      if (path === '/custody/console/v1/hot-wallets/exposure-limits?chain=ETH') return response([]);
+      if (path === '/custody/console/v1/hot-wallets/emergency-switch' && init?.method === 'POST') {
+        return response({ withdrawalPaused: true, assetTransferComplete: false });
+      }
+      throw new Error(`Unhandled request: ${path}`);
+    }));
+
+    const user = userEvent.setup();
+    render(<MemoryRouter initialEntries={['/console/chains']}><App /></MemoryRouter>);
+    await screen.findByRole('heading', { name: 'Chains', level: 1 });
+    await user.click(screen.getByRole('button', { name: 'Standby wallets' }));
+    const dialog = (await screen.findAllByRole('dialog')).at(-1);
+    if (!dialog) throw new Error('Hot wallet dialog did not open');
+    await user.click(within(dialog).getByRole('combobox', { name: 'Compromised active wallet' }));
+    await user.click((await screen.findAllByText('Old hot')).at(-1)!);
+    await user.click(within(dialog).getByRole('combobox', { name: 'Safe standby wallet' }));
+    await user.click((await screen.findAllByText('Safe spare')).at(-1)!);
+    await user.type(within(dialog).getByRole('textbox', { name: 'Reason' }), 'Suspected signing key leak');
+    await user.click(within(dialog).getByRole('button', { name: 'Pause, quarantine and switch' }));
+    const request = requests.find(item => item.path === '/custody/console/v1/hot-wallets/emergency-switch');
+    expect(JSON.parse(String(request?.init?.body))).toEqual({
+      oldWalletId: 'old-wallet', standbyWalletId: 'safe-wallet', routePriority: 100,
+      reason: 'Suspected signing key leak',
+    });
+    expect(await screen.findByText(/Withdrawals remain paused; assets were not moved/)).toBeInTheDocument();
   }, 60_000);
 });
