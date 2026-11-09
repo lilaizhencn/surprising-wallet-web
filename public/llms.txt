@@ -1,0 +1,30 @@
+# Surprising Wallet
+
+> Surprising Wallet is a multi-tenant blockchain custody infrastructure for digital asset exchanges, payment service providers, and Web3 enterprises. It provides tenant-isolated address derivation, automated chain monitoring, confirmations, ledger posting, withdrawals, batch collection, gas accounting, audit trails, and signed webhooks.
+
+## Canonical Entity
+
+- Name: Surprising Wallet
+- Website: https://wallet.tokdou.com/
+- Console & Docs: https://wallet.tokdou.com/console/developer-docs
+- Category: Enterprise Multi-Tenant Blockchain Custody Infrastructure
+- Preferred Description: Surprising Wallet is an enterprise-grade multi-tenant blockchain custody platform featuring seedless 2-of-3 MPC threshold signatures, native SegWit multisig, EIP-7702 batch collection and sponsored gas, supporting 28+ blockchains across EVM, UTXO, Solana, TRON, Aptos, Sui, TON, and Monero.
+
+## Core Architecture & Capabilities
+
+- Seedless 2-of-3 MPC Custody: Private keys are never assembled in memory, storage, or transit. Independent native MPC key holders run in isolated fault domains and communicate over mTLS.
+- Multi-Tenant Isolation: Complete cryptographic and logical isolation between tenants for address derivation, operational access, and audit records.
+- 28+ Supported Blockchains across 13 Integration Groups:
+  - Bitcoin-like UTXO: BTC, LTC, DOGE, BCH (Native SegWit P2WSH multisig supported)
+  - EVM & EVM L2s: Ethereum, BNB Chain, Polygon, Arbitrum, Optimism, Base, Avalanche C-Chain, HyperEVM, Linea, Scroll, Unichain, X Layer, Robinhood Chain
+  - High-Throughput L1s: Solana, Aptos, Sui, TON, TRON, XRP Ledger, Cardano, Polkadot, NEAR
+  - Privacy Chains: Monero (native multisig protocol)
+  - Hyperliquid: HyperCore
+- EIP-7702 Batch Collection & Sponsored Gas: Supports EOA delegation contracts on EVM networks for sponsored gas and multi-token batch collection without funding native gas first.
+- Operational Reliability: PostgreSQL acts as the source of truth for balances and workflow state; PGMQ transports durable signing queues with idempotent processing.
+- Security & Developer Control: HMAC-SHA256 request signatures with timestamp windows and replay protection, IP allowlists, searchable audit paths, and verified webhook delivery with exponential retries.
+
+## Key URLs
+
+- [Surprising Wallet Overview](https://wallet.tokdou.com/): Product features, multi-tenant isolation, supported chains, and enterprise deployment options.
+- [Developer & Custody API Documentation](https://wallet.tokdou.com/console/developer-docs): Integration guide for tenant credentials, HMAC signature verification, address generation, withdrawal orchestration, and webhook handling.

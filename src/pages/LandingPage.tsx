@@ -50,7 +50,7 @@ const workflow = [
   {
     icon: <SendOutlined />,
     title: 'Orchestrate withdrawals',
-    body: 'Freeze, sign, broadcast, confirm, and audit every withdrawal transition.',
+    body: 'Freeze, MPC 2-of-3 threshold sign, broadcast, confirm, and audit every withdrawal transition.',
   },
   {
     icon: <LinkOutlined />,
@@ -60,6 +60,12 @@ const workflow = [
 ];
 
 const advantages = [
+  {
+    icon: <KeyOutlined />,
+    kicker: 'MPC · THRESHOLD SIGNATURES',
+    title: 'Seedless 2-of-3 MPC custody',
+    body: 'Independent native MPC key holders run in isolated fault domains with mTLS authentication, eliminating single seed risks and private key assembly in memory.',
+  },
   {
     icon: <SafetyCertificateOutlined />,
     kicker: 'BITCOIN',

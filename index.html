@@ -3,15 +3,104 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Surprising Wallet — Multi-Tenant Blockchain Custody &amp; Seedless 2-of-3 MPC Infrastructure</title>
     <meta
       name="description"
-      content="Multi-tenant blockchain custody infrastructure for addresses, deposits, withdrawals, and signed webhooks."
+      content="Enterprise multi-tenant blockchain custody platform with seedless 2-of-3 MPC threshold signatures, supporting 28+ blockchains, EIP-7702 batch collection, and verified webhooks."
     />
-    <link rel="icon" href="/brand/surprising-mark.png" />
-    <title>Surprising Wallet</title>
+    <meta
+      name="keywords"
+      content="blockchain custody, MPC wallet, threshold signatures, multi-tenant custody, crypto custody API, Bitcoin multisig, EIP-7702 sponsored gas, institutional digital asset custody"
+    />
+    <meta name="author" content="Surprising" />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <link rel="canonical" href="https://wallet.tokdou.com/" />
+    <link rel="icon" type="image/png" href="/brand/surprising-mark.png" />
+    <link rel="apple-touch-icon" href="/brand/surprising-mark.png" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://wallet.tokdou.com/" />
+    <meta property="og:title" content="Surprising Wallet — Multi-Tenant Blockchain Custody &amp; Seedless 2-of-3 MPC Infrastructure" />
+    <meta property="og:description" content="Enterprise multi-tenant blockchain custody platform with seedless 2-of-3 MPC threshold signatures, supporting 28+ blockchains, EIP-7702 batch collection, and verified webhooks." />
+    <meta property="og:image" content="https://wallet.tokdou.com/brand/surprising-mark.png" />
+    <meta property="og:site_name" content="Surprising Wallet" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://wallet.tokdou.com/" />
+    <meta name="twitter:title" content="Surprising Wallet — Multi-Tenant Blockchain Custody &amp; MPC Infrastructure" />
+    <meta name="twitter:description" content="Enterprise multi-tenant blockchain custody platform with seedless 2-of-3 MPC threshold signatures, supporting 28+ blockchains, EIP-7702 batch collection, and verified webhooks." />
+    <meta name="twitter:image" content="https://wallet.tokdou.com/brand/surprising-mark.png" />
+
+    <!-- Structured Data (JSON-LD) for Search Engines & Generative AI -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://wallet.tokdou.com/#software",
+          "name": "Surprising Wallet",
+          "applicationCategory": "BusinessApplication",
+          "operatingSystem": "All",
+          "description": "Enterprise multi-tenant blockchain custody platform with seedless 2-of-3 MPC threshold signatures, supporting 28+ blockchains, EIP-7702 batch collection, and verified webhooks.",
+          "url": "https://wallet.tokdou.com/",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          },
+          "featureList": [
+            "Seedless 2-of-3 MPC threshold signatures",
+            "Multi-tenant cryptographic address derivation",
+            "Support for 28+ blockchains across 13 integration groups",
+            "EIP-7702 sponsored gas and batch sweeping",
+            "Signed HMAC webhooks with replay protection",
+            "Durable PGMQ signing workflow"
+          ]
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://wallet.tokdou.com/#organization",
+          "name": "Surprising",
+          "url": "https://wallet.tokdou.com/",
+          "logo": "https://wallet.tokdou.com/brand/surprising-mark.png"
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Semantic snapshot for search engines and crawlers before JS hydration -->
+      <header>
+        <h1>Surprising Wallet — Enterprise Multi-Tenant Blockchain Custody</h1>
+        <p>Blockchain infrastructure for every product you build. Multi-tenant address derivation, automated chain monitoring, confirmations, withdrawals, batch collection, and signed webhooks.</p>
+        <nav>
+          <a href="#product">Product</a>
+          <a href="#chains">Chains</a>
+          <a href="#security">Security</a>
+          <a href="/console/developer-docs">Developer API Documentation</a>
+        </nav>
+      </header>
+      <main>
+        <section>
+          <h2>Seedless 2-of-3 MPC Custody &amp; Security Architecture</h2>
+          <p>Independent native MPC holders run in isolated fault domains with mTLS authentication, eliminating single seed risks and private key assembly in memory.</p>
+          <ul>
+            <li><strong>Seedless 2-of-3 MPC custody:</strong> Private keys are never assembled in memory, storage, or transit.</li>
+            <li><strong>Native SegWit multisig:</strong> Reduced transaction weight and network fees for Bitcoin-like UTXO networks.</li>
+            <li><strong>EVM · EIP-7702:</strong> Batch collection and sponsored gas without funding native gas first.</li>
+            <li><strong>Multi-tenant isolation:</strong> Tenant identity comes from HMAC credentials with deterministic address derivation.</li>
+          </ul>
+        </section>
+        <section>
+          <h2>28+ Supported Blockchains Across 13 Integration Groups</h2>
+          <p>BTC, ETH, Solana, TRON, Aptos, Sui, TON, Avalanche C-Chain, Arbitrum, Optimism, Base, HyperEVM, HyperCore, Monero, Cardano, Polkadot, XRP, and more.</p>
+        </section>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

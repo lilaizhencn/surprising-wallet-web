@@ -1,0 +1,37 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://wallet.tokdou.com/#software",
+      "name": "Surprising Wallet",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "All",
+      "description": "Multi-tenant blockchain custody platform featuring seedless 2-of-3 MPC threshold signatures, supporting 28+ blockchains with EIP-7702 batch collection and signed webhooks.",
+      "url": "https://wallet.tokdou.com/",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "Seedless 2-of-3 MPC threshold signatures",
+        "Multi-tenant cryptographic address derivation",
+        "Support for 28+ blockchains including Bitcoin, Ethereum, Solana, TRON, Aptos, Sui, TON, and Monero",
+        "EIP-7702 sponsored gas and batch sweeping",
+        "Signed HMAC webhooks with replay protection",
+        "Durable PGMQ signing workflow"
+      ]
+    },
+    {
+      "@type": "Organization",
+      "@id": "https://wallet.tokdou.com/#organization",
+      "name": "Surprising Wallet",
+      "url": "https://wallet.tokdou.com/",
+      "logo": "https://wallet.tokdou.com/brand/surprising-mark.png",
+      "sameAs": [
+        "https://surprising.top"
+      ]
+    }
+  ]
+}

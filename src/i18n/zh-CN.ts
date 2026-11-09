@@ -1,4 +1,8 @@
 const messages: Record<string, string> = {
+  'MPC · THRESHOLD SIGNATURES': 'MPC · 门限签名安全',
+  'Seedless 2-of-3 MPC custody': '无私钥种子 2-of-3 MPC 托管',
+  'Independent native MPC key holders run in isolated fault domains with mTLS authentication, eliminating single seed risks and private key assembly in memory.': '独立原生 MPC 签名节点运行在隔离故障域中并通过双向 mTLS 认证，消除了单点种子与内存组装私钥的风险。',
+  'Freeze, MPC 2-of-3 threshold sign, broadcast, confirm, and audit every withdrawal transition.': '提现冻结、独立 MPC 2-of-3 门限签名、广播上链、区块确认与状态审计全流程自动化。',
   'SECURITY.ADMIN_TOTP_RESET': '平台重置租户管理员谷歌绑定',
   'Verify the administrator identity before resetting. This revokes all sessions and requires a fresh binding when mandatory.': '请核实管理员身份后再重置。此操作会撤销全部会话；已开启强制验证时须重新绑定。',
 

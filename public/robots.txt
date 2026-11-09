@@ -1,0 +1,11 @@
+# robots.txt for Surprising Wallet
+User-agent: *
+Allow: /
+Allow: /console/developer-docs
+Allow: /brand/
+Disallow: /console/
+Disallow: /platform/
+Disallow: /approval/
+Disallow: /api/
+
+Sitemap: https://wallet.tokdou.com/sitemap.xml

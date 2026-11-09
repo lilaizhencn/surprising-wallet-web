@@ -24,6 +24,7 @@ describe('LandingPage', () => {
     ).toBeInTheDocument();
     expect(screen.getAllByText('Tenant isolation')).not.toHaveLength(0);
     expect(screen.getByText('Reliable webhook delivery')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Seedless 2-of-3 MPC custody' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Native SegWit multisig' })).toBeInTheDocument();
     expect(screen.getByRole('heading', {
       name: 'Batch collection and sponsored gas',
